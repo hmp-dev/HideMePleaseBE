@@ -1,0 +1,41 @@
+name: 'Tests and Linting'
+
+on:
+    push:
+        branches: [main, staging, development]
+    pull_request:
+        branches: [main, staging, development]
+env:
+    NODE_OPTIONS: '--max_old_space_size=4096'
+jobs:
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+            - name: Install Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+            - uses: pnpm/action-setup@v2.4.0
+              name: Install pnpm
+              id: pnpm-install
+              with:
+                  version: 8
+            - name: Get pnpm store directory
+              id: pnpm-cache
+              run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+            - uses: actions/cache@v4
+              name: Setup pnpm cache
+              with:
+                  path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: ${{ runner.os }}-pnpm-store-
+            - name: Install dependencies
+              run: pnpm install -r
+            - name: Prisma Generate
+              run: pnpm run prisma:generate
+            - name: Apply Prettier
+              run: pnpm run format
+            - name: Eslint
+              run: pnpm run check
