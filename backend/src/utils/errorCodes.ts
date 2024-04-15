@@ -1,1 +1,4 @@
-export enum ErrorCodes {}
+export enum ErrorCodes {
+	COULD_NOT_VERIFY = 'COULD_NOT_VERIFY',
+	JWT_INVALID_OR_EXPIRED = 'JWT_INVALID_OR_EXPIRED',
+}

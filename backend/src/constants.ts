@@ -16,4 +16,6 @@ export enum ApiVersions {
 
 export const GLOBAL_LANG = process.env.GLOBAL_LANG ?? SupportedLanguage.ENGLISH;
 
-export const CACHE_TTL = {};
+export const CACHE_TTL = {
+	ONE_MONTH_IN_SECONDS: 2630000,
+};
