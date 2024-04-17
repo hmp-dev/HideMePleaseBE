@@ -3,17 +3,11 @@ export enum SupportedLanguage {
 	KOREAN = 'ko',
 }
 
-interface FirebaseLoginContext {
-	firebaseId: string;
-	loginType: LoginType.FIREBASE;
+export interface AuthContext {
+	loginType: LoginType;
+	firebaseId?: string;
+	nullifierHash?: string;
 }
-
-interface WorldLoginContext {
-	nullifierHash: string;
-	loginType: LoginType.WORLDCOIN;
-}
-
-export type AuthContext = FirebaseLoginContext | WorldLoginContext;
 
 export enum LoginType {
 	FIREBASE = 'FIREBASE',

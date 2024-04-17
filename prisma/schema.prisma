@@ -14,4 +14,40 @@ model User {
   deleted          Boolean  @default(false)
   wldNullifierHash String?  @unique
   firebaseId       String?  @unique
+  WalletModule     Wallet[]
+}
+
+enum SupportedChains {
+  ETHEREUM
+}
+
+model Nft {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+  deleted         Boolean         @default(false)
+  name            String
+  symbol          String
+  link            String
+  contractAddress String
+  contractType    String
+  collectionLogo  String
+  chain           SupportedChains
+
+  @@index([symbol, chain])
+}
+
+enum WalletProvider {
+  METAMASK
+}
+
+model Wallet {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  deleted       Boolean        @default(false)
+  userId        String         @db.Uuid
+  user          User           @relation(fields: [userId], references: [id])
+  publicAddress String         @unique
+  provider      WalletProvider
 }

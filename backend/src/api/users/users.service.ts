@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { AuthContext, LoginType } from '@/types';
+import { AuthContext } from '@/types';
 
 @Injectable()
 export class UsersService {
@@ -21,16 +21,10 @@ export class UsersService {
 			where: {
 				OR: [
 					{
-						firebaseId:
-							authContext.loginType === LoginType.FIREBASE
-								? authContext.firebaseId
-								: undefined,
+						firebaseId: authContext.firebaseId,
 					},
 					{
-						wldNullifierHash:
-							authContext.loginType === LoginType.WORLDCOIN
-								? authContext.nullifierHash
-								: undefined,
+						wldNullifierHash: authContext.nullifierHash,
 					},
 				],
 			},
@@ -38,18 +32,11 @@ export class UsersService {
 	}
 
 	private async createUser(authContext: AuthContext) {
-		if (authContext.loginType === LoginType.FIREBASE) {
-			return await this.prisma.user.create({
-				data: {
-					firebaseId: authContext.firebaseId,
-				},
-			});
-		} else {
-			return await this.prisma.user.create({
-				data: {
-					wldNullifierHash: authContext.nullifierHash,
-				},
-			});
-		}
+		return await this.prisma.user.create({
+			data: {
+				firebaseId: authContext.firebaseId,
+				wldNullifierHash: authContext.nullifierHash,
+			},
+		});
 	}
 }
