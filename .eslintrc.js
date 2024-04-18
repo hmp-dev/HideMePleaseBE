@@ -17,6 +17,7 @@ const rules = {
 const project = [
 	'./tsconfig.json',
 	'./backend/tsconfig.json',
+	'./world-auth-app/tsconfig.json',
 ];
 
 const settings = {
