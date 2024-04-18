@@ -15,6 +15,7 @@
 	"author": "Hidemeplease",
 	"license": "UNLICENSED",
 	"dependencies": {
+		"@moralisweb3/common-evm-utils": "^2.26.0",
 		"@nestjs/cache-manager": "^2.2.2",
 		"@nestjs/common": "^10.3.7",
 		"@nestjs/config": "^3.2.2",
@@ -22,6 +23,7 @@
 		"@nestjs/jwt": "^10.2.0",
 		"@nestjs/passport": "^10.0.3",
 		"@nestjs/platform-express": "^10.3.7",
+		"@nestjs/schedule": "^4.0.2",
 		"@nestjs/swagger": "^7.3.1",
 		"@supercharge/promise-pool": "^3.2.0",
 		"axios": "^1.6.8",
@@ -33,6 +35,7 @@
 		"express": "^4.19.2",
 		"express-session": "^1.18.0",
 		"firebase-admin": "^12.0.0",
+		"moralis": "^2.26.0",
 		"nestjs-i18n": "10.4.5",
 		"nestjs-pino": "^4.0.0",
 		"passport-http": "^0.3.0",

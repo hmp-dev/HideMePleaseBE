@@ -1,16 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import { UsersService } from '@/api/users/users.service';
 import { CreateWalletDTO } from '@/api/wallet/wallet.dto';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { ErrorCodes } from '@/utils/errorCodes';
+import { AuthContext } from '@/types';
 
 @Injectable()
 export class WalletService {
-	constructor(
-		private prisma: PrismaService,
-		private usersService: UsersService,
-	) {}
+	constructor(private prisma: PrismaService) {}
 
 	async createWallet({
 		request,
@@ -19,14 +15,11 @@ export class WalletService {
 		request: Request;
 		createWalletDTO: CreateWalletDTO;
 	}) {
-		const user = await this.usersService.getOrCreateUser({ request });
-		if (!user) {
-			throw new BadRequestException(ErrorCodes.USER_DOES_NOT_EXIST);
-		}
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
 		return await this.prisma.wallet.create({
 			data: {
-				userId: user.id,
+				userId: authContext.userId,
 				publicAddress,
 				provider,
 			},
@@ -34,14 +27,11 @@ export class WalletService {
 	}
 
 	async getWallets({ request }: { request: Request }) {
-		const user = await this.usersService.getOrCreateUser({ request });
-		if (!user) {
-			throw new BadRequestException(ErrorCodes.USER_DOES_NOT_EXIST);
-		}
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
 		return await this.prisma.wallet.findMany({
 			where: {
-				userId: user.id,
+				userId: authContext.userId,
 			},
 		});
 	}

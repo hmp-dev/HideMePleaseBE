@@ -4,6 +4,7 @@ import { plainToInstance } from 'class-transformer';
 import {
 	IsEnum,
 	IsNotEmpty,
+	IsNumber,
 	IsPositive,
 	IsString,
 	validateSync,
@@ -36,6 +37,14 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	JWT_SECRET!: string;
+
+	@IsNotEmpty()
+	@IsNumber()
+	MORALIS_CU_PER_SECOND!: number;
+
+	@IsNotEmpty()
+	@IsString()
+	MORALIS_API_KEY!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

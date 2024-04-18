@@ -1,10 +1,17 @@
 import { Module } from '@nestjs/common';
 
-import { UsersService } from '@/api/users/users.service';
+import { ComputeUnitService } from '@/modules/moralis/compute-unit.service';
+import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
+import { MoralisNftService } from '@/modules/moralis/moralis-nft.service';
 
 @Module({
 	imports: [],
-	providers: [UsersService],
-	exports: [UsersService],
+	providers: [
+		MoralisNftService,
+		MoralisApiService,
+		ComputeUnitService,
+		MoralisApiService,
+	],
+	exports: [MoralisNftService, MoralisApiService],
 })
-export class UsersModule {}
+export class MoralisModule {}

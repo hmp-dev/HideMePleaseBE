@@ -1,5 +1,6 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import { LoggerModule } from 'nestjs-pino';
 import path from 'path';
@@ -30,6 +31,7 @@ const DEFAULT_MODULES = [
 		},
 		resolvers: [AcceptLanguageResolver],
 	}),
+	ScheduleModule.forRoot(),
 ];
 
 /* c8 ignore next */

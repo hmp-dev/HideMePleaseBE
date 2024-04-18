@@ -19,6 +19,8 @@ model User {
 
 enum SupportedChains {
   ETHEREUM
+  POLYGON
+  MUMBAI
 }
 
 model Nft {
@@ -39,6 +41,10 @@ model Nft {
 
 enum WalletProvider {
   METAMASK
+  KLIP
+  PHANTOM
+  WALLET_CONNECT
+  WEMIX
 }
 
 model Wallet {

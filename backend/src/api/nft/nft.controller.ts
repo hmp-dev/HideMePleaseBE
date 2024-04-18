@@ -19,4 +19,13 @@ export class NftController {
 	getUser(@Req() request: Request) {
 		return this.nftService.getWelcomeNft({ request });
 	}
+
+	@ApiOperation({
+		summary: 'Gets my nft collections',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collections')
+	getNftCollections(@Req() request: Request) {
+		return this.nftService.getNftCollections({ request });
+	}
 }

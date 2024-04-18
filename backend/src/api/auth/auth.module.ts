@@ -6,6 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from '@/api/auth/auth.controller';
 import { AuthGuard } from '@/api/auth/auth.guard';
 import { AuthService } from '@/api/auth/auth.service';
+import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { CACHE_TTL } from '@/constants';
 import { FirebaseModule } from '@/modules/firebase/firebase.module';
 
@@ -21,7 +22,7 @@ import { FirebaseModule } from '@/modules/firebase/firebase.module';
 		FirebaseModule,
 	],
 	controllers: [AuthController],
-	providers: [AuthGuard, AuthService],
-	exports: [AuthGuard],
+	providers: [AuthGuard, AuthService, EnsureUserService],
+	exports: [AuthGuard, EnsureUserService],
 })
 export class AuthModule {}

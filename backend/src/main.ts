@@ -11,6 +11,7 @@ import { Logger } from 'nestjs-pino';
 
 import { ApiVersions } from '@/constants';
 import { PrismaExceptionFilter } from '@/exception-filters/prisma-exception';
+import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
 import { EnvironmentVariables } from '@/utils/env';
 
 import { AppModule } from './app';
@@ -50,6 +51,8 @@ import { setupValidationPipe } from './utils/configuration';
 	app.useGlobalFilters(new PrismaExceptionFilter());
 
 	const configService = app.get(ConfigService<EnvironmentVariables, true>);
+	const moralisApiService = app.get(MoralisApiService);
+	void moralisApiService.init();
 
 	const port = configService.get<number>('SERVER_PORT');
 	await app.listen(port);

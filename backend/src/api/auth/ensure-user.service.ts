@@ -4,11 +4,14 @@ import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 
 @Injectable()
-export class UsersService {
+export class EnsureUserService {
 	constructor(private prisma: PrismaService) {}
 
-	async getOrCreateUser({ request }: { request: Request }) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+	async getOrCreateUser({
+		authContext,
+	}: {
+		authContext: Partial<AuthContext>;
+	}) {
 		try {
 			return await this.retrieveUser(authContext);
 		} catch {
@@ -16,10 +19,13 @@ export class UsersService {
 		}
 	}
 
-	private async retrieveUser(authContext: AuthContext) {
+	private async retrieveUser(authContext: Partial<AuthContext>) {
 		return this.prisma.user.findFirstOrThrow({
 			where: {
 				OR: [
+					{
+						id: authContext.userId,
+					},
 					{
 						firebaseId: authContext.firebaseId,
 					},
@@ -31,7 +37,7 @@ export class UsersService {
 		});
 	}
 
-	private async createUser(authContext: AuthContext) {
+	private async createUser(authContext: Partial<AuthContext>) {
 		return await this.prisma.user.create({
 			data: {
 				firebaseId: authContext.firebaseId,

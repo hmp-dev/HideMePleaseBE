@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 import { FirebaseLoginDTO, WorldcoinLoginDTO } from '@/api/auth/auth.dto';
+import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { FirebaseService } from '@/modules/firebase/firebase.service';
 import { WorldcoinService } from '@/modules/worldcoin/worldcoin.service';
 import { AuthContext, LoginType } from '@/types';
@@ -12,6 +13,7 @@ export class AuthService {
 		private firebaseService: FirebaseService,
 		private jwtService: JwtService,
 		private worldcoinService: WorldcoinService,
+		private ensureUserService: EnsureUserService,
 	) {}
 
 	async firebaseLogin({
@@ -22,9 +24,18 @@ export class AuthService {
 		const decodedIdToken =
 			await this.firebaseService.decodeBearerToken(token);
 
-		const authContext: AuthContext = {
+		const partialContext = {
 			firebaseId: decodedIdToken.uid,
 			loginType: LoginType.FIREBASE,
+		};
+
+		const user = await this.ensureUserService.getOrCreateUser({
+			authContext: partialContext,
+		});
+
+		const authContext: AuthContext = {
+			...partialContext,
+			userId: user.id,
 		};
 
 		return this.jwtService.signAsync(authContext);
@@ -38,9 +49,18 @@ export class AuthService {
 		const nullifierHash =
 			await this.worldcoinService.verifyCredentials(worldcoinLoginDTO);
 
-		const authContext: AuthContext = {
+		const partialContext = {
 			loginType: LoginType.WORLDCOIN,
 			nullifierHash,
+		};
+
+		const user = await this.ensureUserService.getOrCreateUser({
+			authContext: partialContext,
+		});
+
+		const authContext: AuthContext = {
+			...partialContext,
+			userId: user.id,
 		};
 
 		return this.jwtService.signAsync(authContext);

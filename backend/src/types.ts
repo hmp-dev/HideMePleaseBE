@@ -5,6 +5,7 @@ export enum SupportedLanguage {
 
 export interface AuthContext {
 	loginType: LoginType;
+	userId: string;
 	firebaseId?: string;
 	nullifierHash?: string;
 }
