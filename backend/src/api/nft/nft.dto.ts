@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsString } from 'class-validator';
 
 export class SelectNftDTO {
 	@ApiProperty()
@@ -25,4 +25,10 @@ export class SelectNftDTO {
 	@ApiProperty()
 	@IsNumber()
 	order!: number;
+}
+
+export class SelectedNftOrderDTO {
+	@ApiProperty()
+	@IsArray()
+	order!: string[];
 }

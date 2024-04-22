@@ -24,34 +24,34 @@ enum SupportedChains {
   MUMBAI
 }
 
-model Nft {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @default(now()) @updatedAt
-  deleted         Boolean         @default(false)
+model NftCollection {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  deleted         Boolean           @default(false)
   name            String
   symbol          String
-  link            String
-  contractAddress String
+  link            String?
+  tokenAddress    String            @unique
   contractType    String
-  collectionLogo  String
+  collectionLogo  String?
   chain           SupportedChains
-
-  @@index([symbol, chain])
+  UserSelectedNft UserSelectedNft[]
 }
 
 model UserSelectedNft {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt
-  deleted       Boolean  @default(false)
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  deleted       Boolean       @default(false)
   tokenId       String
   tokenAddress  String
+  nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
   chain         String
   walletAddress String
-  wallet        Wallet   @relation(fields: [walletAddress], references: [publicAddress])
-  userId        String   @db.Uuid
-  user          User     @relation(fields: [userId], references: [id])
+  wallet        Wallet        @relation(fields: [walletAddress], references: [publicAddress])
+  userId        String        @db.Uuid
+  user          User          @relation(fields: [userId], references: [id])
   order         Int
 }
 

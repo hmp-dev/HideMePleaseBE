@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SupportedChains } from '@prisma/client';
 
-import { SelectNftDTO } from '@/api/nft/nft.dto';
+import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
 import {
 	EvmNftCollectionDataWithWallet,
 	PAGE_SIZES,
@@ -105,6 +105,8 @@ export class NftService {
 			}
 		}
 
+		await this.syncWalletNfcCollections(walletNftCollections);
+
 		const populatedNftCollections =
 			await this.moralisNftService.populateNftCollectionsWithTokens(
 				walletNftCollections,
@@ -136,6 +138,37 @@ export class NftService {
 			collections: responseCollections,
 			next,
 		};
+	}
+
+	async getSelectedNftCollections({ request }: { request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const selectedNfts = await this.prisma.userSelectedNft.findMany({
+			where: {
+				userId: authContext.userId,
+			},
+			select: {
+				id: true,
+				order: true,
+				nftCollection: {
+					select: {
+						name: true,
+						symbol: true,
+						collectionLogo: true,
+						chain: true,
+					},
+				},
+			},
+			orderBy: {
+				order: 'asc',
+			},
+		});
+
+		return selectedNfts.map((selectedNft) => ({
+			...selectedNft,
+			nftCollection: undefined,
+			...selectedNft.nftCollection,
+		}));
 	}
 
 	async toggleNftSelected({
@@ -191,5 +224,83 @@ export class NftService {
 				return;
 			}
 		}
+	}
+
+	private async syncWalletNfcCollections(
+		walletNftCollections: EvmNftCollectionDataWithWallet[],
+	) {
+		const alreadyCreatedCollections =
+			await this.prisma.nftCollection.findMany({
+				where: {
+					tokenAddress: {
+						in: walletNftCollections.map((walletNftCollection) =>
+							walletNftCollection.tokenAddress.toJSON(),
+						),
+					},
+				},
+				select: {
+					tokenAddress: true,
+				},
+			});
+
+		const excludedAddresses = new Set(
+			alreadyCreatedCollections.map(
+				(collection) => collection.tokenAddress,
+			),
+		);
+
+		const finalCollections = walletNftCollections.filter(
+			(walletNftCollection) =>
+				!excludedAddresses.has(
+					walletNftCollection.tokenAddress.toJSON(),
+				),
+		) as (EvmNftCollectionDataWithWallet & { collectionLogo: string })[];
+
+		await this.prisma.nftCollection.createMany({
+			data: finalCollections.map(
+				({
+					name,
+					symbol,
+					tokenAddress,
+					contractType,
+					collectionLogo,
+					chain,
+				}) => ({
+					name,
+					symbol: symbol || name || '',
+					tokenAddress: tokenAddress.toJSON(),
+					contractType: contractType || '',
+					collectionLogo,
+					chain: SupportedChainReverseMapping[chain.hex],
+				}),
+			),
+		});
+	}
+
+	async updateSelectedNftCollectionOrder({
+		request,
+		selectedNftOrderDTO: { order },
+	}: {
+		request: Request;
+		selectedNftOrderDTO: SelectedNftOrderDTO;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const orderMapping = Object.entries(order);
+
+		await Promise.all(
+			orderMapping.map((orderMap) =>
+				this.prisma.userSelectedNft.update({
+					where: {
+						id: orderMap[1],
+						userId: authContext.userId,
+					},
+					data: {
+						order: Number(orderMap[0]),
+					},
+				}),
+			),
+		);
+
+		return this.getSelectedNftCollections({ request });
 	}
 }

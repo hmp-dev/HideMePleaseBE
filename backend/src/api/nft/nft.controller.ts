@@ -15,7 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { SupportedChains } from '@prisma/client';
 
-import { SelectNftDTO } from '@/api/nft/nft.dto';
+import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
 import { NftService } from '@/api/nft/nft.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
@@ -79,6 +79,32 @@ export class NftController {
 			cursor,
 			cursorType,
 			nextWalletAddress,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Gets my selected nft collections',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collections/selected')
+	getSelectedNftCollections(@Req() request: Request) {
+		return this.nftService.getSelectedNftCollections({
+			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Update selected nft order',
+	})
+	@UseGuards(AuthGuard)
+	@Post('/collections/selected/order')
+	updateSelectedNftCollectionOrder(
+		@Req() request: Request,
+		@Body() selectedNftOrderDTO: SelectedNftOrderDTO,
+	) {
+		return this.nftService.updateSelectedNftCollectionOrder({
+			request,
+			selectedNftOrderDTO,
 		});
 	}
 
