@@ -13,13 +13,13 @@ import {
 	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
+import { SupportedChains } from '@prisma/client';
 
+import { SelectNftDTO } from '@/api/nft/nft.dto';
 import { NftService } from '@/api/nft/nft.service';
+import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
 import { AuthGuard } from '../auth/auth.guard';
-import { SupportedChains } from '@prisma/client';
-import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
-import { SelectNftDTO } from '@/api/nft/nft.dto';
 
 @ApiTags('NFT')
 @ApiBearerAuth()
@@ -83,26 +83,14 @@ export class NftController {
 	}
 
 	@ApiOperation({
-		summary: 'Mark collection token as selected',
+		summary: 'Toggle collection token selected',
 	})
 	@UseGuards(AuthGuard)
 	@Post('token/select')
-	async markNftSelected(
+	async toggleNftSelected(
 		@Req() request: Request,
 		@Body() selectNftDTO: SelectNftDTO,
 	) {
-		return this.nftService.markNftSelected({ request, selectNftDTO });
-	}
-
-	@ApiOperation({
-		summary: 'Mark collection token as deselected',
-	})
-	@UseGuards(AuthGuard)
-	@Post('token/deselect')
-	async markNftDeselected(
-		@Req() request: Request,
-		@Body() selectNftDTO: SelectNftDTO,
-	) {
-		return this.nftService.markNftDeselected({ request, selectNftDTO });
+		return this.nftService.toggleNftSelected({ request, selectNftDTO });
 	}
 }

@@ -1,15 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-
-import { MoralisNftService } from '@/modules/moralis/moralis-nft.service';
-import { PrismaService } from '@/modules/prisma/prisma.service';
-import { AuthContext } from '@/types';
+import { Injectable } from '@nestjs/common';
 import { SupportedChains } from '@prisma/client';
+
+import { SelectNftDTO } from '@/api/nft/nft.dto';
 import {
 	EvmNftCollectionDataWithWallet,
 	PAGE_SIZES,
 } from '@/modules/moralis/moralis.constants';
-import { SelectNftDTO } from '@/api/nft/nft.dto';
-import { ErrorCodes } from '@/utils/errorCodes';
+import { MoralisNftService } from '@/modules/moralis/moralis-nft.service';
+import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SupportedChainReverseMapping } from '@/modules/web3/web3.constants';
+import { AuthContext } from '@/types';
 
 @Injectable()
 export class NftService {
@@ -53,6 +53,18 @@ export class NftService {
 		const walletsAfterSkip = nextWalletAddress
 			? addresses.slice(addresses.indexOf(nextWalletAddress))
 			: addresses;
+
+		const selectedNfts = await this.prisma.userSelectedNft.findMany({
+			where: {
+				userId: authContext.userId,
+			},
+			select: {
+				walletAddress: true,
+				tokenAddress: true,
+				tokenId: true,
+				chain: true,
+			},
+		});
 
 		const walletNftCollections: EvmNftCollectionDataWithWallet[] = [];
 		let next: {
@@ -101,10 +113,21 @@ export class NftService {
 		const responseCollections = populatedNftCollections.map(
 			(nftCollection) => ({
 				...nftCollection,
+				chainSymbol:
+					SupportedChainReverseMapping[nftCollection.chain.hex],
 				tokens: nftCollection.tokens.map((token) => ({
 					tokenId: token.tokenId,
 					name: token.name,
 					imageUrl: token.media?.mediaCollection?.medium.url,
+					selected: selectedNfts.some(
+						(selectedNft) =>
+							selectedNft.tokenId === token.tokenId &&
+							selectedNft.chain === nftCollection.chain.hex &&
+							selectedNft.tokenAddress ===
+								nftCollection.tokenAddress.toJSON() &&
+							selectedNft.walletAddress ===
+								nftCollection.walletAddress,
+					),
 				})),
 			}),
 		);
@@ -115,65 +138,19 @@ export class NftService {
 		};
 	}
 
-	async markNftSelected({
+	async toggleNftSelected({
 		request,
-		selectNftDTO: { walletAddress, tokenAddress, tokenId, chain },
+		selectNftDTO: { walletAddress, tokenAddress, tokenId, chain, selected },
 	}: {
 		request: Request;
 		selectNftDTO: SelectNftDTO;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-
-		const wallet = await this.prisma.wallet.findFirst({
-			where: {
-				publicAddress: walletAddress,
-			},
-			select: {
-				id: true,
-			},
-		});
-		if (!wallet) {
-			throw new BadRequestException(ErrorCodes.WALLET_DOES_NOT_EXIST);
-		}
-
-		await this.prisma.userSelectedNft.create({
-			data: {
-				userId:
-					authContext.userId ||
-					'7f4db963-8a6a-48f6-bc1f-b7dbc4fed55d',
-				walletId: wallet.id,
-				tokenAddress,
-				tokenId,
-				chain,
-			},
-		});
-	}
-
-	async markNftDeselected({
-		request,
-		selectNftDTO: { walletAddress, tokenAddress, tokenId, chain },
-	}: {
-		request: Request;
-		selectNftDTO: SelectNftDTO;
-	}) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-
-		const wallet = await this.prisma.wallet.findFirst({
-			where: {
-				publicAddress: walletAddress,
-			},
-			select: {
-				id: true,
-			},
-		});
-		if (!wallet) {
-			throw new BadRequestException(ErrorCodes.WALLET_DOES_NOT_EXIST);
-		}
 
 		const selectedNft = await this.prisma.userSelectedNft.findFirst({
 			where: {
 				userId: authContext.userId,
-				walletId: wallet.id,
+				walletAddress,
 				tokenAddress,
 				tokenId,
 				chain,
@@ -182,12 +159,31 @@ export class NftService {
 				id: true,
 			},
 		});
-		if (!selectedNft) {
-			return;
-		}
 
-		await this.prisma.userSelectedNft.delete({
-			where: { id: selectedNft.id },
-		});
+		if (selectedNft) {
+			if (!selected) {
+				await this.prisma.userSelectedNft.delete({
+					where: { id: selectedNft.id },
+				});
+			} else {
+				return;
+			}
+		} else {
+			if (selected) {
+				await this.prisma.userSelectedNft.create({
+					data: {
+						userId:
+							authContext.userId ||
+							'7f4db963-8a6a-48f6-bc1f-b7dbc4fed55d',
+						walletAddress,
+						tokenAddress,
+						tokenId,
+						chain,
+					},
+				});
+			} else {
+				return;
+			}
+		}
 	}
 }

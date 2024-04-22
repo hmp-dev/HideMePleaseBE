@@ -41,17 +41,17 @@ model Nft {
 }
 
 model UserSelectedNft {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
-  deleted      Boolean  @default(false)
-  tokenId      String
-  tokenAddress String
-  chain        String
-  walletId     String   @db.Uuid
-  wallet       Wallet   @relation(fields: [walletId], references: [id])
-  userId       String   @db.Uuid
-  user         User     @relation(fields: [userId], references: [id])
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+  deleted       Boolean  @default(false)
+  tokenId       String
+  tokenAddress  String
+  chain         String
+  walletAddress String
+  wallet        Wallet   @relation(fields: [walletAddress], references: [publicAddress])
+  userId        String   @db.Uuid
+  user          User     @relation(fields: [userId], references: [id])
 }
 
 enum WalletProvider {

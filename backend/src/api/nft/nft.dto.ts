@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsBoolean, IsString } from 'class-validator';
 
 export class SelectNftDTO {
 	@ApiProperty()
@@ -17,4 +17,8 @@ export class SelectNftDTO {
 	@ApiProperty()
 	@IsString()
 	walletAddress!: string;
+
+	@ApiProperty()
+	@IsBoolean()
+	selected!: boolean;
 }
