@@ -1,0 +1,20 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString } from 'class-validator';
+
+export class SelectNftDTO {
+	@ApiProperty()
+	@IsString()
+	tokenId!: string;
+
+	@ApiProperty()
+	@IsString()
+	tokenAddress!: string;
+
+	@ApiProperty()
+	@IsString()
+	chain!: string;
+
+	@ApiProperty()
+	@IsString()
+	walletAddress!: string;
+}

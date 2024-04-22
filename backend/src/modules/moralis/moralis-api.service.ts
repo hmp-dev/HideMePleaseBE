@@ -14,6 +14,7 @@ export class MoralisApiService {
 	private endpointWeights: Record<MoralisEndPoints, number> = {
 		[MoralisEndPoints.resolveENSDomain]: 1,
 		[MoralisEndPoints.getWalletNFTs]: 1,
+		[MoralisEndPoints.getWalletNFTCollections]: 1,
 	};
 
 	constructor(
@@ -79,5 +80,12 @@ export class MoralisApiService {
 	getWalletNFTs = new Proxy<typeof Moralis.EvmApi.nft.getWalletNFTs>(
 		Moralis.EvmApi.nft.getWalletNFTs,
 		this.rateLimitHandler(MoralisEndPoints.getWalletNFTs),
+	);
+
+	getWalletNFTCollections = new Proxy<
+		typeof Moralis.EvmApi.nft.getWalletNFTCollections
+	>(
+		Moralis.EvmApi.nft.getWalletNFTCollections,
+		this.rateLimitHandler(MoralisEndPoints.getWalletNFTCollections),
 	);
 }

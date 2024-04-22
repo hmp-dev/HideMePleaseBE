@@ -1,8 +1,10 @@
 import { CACHE_TTL } from '@/constants';
+import { EvmNft, EvmNftCollectionData } from '@moralisweb3/common-evm-utils';
 
 export enum MoralisEndPoints {
 	resolveENSDomain = 'resolveENSDomain',
 	getWalletNFTs = 'getWalletNFTs',
+	getWalletNFTCollections = 'getWalletNFTCollections',
 }
 
 export const MORALIS_CACHE_TTL = {
@@ -15,3 +17,16 @@ export const MORALIS_CACHE_TTL = {
 	RESOLVE_ENS_DOMAIN_CACHE: CACHE_TTL.ONE_MIN,
 	DEFAULT_TTL: CACHE_TTL.ONE_MIN,
 };
+
+export const PAGE_SIZES = {
+	// NFT_COLLECTIONS: 10,
+	NFT_COLLECTIONS: 2,
+};
+
+export interface EvmNftCollectionDataWithWallet extends EvmNftCollectionData {
+	walletAddress: string;
+}
+export interface EvmNftCollectionDataWithTokens
+	extends EvmNftCollectionDataWithWallet {
+	tokens: EvmNft[];
+}

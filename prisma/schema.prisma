@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @default(now()) @updatedAt
-  deleted          Boolean  @default(false)
-  wldNullifierHash String?  @unique
-  firebaseId       String?  @unique
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now()) @updatedAt
+  deleted          Boolean           @default(false)
+  wldNullifierHash String?           @unique
+  firebaseId       String?           @unique
   WalletModule     Wallet[]
+  UserSelectedNft  UserSelectedNft[]
 }
 
 enum SupportedChains {
@@ -39,6 +40,20 @@ model Nft {
   @@index([symbol, chain])
 }
 
+model UserSelectedNft {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  deleted      Boolean  @default(false)
+  tokenId      String
+  tokenAddress String
+  chain        String
+  walletId     String   @db.Uuid
+  wallet       Wallet   @relation(fields: [walletId], references: [id])
+  userId       String   @db.Uuid
+  user         User     @relation(fields: [userId], references: [id])
+}
+
 enum WalletProvider {
   METAMASK
   KLIP
@@ -48,12 +63,13 @@ enum WalletProvider {
 }
 
 model Wallet {
-  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @default(now()) @updatedAt
-  deleted       Boolean        @default(false)
-  userId        String         @db.Uuid
-  user          User           @relation(fields: [userId], references: [id])
-  publicAddress String         @unique
-  provider      WalletProvider
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  deleted         Boolean           @default(false)
+  userId          String            @db.Uuid
+  user            User              @relation(fields: [userId], references: [id])
+  publicAddress   String            @unique
+  provider        WalletProvider
+  UserSelectedNft UserSelectedNft[]
 }

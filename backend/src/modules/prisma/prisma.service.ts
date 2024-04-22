@@ -32,7 +32,9 @@ export class PrismaService
 		this.$use(
 			createSoftDeleteMiddleware({
 				// Add all models which need to support soft delete here
-				models: {},
+				models: {
+					Wallet: true,
+				},
 			}),
 		);
 	}
