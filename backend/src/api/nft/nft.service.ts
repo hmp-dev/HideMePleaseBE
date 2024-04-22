@@ -140,7 +140,14 @@ export class NftService {
 
 	async toggleNftSelected({
 		request,
-		selectNftDTO: { walletAddress, tokenAddress, tokenId, chain, selected },
+		selectNftDTO: {
+			walletAddress,
+			tokenAddress,
+			tokenId,
+			chain,
+			selected,
+			order,
+		},
 	}: {
 		request: Request;
 		selectNftDTO: SelectNftDTO;
@@ -172,13 +179,12 @@ export class NftService {
 			if (selected) {
 				await this.prisma.userSelectedNft.create({
 					data: {
-						userId:
-							authContext.userId ||
-							'7f4db963-8a6a-48f6-bc1f-b7dbc4fed55d',
+						userId: authContext.userId,
 						walletAddress,
 						tokenAddress,
 						tokenId,
 						chain,
+						order,
 					},
 				});
 			} else {

@@ -52,6 +52,7 @@ model UserSelectedNft {
   wallet        Wallet   @relation(fields: [walletAddress], references: [publicAddress])
   userId        String   @db.Uuid
   user          User     @relation(fields: [userId], references: [id])
+  order         Int
 }
 
 enum WalletProvider {
