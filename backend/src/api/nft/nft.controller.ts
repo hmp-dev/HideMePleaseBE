@@ -32,12 +32,12 @@ export class NftController {
 	})
 	@UseGuards(AuthGuard)
 	@Get('/welcome')
-	getUser(@Req() request: Request) {
-		return this.nftService.getWelcomeNft({ request });
+	getUser() {
+		return this.nftService.getWelcomeNft();
 	}
 
 	@ApiOperation({
-		summary: 'Gets my nft collections',
+		summary: 'Gets all nft collections in my wallets',
 	})
 	@ApiQuery({
 		name: 'chain',

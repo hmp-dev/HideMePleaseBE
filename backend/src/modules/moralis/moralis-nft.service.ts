@@ -1,17 +1,17 @@
+import { EvmNftCollection } from '@moralisweb3/common-evm-utils';
 import { Injectable } from '@nestjs/common';
 import { SupportedChains } from '@prisma/client';
 
-import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
-import {
-	SupportedChainMapping,
-	SupportedChainsList,
-} from '@/modules/web3/web3.constants';
 import {
 	EvmNftCollectionDataWithTokens,
 	EvmNftCollectionDataWithWallet,
 	PAGE_SIZES,
 } from '@/modules/moralis/moralis.constants';
-import { EvmNftCollection } from '@moralisweb3/common-evm-utils';
+import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
+import {
+	SupportedChainMapping,
+	SupportedChainsList,
+} from '@/modules/web3/web3.constants';
 
 @Injectable()
 export class MoralisNftService {
@@ -59,8 +59,10 @@ export class MoralisNftService {
 			: chains;
 
 		const nftCollections: EvmNftCollection[] = [];
-		let next: { type: SupportedChains; cursor?: string | null } | null =
-			null;
+		let next: {
+			cursorType: SupportedChains;
+			cursor?: string | null;
+		} | null = null;
 
 		for (const [index, chain] of chainsAfterSkip.entries()) {
 			const collections =
@@ -74,9 +76,9 @@ export class MoralisNftService {
 			const nextChain = chainsAfterSkip[index + 1];
 
 			if (collections.hasNext()) {
-				next = { type: chain, cursor: collections.raw.cursor };
+				next = { cursorType: chain, cursor: collections.raw.cursor };
 			} else if (nextChain) {
-				next = { type: nextChain, cursor: null };
+				next = { cursorType: nextChain, cursor: null };
 			} else {
 				next = null;
 			}

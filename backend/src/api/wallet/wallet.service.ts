@@ -35,4 +35,21 @@ export class WalletService {
 			},
 		});
 	}
+
+	async deleteWallet({
+		request,
+		walletId,
+	}: {
+		request: Request;
+		walletId: string;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		await this.prisma.wallet.delete({
+			where: {
+				id: walletId,
+				userId: authContext.userId,
+			},
+		});
+	}
 }

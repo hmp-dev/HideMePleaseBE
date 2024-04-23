@@ -10,7 +10,10 @@ import { EnsureUserService } from '../auth/ensure-user.service';
 @ApiBearerAuth()
 @Controller('user')
 export class UsersController {
-	constructor(private usersService: EnsureUserService) {}
+	constructor(
+		private ensureUserService: EnsureUserService,
+		// private usersService: UsersService,
+	) {}
 
 	@ApiOperation({
 		summary: 'Gets base user',
@@ -19,6 +22,6 @@ export class UsersController {
 	@Get('/')
 	async getUser(@Req() request: Request) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-		return this.usersService.getOrCreateUser({ authContext });
+		return this.ensureUserService.getOrCreateUser({ authContext });
 	}
 }

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Param,
+	Post,
+	Req,
+	UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CreateWalletDTO } from '@/api/wallet/wallet.dto';
@@ -31,5 +40,17 @@ export class WalletController {
 		@Body() createWalletDTO: CreateWalletDTO,
 	) {
 		return this.walletService.createWallet({ request, createWalletDTO });
+	}
+
+	@ApiOperation({
+		summary: 'delete a wallet',
+	})
+	@UseGuards(AuthGuard)
+	@Delete('id/:walletId')
+	async deleteWallet(
+		@Req() request: Request,
+		@Param('walletId') walletId: string,
+	) {
+		return this.walletService.deleteWallet({ request, walletId });
 	}
 }
