@@ -14,7 +14,7 @@ model User {
   deleted          Boolean           @default(false)
   wldNullifierHash String?           @unique
   firebaseId       String?           @unique
-  WalletModule     Wallet[]
+  CmsModule        Wallet[]
   UserSelectedNft  UserSelectedNft[]
 }
 

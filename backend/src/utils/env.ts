@@ -45,6 +45,22 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	MORALIS_API_KEY!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	AWS_REGION!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	S3_ACCESS_KEY!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	S3_ACCESS_SECRET!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	S3_BUCKET!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
