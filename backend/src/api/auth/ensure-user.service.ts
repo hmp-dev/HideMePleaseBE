@@ -34,6 +34,11 @@ export class EnsureUserService {
 					},
 				],
 			},
+			select: {
+				id: true,
+				wldNullifierHash: true,
+				firebaseId: true,
+			},
 		});
 	}
 
@@ -42,6 +47,11 @@ export class EnsureUserService {
 			data: {
 				firebaseId: authContext.firebaseId,
 				wldNullifierHash: authContext.nullifierHash,
+			},
+			select: {
+				id: true,
+				wldNullifierHash: true,
+				firebaseId: true,
 			},
 		});
 	}

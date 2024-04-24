@@ -12,10 +12,16 @@ model User {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @default(now()) @updatedAt
   deleted          Boolean           @default(false)
+  nickName         String            @default("")
+  introduction     String            @default("")
+  locationPublic   Boolean           @default(true)
   wldNullifierHash String?           @unique
   firebaseId       String?           @unique
+  pfpNftId         String?
+  pfpNft           Nft?              @relation(fields: [pfpNftId], references: [id])
   CmsModule        Wallet[]
   UserSelectedNft  UserSelectedNft[]
+  WelcomeNft       WelcomeNft[]
 }
 
 enum SupportedChains {
@@ -51,6 +57,8 @@ model Nft {
   tokenAddress    String
   nftCollection   NftCollection     @relation(fields: [tokenAddress], references: [tokenAddress])
   UserSelectedNft UserSelectedNft[]
+  User            User[]
+  tokenUpdatedAt  DateTime?
 
   @@unique([tokenAddress, tokenId])
 }
@@ -91,27 +99,30 @@ model Wallet {
   UserSelectedNft UserSelectedNft[]
 }
 
-model WelcomeNftConfig {
+model WelcomeNft {
   id        Int       @id @default(autoincrement())
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   siteLink  String
-  totalNfts Int
-  usedCount Int
   imageId   Int
   image     MediaFile @relation(fields: [imageId], references: [id])
+  used      Boolean   @default(false)
+  userId    String?   @db.Uuid
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@index([used])
 }
 
 model MediaFile {
-  id               Int                @id @default(autoincrement())
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @default(now()) @updatedAt
-  deleted          Boolean?           @default(false)
-  key              String
-  bucket           String
-  mimeType         String
-  WelcomeNftConfig WelcomeNftConfig[]
-  Space            Space[]
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @default(now()) @updatedAt
+  deleted    Boolean?     @default(false)
+  key        String
+  bucket     String
+  mimeType   String
+  Space      Space[]
+  WelcomeNft WelcomeNft[]
 }
 
 model Space {

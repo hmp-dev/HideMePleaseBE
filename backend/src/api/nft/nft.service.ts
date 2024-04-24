@@ -1,8 +1,9 @@
 import { EvmAddress } from '@moralisweb3/common-evm-utils';
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Nft, SupportedChains } from '@prisma/client';
 
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
+import { MediaService } from '@/modules/media/media.service';
 import {
 	EvmNftCollectionDataWithWallet,
 	PAGE_SIZES,
@@ -18,28 +19,104 @@ export class NftService {
 	constructor(
 		private prisma: PrismaService,
 		private moralisNftService: MoralisNftService,
+		private mediaService: MediaService,
 	) {}
 
 	async getWelcomeNft() {
-		const welcomeNft = await this.prisma.welcomeNftConfig.findFirst({
-			select: {
-				siteLink: true,
-				totalNfts: true,
-				usedCount: true,
-				image: true,
-			},
-			orderBy: {
-				createdAt: 'desc',
-			},
-		});
+		const [welcomeNft, totalCount, usedCount] = await Promise.all([
+			this.prisma.welcomeNft.findFirst({
+				select: {
+					id: true,
+					image: true,
+				},
+				where: {
+					used: false,
+				},
+				orderBy: {
+					createdAt: 'asc',
+				},
+			}),
+			this.prisma.welcomeNft.count(),
+			this.prisma.welcomeNft.count({
+				where: {
+					used: true,
+				},
+			}),
+		]);
 		if (!welcomeNft) {
-			throw new NotImplementedException(ErrorCodes.MISSING_WELCOME_NFT);
+			throw new BadRequestException(ErrorCodes.MISSING_WELCOME_NFT);
 		}
 		return {
 			...welcomeNft,
-			// TODO: implement s3 hosting
-			image: 'https://www.soulsama.com/_next/image?url=https%3A%2F%2Fsoulsama.s3.ap-south-1.amazonaws.com%2F1e1e62f3-5a4d-4c0e-95a1-a4b3afae96a5.png&w=1200&q=75',
+			totalCount,
+			usedCount,
+			image: this.mediaService.getUrl(welcomeNft.image),
 		};
+	}
+
+	async consumeWelcomeNft({
+		request,
+		welcomeNftId,
+	}: {
+		request: Request;
+		welcomeNftId: number;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const welcomeNft = await this.prisma.welcomeNft.findFirst({
+			where: {
+				id: welcomeNftId,
+				used: false,
+			},
+			select: {
+				id: true,
+				siteLink: true,
+			},
+		});
+
+		if (!welcomeNft) {
+			// This might be used by the time user made this api call, let's try to find something else
+			const newWelcomeNft = await this.prisma.welcomeNft.findFirst({
+				select: {
+					id: true,
+					siteLink: true,
+				},
+				where: {
+					used: false,
+				},
+				orderBy: {
+					createdAt: 'asc',
+				},
+			});
+			if (!newWelcomeNft) {
+				// all are consumed
+				throw new BadRequestException(ErrorCodes.MISSING_WELCOME_NFT);
+			}
+
+			await this.prisma.welcomeNft.update({
+				where: {
+					id: newWelcomeNft.id,
+				},
+				data: {
+					used: true,
+					userId: authContext.userId,
+				},
+			});
+
+			return newWelcomeNft.siteLink;
+		}
+
+		await this.prisma.welcomeNft.update({
+			where: {
+				id: welcomeNft.id,
+			},
+			data: {
+				used: true,
+				userId: authContext.userId,
+			},
+		});
+
+		return welcomeNft.siteLink;
 	}
 
 	async getNftCollections({
@@ -138,6 +215,7 @@ export class NftService {
 				tokens: nftCollection.tokens.map((token) => ({
 					tokenId: token.tokenId,
 					name: token.name,
+					updatedAt: token.media?.updatedAt,
 					imageUrl: token.media?.mediaCollection?.medium.url,
 					selected: selectedNfts.some(
 						(selectedNft) =>
@@ -203,6 +281,35 @@ export class NftService {
 		}));
 	}
 
+	async getSelectedNfts({ request }: { request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const selectedNfts = await this.prisma.userSelectedNft.findMany({
+			where: {
+				userId: authContext.userId,
+			},
+			select: {
+				nft: {
+					select: {
+						id: true,
+						name: true,
+						imageUrl: true,
+					},
+				},
+			},
+			orderBy: {
+				nft: {
+					tokenUpdatedAt: 'asc',
+				},
+			},
+		});
+
+		return selectedNfts.map((selectedNft) => ({
+			nftImageUrl: selectedNft.nft.imageUrl,
+			nftId: selectedNft.nft.id,
+		}));
+	}
+
 	async toggleNftSelected({
 		request,
 		selectNftDTO: {
@@ -237,8 +344,6 @@ export class NftService {
 				await this.prisma.userSelectedNft.delete({
 					where: { id: selectedNft.id },
 				});
-			} else {
-				return;
 			}
 		} else {
 			if (selected) {
@@ -252,10 +357,11 @@ export class NftService {
 						order,
 					},
 				});
-			} else {
-				return;
+				await this.checkUserPfpCriteria(authContext.userId);
 			}
 		}
+
+		await this.checkUserPfpCriteria(authContext.userId);
 	}
 
 	private async syncWalletNftCollections(
@@ -317,12 +423,18 @@ export class NftService {
 				imageUrl?: string;
 				name?: string;
 				selected: any;
+				updatedAt?: Date;
 			}[];
 		}[],
 	) {
 		const tokens: Pick<
 			Nft,
-			'name' | 'tokenId' | 'imageUrl' | 'tokenAddress' | 'id'
+			| 'name'
+			| 'tokenId'
+			| 'imageUrl'
+			| 'tokenAddress'
+			| 'id'
+			| 'tokenUpdatedAt'
 		>[] = [];
 
 		for (const collection of nftCollections) {
@@ -332,6 +444,7 @@ export class NftService {
 					tokenId: token.tokenId.toString(),
 					imageUrl: token.imageUrl || '',
 					tokenAddress: collection.tokenAddress.toJSON(),
+					tokenUpdatedAt: token.updatedAt ?? null,
 					id: `${collection.tokenAddress.toJSON()}_${token.tokenId}`,
 				});
 			}
@@ -356,11 +469,19 @@ export class NftService {
 
 		await this.prisma.nft.createMany({
 			data: finalTokens.map(
-				({ name, tokenId, imageUrl, tokenAddress, id }) => ({
+				({
+					name,
+					tokenId,
+					imageUrl,
+					tokenAddress,
+					id,
+					tokenUpdatedAt,
+				}) => ({
 					name,
 					tokenId,
 					tokenAddress,
 					imageUrl,
+					tokenUpdatedAt,
 					id,
 				}),
 			),
@@ -392,5 +513,50 @@ export class NftService {
 		);
 
 		return this.getSelectedNftCollections({ request });
+	}
+
+	private async checkUserPfpCriteria(userId: string) {
+		const user = await this.prisma.user.findFirst({
+			where: {
+				id: userId,
+			},
+			select: {
+				pfpNftId: true,
+			},
+		});
+		if (user?.pfpNftId) {
+			return;
+		}
+
+		const userSelectedNft = await this.prisma.userSelectedNft.findFirst({
+			where: {
+				userId,
+			},
+			select: {
+				nft: {
+					select: {
+						id: true,
+					},
+				},
+			},
+			orderBy: {
+				nft: {
+					tokenUpdatedAt: 'asc',
+				},
+			},
+		});
+
+		if (!userSelectedNft) {
+			return;
+		}
+
+		await this.prisma.user.update({
+			where: {
+				id: userId,
+			},
+			data: {
+				pfpNftId: userSelectedNft.nft.id,
+			},
+		});
 	}
 }

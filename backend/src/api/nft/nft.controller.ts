@@ -2,6 +2,7 @@ import {
 	Body,
 	Controller,
 	Get,
+	Param,
 	Post,
 	Query,
 	Req,
@@ -32,8 +33,20 @@ export class NftController {
 	})
 	@UseGuards(AuthGuard)
 	@Get('/welcome')
-	getUser() {
+	getWelcomeNft() {
 		return this.nftService.getWelcomeNft();
+	}
+
+	@ApiOperation({
+		summary: 'Consume welcome nft',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/welcome/:welcomeNftId')
+	consumeWelcomeNft(
+		@Req() request: Request,
+		@Param('welcomeNftId') welcomeNftId: number,
+	) {
+		return this.nftService.consumeWelcomeNft({ request, welcomeNftId });
 	}
 
 	@ApiOperation({
@@ -89,6 +102,17 @@ export class NftController {
 	@Get('/collections/selected')
 	getSelectedNftCollections(@Req() request: Request) {
 		return this.nftService.getSelectedNftCollections({
+			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Gets my selected nfts',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/nfts/selected')
+	getSelectedNfts(@Req() request: Request) {
+		return this.nftService.getSelectedNfts({
 			request,
 		});
 	}
