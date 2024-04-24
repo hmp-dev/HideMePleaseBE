@@ -327,15 +327,13 @@ export class NftService {
 
 		for (const collection of nftCollections) {
 			for (const token of collection.tokens) {
-				if (token.selected) {
-					tokens.push({
-						name: token.name || '',
-						tokenId: token.tokenId.toString(),
-						imageUrl: token.imageUrl || '',
-						tokenAddress: collection.tokenAddress.toJSON(),
-						id: `${collection.tokenAddress.toJSON()}_${token.tokenId}`,
-					});
-				}
+				tokens.push({
+					name: token.name || '',
+					tokenId: token.tokenId.toString(),
+					imageUrl: token.imageUrl || '',
+					tokenAddress: collection.tokenAddress.toJSON(),
+					id: `${collection.tokenAddress.toJSON()}_${token.tokenId}`,
+				});
 			}
 		}
 		const alreadyCreatedTokens = await this.prisma.nft.findMany({
