@@ -61,6 +61,10 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	S3_BUCKET!: string;
+
+	@IsNotEmpty()
+	@IsNumber()
+	MAX_DISTANCE_FROM_SPACE!: number;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

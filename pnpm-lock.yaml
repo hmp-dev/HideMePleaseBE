@@ -131,6 +131,9 @@ importers:
             firebase-admin:
                 specifier: ^12.0.0
                 version: 12.0.0
+            geo-position.ts:
+                specifier: ^1.4.1
+                version: 1.4.1
             moralis:
                 specifier: ^2.26.0
                 version: 2.26.0
@@ -7233,6 +7236,13 @@ packages:
             - supports-color
         dev: false
         optional: true
+
+    /geo-position.ts@1.4.1:
+        resolution:
+            {
+                integrity: sha512-XGxxGbRBT6bVqbf9GpbQotuELf/OzXOQHmxPVtftB6fCLHlbuF+cYseekE/1UIHJ+OUcV9Jeoim+EjaVfJOFRw==,
+            }
+        dev: false
 
     /get-caller-file@2.0.5:
         resolution:

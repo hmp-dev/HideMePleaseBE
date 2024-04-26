@@ -18,6 +18,7 @@ import { SupportedChains } from '@prisma/client';
 
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
 import { NftService } from '@/api/nft/nft.service';
+import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
 import { AuthGuard } from '../auth/auth.guard';
@@ -26,7 +27,10 @@ import { AuthGuard } from '../auth/auth.guard';
 @ApiBearerAuth()
 @Controller('nft')
 export class NftController {
-	constructor(private nftService: NftService) {}
+	constructor(
+		private nftService: NftService,
+		private nftBenefitsService: NftBenefitsService,
+	) {}
 
 	@ApiOperation({
 		summary: 'Gets welcome nft',
@@ -114,6 +118,21 @@ export class NftController {
 	getSelectedNfts(@Req() request: Request) {
 		return this.nftService.getSelectedNfts({
 			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Get benefits for collection',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collection/:collectionId/benefits')
+	getNftBenefits(
+		@Req() request: Request,
+		@Param('collectionId') collectionId: string,
+	) {
+		return this.nftBenefitsService.getCollectionBenefits({
+			request,
+			collectionId,
 		});
 	}
 

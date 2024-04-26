@@ -36,6 +36,7 @@
 		"express": "^4.19.2",
 		"express-session": "^1.18.0",
 		"firebase-admin": "^12.0.0",
+		"geo-position.ts": "^1.4.1",
 		"moralis": "^2.26.0",
 		"nestjs-i18n": "10.4.5",
 		"nestjs-pino": "^4.0.0",

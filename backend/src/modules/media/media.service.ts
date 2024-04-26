@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { MediaFile } from '@prisma/client';
+import type { directus_files, MediaFile } from '@prisma/client';
 
 import { S3Service } from '@/modules/aws/s3.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -36,15 +36,27 @@ export class MediaService {
 		});
 	}
 
-	getS3Url(mediaFile: MediaFile) {
+	private getS3Url(mediaFile: MediaFile) {
 		return `https://${mediaFile.bucket}.s3.${this.configService.get(
 			'AWS_REGION',
 		)}.amazonaws.com/${mediaFile.key}`;
 	}
 
-	getUrl(mediaFile?: MediaFile | null) {
+	private getDirectusS3Url(mediaFile: directus_files) {
+		return `https://${this.configService.get(
+			'S3_BUCKET',
+		)}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${
+			mediaFile.filename_disk
+		}`;
+	}
+
+	getUrl(mediaFile?: MediaFile | directus_files | null) {
 		if (!mediaFile) {
 			return undefined;
+		}
+
+		if ('filename_disk' in mediaFile) {
+			return this.getDirectusS3Url(mediaFile);
 		}
 
 		return this.getS3Url(mediaFile);

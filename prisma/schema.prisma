@@ -122,13 +122,13 @@ model Space {
   latitude            Float
   longitude           Float
   address             String
-  imageId             String         @db.Uuid
   webLink             String
   businessHoursEnd    DateTime       @db.Time(6)
   businessHoursStart  DateTime       @db.Time(6)
   category            SpaceCategory
   introduction        String         @default("")
   locationDescription String         @default("")
+  imageId             String         @db.Uuid
   image               directus_files @relation(fields: [imageId], references: [id])
   SpaceBenefit        SpaceBenefit[]
 }
@@ -144,7 +144,7 @@ model SpaceBenefit {
   level             BenefitLevel        @default(LEVEL1)
   singleUse         Boolean             @default(false)
   isRepresentative  Boolean             @default(false)
-  space             Space               @relation(fields: [spaceId], references: [id])
+  space             Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   SpaceBenefitUsage SpaceBenefitUsage[]
 }
 
@@ -269,6 +269,7 @@ model directus_files {
   metadata                                                              Json?               @db.Json
   focal_point_x                                                         Int?
   focal_point_y                                                         Int?
+  Space                                                                 Space[]
   directus_folders                                                      directus_folders?   @relation(fields: [folder], references: [id], onUpdate: NoAction, map: "directus_files_folder_foreign")
   directus_users_directus_files_modified_byTodirectus_users             directus_users?     @relation("directus_files_modified_byTodirectus_users", fields: [modified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_modified_by_foreign")
   directus_users_directus_files_uploaded_byTodirectus_users             directus_users?     @relation("directus_files_uploaded_byTodirectus_users", fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_uploaded_by_foreign")
@@ -276,7 +277,6 @@ model directus_files {
   directus_settings_directus_settings_public_backgroundTodirectus_files directus_settings[] @relation("directus_settings_public_backgroundTodirectus_files")
   directus_settings_directus_settings_public_faviconTodirectus_files    directus_settings[] @relation("directus_settings_public_faviconTodirectus_files")
   directus_settings_directus_settings_public_foregroundTodirectus_files directus_settings[] @relation("directus_settings_public_foregroundTodirectus_files")
-  Space                                                                 Space[]
 }
 
 model directus_flows {
