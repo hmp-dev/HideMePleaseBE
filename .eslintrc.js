@@ -18,6 +18,7 @@ const project = [
 	'./tsconfig.json',
 	'./backend/tsconfig.json',
 	'./world-auth-app/tsconfig.json',
+	'./cms/extensions/directus-extension-custom-select/tsconfig.json',
 ];
 
 const settings = {

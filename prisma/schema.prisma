@@ -110,7 +110,6 @@ model MediaFile {
   key        String
   bucket     String
   mimeType   String
-  Space      Space[]
   WelcomeNft WelcomeNft[]
 }
 
@@ -123,14 +122,14 @@ model Space {
   latitude            Float
   longitude           Float
   address             String
-  imageId             Int
+  imageId             String         @db.Uuid
   webLink             String
   businessHoursEnd    DateTime       @db.Time(6)
   businessHoursStart  DateTime       @db.Time(6)
   category            SpaceCategory
   introduction        String         @default("")
   locationDescription String         @default("")
-  image               MediaFile      @relation(fields: [imageId], references: [id])
+  image               directus_files @relation(fields: [imageId], references: [id])
   SpaceBenefit        SpaceBenefit[]
 }
 
@@ -277,6 +276,7 @@ model directus_files {
   directus_settings_directus_settings_public_backgroundTodirectus_files directus_settings[] @relation("directus_settings_public_backgroundTodirectus_files")
   directus_settings_directus_settings_public_faviconTodirectus_files    directus_settings[] @relation("directus_settings_public_faviconTodirectus_files")
   directus_settings_directus_settings_public_foregroundTodirectus_files directus_settings[] @relation("directus_settings_public_foregroundTodirectus_files")
+  Space                                                                 Space[]
 }
 
 model directus_flows {
