@@ -36,6 +36,7 @@ export class NftBenefitsService {
 				singleUse: true,
 				space: {
 					select: {
+						id: true,
 						name: true,
 						image: true,
 					},
@@ -64,7 +65,7 @@ export class NftBenefitsService {
 
 			return {
 				...rest,
-				space: undefined,
+				spaceId: space.id,
 				spaceName: space.name,
 				spaceImage: this.mediaService.getUrl(space.image),
 				used,

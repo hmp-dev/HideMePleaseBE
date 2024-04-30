@@ -8,21 +8,23 @@ datasource db {
 }
 
 model User {
-  createdAt         DateTime            @default(now())
-  deleted           Boolean             @default(false)
-  firebaseId        String?             @unique
-  updatedAt         DateTime            @default(now()) @updatedAt
-  wldNullifierHash  String?             @unique
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  introduction      String              @default("")
-  locationPublic    Boolean             @default(true)
-  nickName          String              @default("")
-  pfpNftId          String?
-  SpaceBenefitUsage SpaceBenefitUsage[]
-  pfpNft            Nft?                @relation(fields: [pfpNftId], references: [id])
-  UserSelectedNft   UserSelectedNft[]
-  CmsModule         Wallet[]
-  WelcomeNft        WelcomeNft[]
+  createdAt                 DateTime            @default(now())
+  deleted                   Boolean             @default(false)
+  firebaseId                String?             @unique
+  updatedAt                 DateTime            @default(now()) @updatedAt
+  wldNullifierHash          String?             @unique
+  id                        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  introduction              String              @default("")
+  locationPublic            Boolean             @default(true)
+  nickName                  String              @default("")
+  pfpNftId                  String?
+  pfpNft                    Nft?                @relation(fields: [pfpNftId], references: [id])
+  UserSelectedNft           UserSelectedNft[]
+  CmsModule                 Wallet[]
+  WelcomeNft                WelcomeNft[]
+  SpaceUser                 SpaceUser[]
+  SpaceBenefitUsageUser     SpaceBenefitUsage[] @relation("user")
+  SpaceBenefitUsageVerifier SpaceBenefitUsage[] @relation("verifierUser")
 }
 
 model NftCollection {
@@ -131,6 +133,25 @@ model Space {
   imageId             String         @db.Uuid
   image               directus_files @relation(fields: [imageId], references: [id])
   SpaceBenefit        SpaceBenefit[]
+  SpaceUser           SpaceUser[]
+}
+
+enum SpaceUserRole {
+  SPACE_ADMIN
+}
+
+model SpaceUser {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @default(now()) @updatedAt
+  deleted   Boolean       @default(false)
+  spaceId   String        @db.Uuid
+  space     Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userId    String        @db.Uuid
+  user      User          @relation(fields: [userId], references: [id])
+  role      SpaceUserRole @default(SPACE_ADMIN)
+
+  @@unique([spaceId, userId])
 }
 
 model SpaceBenefit {
@@ -159,7 +180,9 @@ model SpaceBenefitUsage {
   nftCollectionId String        @db.Uuid
   benefit         SpaceBenefit  @relation(fields: [benefitId], references: [id])
   nftCollection   NftCollection @relation(fields: [nftCollectionId], references: [id])
-  user            User          @relation(fields: [userId], references: [id])
+  user            User          @relation("user", fields: [userId], references: [id])
+  verifierUserId  String        @db.Uuid
+  verifierUser    User          @relation("verifierUser", fields: [verifierUserId], references: [id])
 }
 
 model directus_activity {

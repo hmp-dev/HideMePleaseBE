@@ -14,3 +14,7 @@ export enum LoginType {
 	FIREBASE = 'FIREBASE',
 	WORLDCOIN = 'WORLDCOIN',
 }
+
+export enum JwtType {
+	SPACE_BENEFIT = 'SPACE_BENEFIT',
+}

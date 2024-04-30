@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
+import { AccessControlService } from '@/api/auth/access-control.service';
 import { AuthController } from '@/api/auth/auth.controller';
 import { AuthGuard } from '@/api/auth/auth.guard';
 import { AuthService } from '@/api/auth/auth.service';
@@ -22,7 +23,12 @@ import { FirebaseModule } from '@/modules/firebase/firebase.module';
 		FirebaseModule,
 	],
 	controllers: [AuthController],
-	providers: [AuthGuard, AuthService, EnsureUserService],
-	exports: [AuthGuard, EnsureUserService],
+	providers: [
+		AuthGuard,
+		AuthService,
+		EnsureUserService,
+		AccessControlService,
+	],
+	exports: [AuthGuard, EnsureUserService, AccessControlService],
 })
 export class AuthModule {}
