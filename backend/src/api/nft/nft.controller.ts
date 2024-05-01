@@ -54,7 +54,7 @@ export class NftController {
 	}
 
 	@ApiOperation({
-		summary: 'Gets all nft collections in my wallets',
+		summary: 'Gets all NFT collections in my wallets',
 	})
 	@ApiQuery({
 		name: 'chain',
@@ -100,7 +100,7 @@ export class NftController {
 	}
 
 	@ApiOperation({
-		summary: 'Gets my selected nft collections',
+		summary: 'Gets my selected NFT collections',
 	})
 	@UseGuards(AuthGuard)
 	@Get('/collections/selected')
@@ -111,7 +111,7 @@ export class NftController {
 	}
 
 	@ApiOperation({
-		summary: 'Gets my selected nfts',
+		summary: 'Gets my selected NFTs for pfp selection',
 	})
 	@UseGuards(AuthGuard)
 	@Get('/nfts/selected')

@@ -151,17 +151,24 @@ export class NftService {
 			? addresses.slice(addresses.indexOf(nextWalletAddress))
 			: addresses;
 
-		const selectedNfts = await this.prisma.userSelectedNft.findMany({
-			where: {
-				userId: authContext.userId,
-			},
-			select: {
-				walletAddress: true,
-				tokenAddress: true,
-				tokenId: true,
-				chain: true,
-			},
-		});
+		const [selectedNfts, selectedNftCount] = await Promise.all([
+			this.prisma.userSelectedNft.findMany({
+				where: {
+					userId: authContext.userId,
+				},
+				select: {
+					walletAddress: true,
+					tokenAddress: true,
+					tokenId: true,
+					chain: true,
+				},
+			}),
+			this.prisma.userSelectedNft.count({
+				where: {
+					userId: authContext.userId,
+				},
+			}),
+		]);
 
 		const walletNftCollections: EvmNftCollectionDataWithWallet[] = [];
 		let next: {
@@ -237,6 +244,7 @@ export class NftService {
 
 		return {
 			collections: responseCollections,
+			selectedNftCount,
 			next,
 		};
 	}
@@ -261,6 +269,7 @@ export class NftService {
 				},
 				nft: {
 					select: {
+						id: true,
 						name: true,
 						imageUrl: true,
 					},
@@ -278,6 +287,7 @@ export class NftService {
 			...selectedNft.nftCollection,
 			nftName: selectedNft.nft.name,
 			nftImageUrl: selectedNft.nft.imageUrl,
+			nftId: selectedNft.nft.id,
 		}));
 	}
 
@@ -326,42 +336,39 @@ export class NftService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const selectedNft = await this.prisma.userSelectedNft.findFirst({
+		await this.prisma.userSelectedNft.deleteMany({
 			where: {
 				userId: authContext.userId,
 				walletAddress,
 				tokenAddress,
-				tokenId,
 				chain,
-			},
-			select: {
-				id: true,
 			},
 		});
 
-		if (selectedNft) {
-			if (!selected) {
-				await this.prisma.userSelectedNft.delete({
-					where: { id: selectedNft.id },
-				});
-			}
-		} else {
-			if (selected) {
-				await this.prisma.userSelectedNft.create({
-					data: {
-						userId: authContext.userId,
-						walletAddress,
-						tokenAddress,
-						tokenId,
-						chain,
-						order,
-					},
-				});
-				await this.checkUserPfpCriteria(authContext.userId);
-			}
+		if (selected) {
+			await this.prisma.userSelectedNft.create({
+				data: {
+					userId: authContext.userId,
+					walletAddress,
+					tokenAddress,
+					tokenId,
+					chain,
+					order,
+				},
+			});
 		}
 
 		await this.checkUserPfpCriteria(authContext.userId);
+
+		const selectedNftCount = await this.prisma.userSelectedNft.count({
+			where: {
+				userId: authContext.userId,
+			},
+		});
+
+		return {
+			selectedNftCount,
+		};
 	}
 
 	private async syncWalletNftCollections(
