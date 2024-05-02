@@ -103,19 +103,8 @@ export class NftController {
 		summary: 'Gets my selected NFT collections',
 	})
 	@UseGuards(AuthGuard)
-	@Get('/collections/selected')
-	getSelectedNftCollections(@Req() request: Request) {
-		return this.nftService.getSelectedNftCollections({
-			request,
-		});
-	}
-
-	@ApiOperation({
-		summary: 'Gets my selected NFTs for pfp selection',
-	})
-	@UseGuards(AuthGuard)
 	@Get('/nfts/selected')
-	getSelectedNfts(@Req() request: Request) {
+	getSelectedNftCollections(@Req() request: Request) {
 		return this.nftService.getSelectedNfts({
 			request,
 		});

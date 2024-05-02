@@ -20,7 +20,7 @@ export class WalletService {
 		return await this.prisma.wallet.create({
 			data: {
 				userId: authContext.userId,
-				publicAddress,
+				publicAddress: publicAddress.toLowerCase(),
 				provider,
 			},
 		});

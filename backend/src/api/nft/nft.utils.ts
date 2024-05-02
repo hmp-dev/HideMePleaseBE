@@ -15,3 +15,7 @@ export function getBenefitLevel(points: number): BenefitLevel {
 
 	return BenefitLevel.LEVEL5;
 }
+
+export function getCompositeTokenId(tokenAddress: string, tokenId: string) {
+	return `${tokenAddress}_${tokenId}`;
+}

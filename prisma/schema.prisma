@@ -19,7 +19,6 @@ model User {
   nickName                  String              @default("")
   pfpNftId                  String?
   pfpNft                    Nft?                @relation(fields: [pfpNftId], references: [id])
-  UserSelectedNft           UserSelectedNft[]
   CmsModule                 Wallet[]
   WelcomeNft                WelcomeNft[]
   SpaceUser                 SpaceUser[]
@@ -41,53 +40,39 @@ model NftCollection {
   chain             SupportedChains
   Nft               Nft[]
   SpaceBenefitUsage SpaceBenefitUsage[]
-  UserSelectedNft   UserSelectedNft[]
 }
 
 model Nft {
-  id              String            @id
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @default(now()) @updatedAt
-  deleted         Boolean           @default(false)
-  name            String
-  imageUrl        String
-  tokenAddress    String
-  tokenId         String
-  tokenUpdatedAt  DateTime?
-  nftCollection   NftCollection     @relation(fields: [tokenAddress], references: [tokenAddress])
-  User            User[]
-  UserSelectedNft UserSelectedNft[]
+  id                 String        @id
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @default(now()) @updatedAt
+  deleted            Boolean       @default(false)
+  name               String
+  imageUrl           String
+  tokenAddress       String
+  tokenId            String
+  tokenUpdatedAt     DateTime?
+  nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  User               User[]
+  ownedWalletAddress String
+  ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])
+  selected           Boolean       @default(false)
+  order              Int           @default(0)
+  lastOwnershipCheck DateTime      @default(now())
 
   @@unique([tokenAddress, tokenId])
 }
 
-model UserSelectedNft {
-  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @default(now()) @updatedAt
-  deleted       Boolean       @default(false)
-  tokenId       String
-  tokenAddress  String
-  chain         String
-  userId        String        @db.Uuid
-  walletAddress String
-  order         Int
-  nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
-  nft           Nft           @relation(fields: [tokenAddress, tokenId], references: [tokenAddress, tokenId])
-  user          User          @relation(fields: [userId], references: [id])
-  wallet        Wallet        @relation(fields: [walletAddress], references: [publicAddress])
-}
-
 model Wallet {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @default(now()) @updatedAt
-  deleted         Boolean           @default(false)
-  userId          String            @db.Uuid
-  publicAddress   String            @unique
-  provider        WalletProvider
-  UserSelectedNft UserSelectedNft[]
-  user            User              @relation(fields: [userId], references: [id])
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  deleted       Boolean        @default(false)
+  userId        String         @db.Uuid
+  publicAddress String         @unique
+  provider      WalletProvider
+  user          User           @relation(fields: [userId], references: [id])
+  Nft           Nft[]
 }
 
 model WelcomeNft {
