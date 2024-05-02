@@ -44,12 +44,14 @@ export class MoralisNftService {
 		chainOrChains = SupportedChainsList,
 		cursor,
 		cursorType,
+		limit = PAGE_SIZES.NFT_COLLECTIONS,
 	}: {
 		walletAddress: string;
-		chainOrChains: SupportedChains | SupportedChains[];
+		chainOrChains?: SupportedChains | SupportedChains[];
 		cursor?: string;
 		cursorType?: SupportedChains;
 		currentWalletAddress?: string;
+		limit?: number;
 	}) {
 		const chains = Array.isArray(chainOrChains)
 			? chainOrChains
@@ -69,7 +71,7 @@ export class MoralisNftService {
 				await this.moralisApiService.getWalletNFTCollections({
 					address: walletAddress,
 					chain: SupportedChainMapping[chain].hex,
-					limit: PAGE_SIZES.NFT_COLLECTIONS,
+					limit,
 					cursor,
 				});
 
@@ -84,7 +86,7 @@ export class MoralisNftService {
 			}
 
 			nftCollections.push(...collections.result);
-			if (nftCollections.length >= PAGE_SIZES.NFT_COLLECTIONS) {
+			if (nftCollections.length >= limit) {
 				break;
 			}
 		}

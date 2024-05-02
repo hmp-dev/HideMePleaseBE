@@ -19,7 +19,9 @@ import { SupportedChains } from '@prisma/client';
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
 import { NftService } from '@/api/nft/nft.service';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
+import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
+import { AuthContext } from '@/types';
 
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -30,6 +32,7 @@ export class NftController {
 	constructor(
 		private nftService: NftService,
 		private nftBenefitsService: NftBenefitsService,
+		private nftOwnershipService: NftOwnershipService,
 	) {}
 
 	@ApiOperation({
@@ -150,5 +153,17 @@ export class NftController {
 		@Body() selectNftDTO: SelectNftDTO,
 	) {
 		return this.nftService.toggleNftSelected({ request, selectNftDTO });
+	}
+
+	@ApiOperation({
+		summary: 'Trigger manual ownership check',
+	})
+	@UseGuards(AuthGuard)
+	@Post('ownership-check')
+	async triggerOwnershipCheck(@Req() request: Request) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		return this.nftOwnershipService.checkUserNftOwnership(
+			authContext.userId,
+		);
 	}
 }

@@ -1,8 +1,9 @@
-import { EvmAddress } from '@moralisweb3/common-evm-utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Nft, SupportedChains } from '@prisma/client';
+import { SupportedChains } from '@prisma/client';
 
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
+import { getCompositeTokenId } from '@/api/nft/nft.utils';
+import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { MediaService } from '@/modules/media/media.service';
 import {
 	EvmNftCollectionDataWithWallet,
@@ -20,6 +21,7 @@ export class NftService {
 		private prisma: PrismaService,
 		private moralisNftService: MoralisNftService,
 		private mediaService: MediaService,
+		private nftOwnershipService: NftOwnershipService,
 	) {}
 
 	async getWelcomeNft() {
@@ -224,7 +226,10 @@ export class NftService {
 				chainSymbol:
 					SupportedChainReverseMapping[nftCollection.chain.hex],
 				tokens: nftCollection.tokens.map((token) => {
-					const nftId = `${nftCollection.tokenAddress.toJSON()}_${token.tokenId}`;
+					const nftId = getCompositeTokenId(
+						nftCollection.tokenAddress.toJSON(),
+						token.tokenId,
+					);
 					return {
 						id: nftId,
 						tokenId: token.tokenId,
@@ -239,8 +244,10 @@ export class NftService {
 			}),
 		);
 
-		await this.syncWalletNftCollections(walletNftCollections);
-		await this.syncWalletNftTokens(responseCollections);
+		await this.nftOwnershipService.syncWalletNftCollections(
+			walletNftCollections,
+		);
+		await this.nftOwnershipService.syncWalletNftTokens(responseCollections);
 
 		return {
 			collections: responseCollections,
@@ -349,137 +356,6 @@ export class NftService {
 		return {
 			selectedNftCount,
 		};
-	}
-
-	private async syncWalletNftCollections(
-		walletNftCollections: EvmNftCollectionDataWithWallet[],
-	) {
-		const alreadyCreatedCollections =
-			await this.prisma.nftCollection.findMany({
-				where: {
-					tokenAddress: {
-						in: walletNftCollections.map((walletNftCollection) =>
-							walletNftCollection.tokenAddress.toJSON(),
-						),
-					},
-				},
-				select: {
-					tokenAddress: true,
-				},
-			});
-
-		const excludedAddresses = new Set(
-			alreadyCreatedCollections.map(
-				(collection) => collection.tokenAddress,
-			),
-		);
-
-		const finalCollections = walletNftCollections.filter(
-			(walletNftCollection) =>
-				!excludedAddresses.has(
-					walletNftCollection.tokenAddress.toJSON(),
-				),
-		) as (EvmNftCollectionDataWithWallet & { collectionLogo: string })[];
-
-		await this.prisma.nftCollection.createMany({
-			data: finalCollections.map(
-				({
-					name,
-					symbol,
-					tokenAddress,
-					contractType,
-					collectionLogo,
-					chain,
-				}) => ({
-					name: name || '',
-					symbol: symbol || name || '',
-					tokenAddress: tokenAddress.toJSON(),
-					contractType: contractType || '',
-					collectionLogo,
-					chain: SupportedChainReverseMapping[chain.hex],
-				}),
-			),
-		});
-	}
-
-	private async syncWalletNftTokens(
-		nftCollections: {
-			tokenAddress: EvmAddress;
-			tokens: {
-				tokenId: string | number;
-				imageUrl?: string;
-				name?: string;
-				selected: any;
-				updatedAt?: Date;
-				ownerWalletAddress: string;
-				id: string;
-			}[];
-		}[],
-	) {
-		const tokens: Pick<
-			Nft,
-			| 'name'
-			| 'tokenId'
-			| 'imageUrl'
-			| 'tokenAddress'
-			| 'id'
-			| 'tokenUpdatedAt'
-			| 'ownedWalletAddress'
-		>[] = [];
-
-		for (const collection of nftCollections) {
-			for (const token of collection.tokens) {
-				tokens.push({
-					name: token.name || '',
-					tokenId: token.tokenId.toString(),
-					imageUrl: token.imageUrl || '',
-					tokenAddress: collection.tokenAddress.toJSON(),
-					tokenUpdatedAt: token.updatedAt ?? null,
-					id: token.id,
-					ownedWalletAddress: token.ownerWalletAddress,
-				});
-			}
-		}
-		const alreadyCreatedTokens = await this.prisma.nft.findMany({
-			where: {
-				id: {
-					in: tokens.map((token) => token.id),
-				},
-			},
-			select: {
-				id: true,
-			},
-		});
-
-		const excludedIds = new Set(
-			alreadyCreatedTokens.map((token) => token.id),
-		);
-		const finalTokens = tokens.filter(
-			(token) => !excludedIds.has(token.id),
-		);
-
-		await this.prisma.nft.createMany({
-			data: finalTokens.map(
-				({
-					name,
-					tokenId,
-					imageUrl,
-					tokenAddress,
-					id,
-					tokenUpdatedAt,
-					ownedWalletAddress,
-				}) => ({
-					name,
-					tokenId,
-					tokenAddress,
-					imageUrl,
-					tokenUpdatedAt,
-					id,
-					ownedWalletAddress,
-					lastOwnershipCheck: new Date(),
-				}),
-			),
-		});
 	}
 
 	async updateSelectedNftCollectionOrder({

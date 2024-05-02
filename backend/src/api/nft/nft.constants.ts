@@ -7,3 +7,7 @@ export const BENEFIT_POINT_CAP: Record<BenefitLevel, number> = {
 	[BenefitLevel.LEVEL4]: 400,
 	[BenefitLevel.LEVEL5]: Infinity,
 };
+
+export const OWNERSHIP_CHECK_CONCURRENCY = 4;
+export const CHAIN_CHECK_CONCURRENCY = 2;
+export const PAGINATION_DEPTH_FOR_NFTS = 2;

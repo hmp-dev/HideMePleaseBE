@@ -18,7 +18,7 @@ model User {
   locationPublic            Boolean             @default(true)
   nickName                  String              @default("")
   pfpNftId                  String?
-  pfpNft                    Nft?                @relation(fields: [pfpNftId], references: [id])
+  pfpNft                    Nft?                @relation(fields: [pfpNftId], references: [id], onDelete: SetNull)
   CmsModule                 Wallet[]
   WelcomeNft                WelcomeNft[]
   SpaceUser                 SpaceUser[]
