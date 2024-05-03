@@ -65,40 +65,23 @@ export class NftController {
 		required: false,
 	})
 	@ApiQuery({
-		name: 'cursor',
+		name: 'next',
 		type: 'string',
-		description: 'Cursor used for pagination',
-		required: false,
-	})
-	@ApiQuery({
-		name: 'cursorType',
-		enum: SupportedChains,
-		description: 'Chain of cursor',
-		required: false,
-	})
-	@ApiQuery({
-		name: 'nextWalletAddress',
-		type: 'string',
-		description: 'Next wallet address used for pagination',
+		description: 'next cursor for pagination',
 		required: false,
 	})
 	@UseGuards(AuthGuard)
 	@Get('/collections')
 	getNftCollections(
 		@Req() request: Request,
-		@Query() { cursor }: { cursor?: string },
-		@Query() { nextWalletAddress }: { nextWalletAddress?: string },
+		@Query() { next }: { next?: string },
 		@Query('chain', new EnumValidationPipe(SupportedChains, false))
 		chain: SupportedChains,
-		@Query('cursorType', new EnumValidationPipe(SupportedChains, false))
-		cursorType: SupportedChains,
 	) {
 		return this.nftService.getNftCollections({
 			request,
 			chain,
-			cursor,
-			cursorType,
-			nextWalletAddress,
+			nextCursor: next,
 		});
 	}
 

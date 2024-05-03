@@ -278,11 +278,25 @@ export class NftOwnershipService {
 		)
 			.for(SupportedChainsList)
 			.process(async (supportedChain) => {
+				const systemNfts = await this.prisma.nft.findMany({
+					where: {
+						ownedWalletAddress: walletAddress,
+						nftCollection: {
+							chain: supportedChain,
+						},
+						selected: true,
+					},
+					select: {
+						tokenAddress: true,
+					},
+				});
+
 				let res = await this.moralisApiService.getWalletNFTs({
 					address: walletAddress,
 					chain: SupportedChainMapping[supportedChain].hex,
 					mediaItems: true,
 					normalizeMetadata: true,
+					tokenAddresses: systemNfts.map((nft) => nft.tokenAddress),
 				});
 
 				const nftData: NftCreateWithCollection[] = [];
