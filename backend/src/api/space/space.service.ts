@@ -106,7 +106,7 @@ export class SpaceService {
 			redeemBenefitsDTO.token,
 		)) as unknown as DecodedBenefitToken;
 
-		if (new Date(decodedToken.validTill) > new Date()) {
+		if (new Date(decodedToken.validTill) < new Date()) {
 			throw new BadRequestException(ErrorCodes.BENEFIT_TOKEN_EXPIRED);
 		}
 		if (!isValidUUID(benefitId)) {
@@ -147,7 +147,7 @@ export class SpaceService {
 					where: {
 						benefitId,
 						userId: authContext.userId,
-						nftCollectionId: redeemBenefitsDTO.nftCollectionId,
+						tokenAddress: redeemBenefitsDTO.tokenAddress,
 					},
 					select: {
 						createdAt: true,
@@ -171,7 +171,7 @@ export class SpaceService {
 			data: {
 				benefitId,
 				userId: authContext.userId,
-				nftCollectionId: redeemBenefitsDTO.nftCollectionId,
+				tokenAddress: redeemBenefitsDTO.tokenAddress,
 				pointsEarned: DEFAULT_POINTS.VISIT_SPACE,
 				verifierUserId: decodedToken.generatedBy,
 			},

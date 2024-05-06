@@ -97,17 +97,28 @@ export class NftController {
 	}
 
 	@ApiOperation({
+		summary: 'Gets my selected NFT collections with points',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/nfts/selected/points')
+	getSelectedNftCollectionsWithPoints(@Req() request: Request) {
+		return this.nftService.getSelectedNftsWithPoints({
+			request,
+		});
+	}
+
+	@ApiOperation({
 		summary: 'Get benefits for collection',
 	})
 	@UseGuards(AuthGuard)
-	@Get('/collection/:collectionId/benefits')
+	@Get('/collection/:tokenAddress/benefits')
 	getNftBenefits(
 		@Req() request: Request,
-		@Param('collectionId') collectionId: string,
+		@Param('tokenAddress') tokenAddress: string,
 	) {
 		return this.nftBenefitsService.getCollectionBenefits({
 			request,
-			collectionId,
+			tokenAddress,
 		});
 	}
 

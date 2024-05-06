@@ -359,10 +359,19 @@ export class NftService {
 				name: true,
 				imageUrl: true,
 				order: true,
+				tokenAddress: true,
 				nftCollection: {
 					select: {
 						symbol: true,
 						chain: true,
+						NftCollectionPoints: {
+							select: {
+								totalPoints: true,
+								communityRank: true,
+								totalMembers: true,
+								pointFluctuation: true,
+							},
+						},
 					},
 				},
 			},
@@ -375,6 +384,50 @@ export class NftService {
 			...selectedNft,
 			nftCollection: undefined,
 			...selectedNft.nftCollection,
+			NftCollectionPoints: undefined,
+			...selectedNft.nftCollection.NftCollectionPoints,
+		}));
+	}
+	async getSelectedNftsWithPoints({ request }: { request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const [selectedNfts, nftPoints] = await Promise.all([
+			this.prisma.nft.findMany({
+				where: {
+					selected: true,
+					ownedWallet: {
+						userId: authContext.userId,
+					},
+				},
+				select: {
+					id: true,
+					name: true,
+					imageUrl: true,
+					tokenAddress: true,
+				},
+				orderBy: {
+					order: 'asc',
+				},
+			}),
+			this.prisma.spaceBenefitUsage.groupBy({
+				by: 'tokenAddress',
+				where: {
+					userId: authContext.userId,
+				},
+				_sum: {
+					pointsEarned: true,
+				},
+			}),
+		]);
+
+		const pointMap: Record<string, number> = {};
+		for (const point of nftPoints) {
+			pointMap[point.tokenAddress] = point._sum.pointsEarned || 0;
+		}
+
+		return selectedNfts.map((selectedNft) => ({
+			...selectedNft,
+			totalPoints: pointMap[selectedNft.tokenAddress] || 0,
 		}));
 	}
 

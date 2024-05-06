@@ -31,6 +31,7 @@ export class AuthService {
 
 		const user = await this.ensureUserService.getOrCreateUser({
 			authContext: partialContext,
+			name: decodedIdToken['name'] as string,
 		});
 
 		const authContext: AuthContext = {

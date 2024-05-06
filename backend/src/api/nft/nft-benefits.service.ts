@@ -14,15 +14,15 @@ export class NftBenefitsService {
 	) {}
 
 	async getCollectionBenefits({
-		collectionId,
+		tokenAddress,
 		request,
 	}: {
 		request: Request;
-		collectionId: string;
+		tokenAddress: string;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const collectionPoints = await this.getCollectionPoints(collectionId);
+		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevel = getBenefitLevel(collectionPoints);
 
 		const spaceBenefits = await this.prisma.spaceBenefit.findMany({
@@ -73,14 +73,14 @@ export class NftBenefitsService {
 		});
 	}
 
-	async getCollectionPoints(nftCollectionId: string) {
+	async getCollectionPoints(tokenAddress: string) {
 		// 	TODO: update this method when chat point system is made
 		const points = await this.prisma.spaceBenefitUsage.aggregate({
 			_sum: {
 				pointsEarned: true,
 			},
 			where: {
-				nftCollectionId,
+				tokenAddress,
 			},
 		});
 

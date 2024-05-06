@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsUUID } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class RedeemBenefitsDTO {
 	@ApiProperty()
@@ -7,6 +7,6 @@ export class RedeemBenefitsDTO {
 	token!: string;
 
 	@ApiProperty()
-	@IsUUID()
-	nftCollectionId!: string;
+	@IsString()
+	tokenAddress!: string;
 }

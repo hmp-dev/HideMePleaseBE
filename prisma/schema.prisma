@@ -27,19 +27,32 @@ model User {
 }
 
 model NftCollection {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @default(now()) @updatedAt
-  deleted           Boolean             @default(false)
-  name              String
-  symbol            String
-  link              String?
-  tokenAddress      String              @unique
-  contractType      String
-  collectionLogo    String?
-  chain             SupportedChains
-  Nft               Nft[]
-  SpaceBenefitUsage SpaceBenefitUsage[]
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
+  deleted             Boolean              @default(false)
+  name                String
+  symbol              String
+  link                String?
+  tokenAddress        String               @unique
+  contractType        String
+  collectionLogo      String?
+  chain               SupportedChains
+  Nft                 Nft[]
+  SpaceBenefitUsage   SpaceBenefitUsage[]
+  NftCollectionPoints NftCollectionPoints?
+}
+
+model NftCollectionPoints {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @default(now()) @updatedAt
+  totalPoints      Int
+  communityRank    Int
+  totalMembers     Int
+  pointFluctuation Int           @default(0)
+  tokenAddress     String        @unique
+  nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
 }
 
 model Nft {
@@ -155,19 +168,19 @@ model SpaceBenefit {
 }
 
 model SpaceBenefitUsage {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @default(now()) @updatedAt
-  deleted         Boolean       @default(false)
-  benefitId       String        @db.Uuid
-  userId          String        @db.Uuid
-  pointsEarned    Int           @default(1)
-  nftCollectionId String        @db.Uuid
-  benefit         SpaceBenefit  @relation(fields: [benefitId], references: [id])
-  nftCollection   NftCollection @relation(fields: [nftCollectionId], references: [id])
-  user            User          @relation("user", fields: [userId], references: [id])
-  verifierUserId  String        @db.Uuid
-  verifierUser    User          @relation("verifierUser", fields: [verifierUserId], references: [id])
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+  deleted        Boolean       @default(false)
+  benefitId      String        @db.Uuid
+  userId         String        @db.Uuid
+  pointsEarned   Int           @default(1)
+  tokenAddress   String
+  benefit        SpaceBenefit  @relation(fields: [benefitId], references: [id])
+  nftCollection  NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  user           User          @relation("user", fields: [userId], references: [id])
+  verifierUserId String        @db.Uuid
+  verifierUser   User          @relation("verifierUser", fields: [verifierUserId], references: [id])
 }
 
 model directus_activity {
