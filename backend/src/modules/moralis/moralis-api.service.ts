@@ -15,6 +15,8 @@ export class MoralisApiService {
 		[MoralisEndPoints.resolveENSDomain]: 1,
 		[MoralisEndPoints.getWalletNFTs]: 1,
 		[MoralisEndPoints.getWalletNFTCollections]: 1,
+		[MoralisEndPoints.getNFTCollectionStats]: 1,
+		[MoralisEndPoints.getNFTLowestPrice]: 1,
 	};
 
 	constructor(
@@ -86,6 +88,18 @@ export class MoralisApiService {
 		typeof Moralis.EvmApi.nft.getWalletNFTCollections
 	>(
 		Moralis.EvmApi.nft.getWalletNFTCollections,
+		this.rateLimitHandler(MoralisEndPoints.getWalletNFTCollections),
+	);
+
+	getNFTLowestPrice = new Proxy<typeof Moralis.EvmApi.nft.getNFTLowestPrice>(
+		Moralis.EvmApi.nft.getNFTLowestPrice,
+		this.rateLimitHandler(MoralisEndPoints.getWalletNFTCollections),
+	);
+
+	getNFTCollectionStats = new Proxy<
+		typeof Moralis.EvmApi.nft.getNFTCollectionStats
+	>(
+		Moralis.EvmApi.nft.getNFTCollectionStats,
 		this.rateLimitHandler(MoralisEndPoints.getWalletNFTCollections),
 	);
 }

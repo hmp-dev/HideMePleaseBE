@@ -29,3 +29,8 @@ export type NftCollectionCursor = {
 	nextWalletAddress?: string;
 	liveData: boolean;
 } | null;
+
+export enum BenefitUsageType {
+	SPACE_VISIT = 'SPACE_VISIT',
+	COMMUNITY = 'COMMUNITY',
+}

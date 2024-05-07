@@ -18,10 +18,11 @@ import { SupportedChains } from '@prisma/client';
 
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
 import { NftService } from '@/api/nft/nft.service';
+import { BenefitUsageType } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
-import { AuthContext } from '@/types';
+import { AuthContext, SortOrder } from '@/types';
 
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -117,6 +118,57 @@ export class NftController {
 		@Param('tokenAddress') tokenAddress: string,
 	) {
 		return this.nftBenefitsService.getCollectionBenefits({
+			request,
+			tokenAddress,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Get nft collection usage history',
+	})
+	@ApiQuery({
+		name: 'type',
+		enum: BenefitUsageType,
+		required: false,
+	})
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'order',
+		enum: SortOrder,
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collection/:tokenAddress/usage-history')
+	getNftCollectionUsageHistory(
+		@Req() request: Request,
+		@Param('tokenAddress') tokenAddress: string,
+		@Query() { type }: { type?: BenefitUsageType },
+		@Query() { page }: { page: number },
+		@Query() { order }: { order?: SortOrder },
+	) {
+		return this.nftBenefitsService.getNftCollectionUsageHistory({
+			request,
+			tokenAddress,
+			type,
+			page,
+			order,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Get nft collection chain information',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collection/:tokenAddress/network-info')
+	getNftCollectionNetworkInfo(
+		@Req() request: Request,
+		@Param('tokenAddress') tokenAddress: string,
+	) {
+		return this.nftBenefitsService.getNftCollectionNetworkInfo({
 			request,
 			tokenAddress,
 		});

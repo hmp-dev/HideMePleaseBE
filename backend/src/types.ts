@@ -18,3 +18,8 @@ export enum LoginType {
 export enum JwtType {
 	SPACE_BENEFIT = 'SPACE_BENEFIT',
 }
+
+export enum SortOrder {
+	NEWEST = 'NEWEST',
+	OLDEST = 'OLDEST',
+}

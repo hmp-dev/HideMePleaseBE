@@ -1,10 +1,13 @@
-import { CACHE_TTL } from '@/constants';
 import { EvmNft, EvmNftCollectionData } from '@moralisweb3/common-evm-utils';
+
+import { CACHE_TTL } from '@/constants';
 
 export enum MoralisEndPoints {
 	resolveENSDomain = 'resolveENSDomain',
 	getWalletNFTs = 'getWalletNFTs',
 	getWalletNFTCollections = 'getWalletNFTCollections',
+	getNFTCollectionStats = 'getNFTCollectionStats',
+	getNFTLowestPrice = 'getNFTLowestPrice',
 }
 
 export const MORALIS_CACHE_TTL = {

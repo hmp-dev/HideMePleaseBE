@@ -388,6 +388,7 @@ export class NftService {
 			...selectedNft.nftCollection.NftCollectionPoints,
 		}));
 	}
+
 	async getSelectedNftsWithPoints({ request }: { request: Request }) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
