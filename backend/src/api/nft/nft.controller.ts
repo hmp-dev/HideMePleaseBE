@@ -112,14 +112,28 @@ export class NftController {
 		summary: 'Get benefits for collection',
 	})
 	@UseGuards(AuthGuard)
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'pageSize',
+		type: 'number',
+		required: false,
+	})
 	@Get('/collection/:tokenAddress/benefits')
 	getNftBenefits(
 		@Req() request: Request,
 		@Param('tokenAddress') tokenAddress: string,
+		@Query() { page }: { page: number },
+		@Query() { pageSize }: { pageSize?: number },
 	) {
 		return this.nftBenefitsService.getCollectionBenefits({
 			request,
 			tokenAddress,
+			page,
+			pageSize,
 		});
 	}
 

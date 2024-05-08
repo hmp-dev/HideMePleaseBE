@@ -385,7 +385,12 @@ export class NftService {
 			nftCollection: undefined,
 			...selectedNft.nftCollection,
 			NftCollectionPoints: undefined,
-			...selectedNft.nftCollection.NftCollectionPoints,
+			...{
+				totalPoints: 0,
+				totalMembers: 1,
+				pointFluctuation: 0,
+				...selectedNft.nftCollection.NftCollectionPoints,
+			},
 		}));
 	}
 

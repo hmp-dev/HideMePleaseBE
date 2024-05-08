@@ -3,7 +3,10 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { type Cache } from 'cache-manager';
 import { isSameDay } from 'date-fns';
 
-import { BENEFIT_USAGE_PAGE_SIZE } from '@/api/nft/nft.constants';
+import {
+	BENEFIT_PAGE_SIZE,
+	BENEFIT_USAGE_PAGE_SIZE,
+} from '@/api/nft/nft.constants';
 import { BenefitUsageType } from '@/api/nft/nft.types';
 import { getBenefitLevel } from '@/api/nft/nft.utils';
 import { CACHE_TTL } from '@/constants';
@@ -26,11 +29,16 @@ export class NftBenefitsService {
 	async getCollectionBenefits({
 		tokenAddress,
 		request,
+		page,
+		pageSize = BENEFIT_PAGE_SIZE,
 	}: {
 		request: Request;
 		tokenAddress: string;
+		page: number;
+		pageSize?: number;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const currentPage = isNaN(page) || !page ? 1 : page;
 
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevel = getBenefitLevel(collectionPoints);
@@ -62,6 +70,8 @@ export class NftBenefitsService {
 					take: 1,
 				},
 			},
+			take: Number(pageSize),
+			skip: Number(pageSize) * (currentPage - 1),
 		});
 
 		return spaceBenefits.map(({ space, SpaceBenefitUsage, ...rest }) => {
@@ -113,8 +123,8 @@ export class NftBenefitsService {
 		const currentPage = isNaN(page) || !page ? 1 : page;
 		// TODO: handle type
 
-		const spaceBenefitUsages = await this.prisma.spaceBenefitUsage.findMany(
-			{
+		const [spaceBenefitUsages, usageCount] = await Promise.all([
+			this.prisma.spaceBenefitUsage.findMany({
 				where: {
 					userId: authContext.userId,
 					tokenAddress,
@@ -149,16 +159,25 @@ export class NftBenefitsService {
 				},
 				take: BENEFIT_USAGE_PAGE_SIZE,
 				skip: BENEFIT_USAGE_PAGE_SIZE * (currentPage - 1),
-			},
-		);
+			}),
+			this.prisma.spaceBenefitUsage.count({
+				where: {
+					userId: authContext.userId,
+					tokenAddress,
+				},
+			}),
+		]);
 
-		return spaceBenefitUsages.map((spaceBenefit) => ({
-			...spaceBenefit,
-			benefit: undefined,
-			spaceName: spaceBenefit.benefit.space.name,
-			benefitDescription: spaceBenefit.benefit.description,
-			type: BenefitUsageType.SPACE_VISIT,
-		}));
+		return {
+			items: spaceBenefitUsages.map((spaceBenefit) => ({
+				...spaceBenefit,
+				benefit: undefined,
+				spaceName: spaceBenefit.benefit.space.name,
+				benefitDescription: spaceBenefit.benefit.description,
+				type: BenefitUsageType.SPACE_VISIT,
+			})),
+			count: usageCount,
+		};
 	}
 
 	async getNftCollectionNetworkInfo({
