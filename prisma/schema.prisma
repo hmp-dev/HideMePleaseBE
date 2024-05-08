@@ -27,14 +27,14 @@ model User {
 }
 
 model NftCollection {
-  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                  String               @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @default(now()) @updatedAt
   deleted             Boolean              @default(false)
   name                String
   symbol              String
   link                String?
-  tokenAddress        String               @unique
+  tokenAddress        String               @id
   contractType        String
   collectionLogo      String?
   chain               SupportedChains
