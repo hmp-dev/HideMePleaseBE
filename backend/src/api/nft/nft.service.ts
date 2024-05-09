@@ -127,13 +127,21 @@ export class NftService {
 		return welcomeNft.siteLink;
 	}
 
-	private async getSelectedNftCollections(authContext: AuthContext) {
+	private async getSelectedNftCollections(
+		authContext: AuthContext,
+		chain: SupportedChains,
+	) {
 		const selectedNfts = await this.prisma.nft.findMany({
 			where: {
 				selected: true,
 				ownedWallet: {
 					userId: authContext.userId,
 				},
+				...(chain && {
+					nftCollection: {
+						chain,
+					},
+				}),
 			},
 			select: {
 				nftCollection: {
@@ -219,8 +227,10 @@ export class NftService {
 			: (null as NftCollectionCursor);
 
 		if (!parsedNextCursor?.liveData) {
-			const selectedCollections =
-				await this.getSelectedNftCollections(authContext);
+			const selectedCollections = await this.getSelectedNftCollections(
+				authContext,
+				chain,
+			);
 			if (selectedCollections.selectedNftCount) {
 				return selectedCollections;
 			}
