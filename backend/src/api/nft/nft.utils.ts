@@ -4,7 +4,7 @@ import { BenefitLevel } from '@prisma/client';
 import { BENEFIT_POINT_CAP } from '@/api/nft/nft.constants';
 import { NftCreateWithCollection } from '@/api/nft/nft.types';
 
-export function getBenefitLevel(points: number): BenefitLevel {
+function getBenefitLevel(points: number): BenefitLevel {
 	if (points <= BENEFIT_POINT_CAP.LEVEL1) {
 		return BenefitLevel.LEVEL1;
 	} else if (points <= BENEFIT_POINT_CAP.LEVEL2) {
@@ -16,6 +16,38 @@ export function getBenefitLevel(points: number): BenefitLevel {
 	}
 
 	return BenefitLevel.LEVEL5;
+}
+
+export function getAllEligibleLevels(points: number) {
+	const benefitLevel = getBenefitLevel(points);
+
+	switch (benefitLevel) {
+		case BenefitLevel.LEVEL1:
+			return [BenefitLevel.LEVEL1];
+		case BenefitLevel.LEVEL2:
+			return [BenefitLevel.LEVEL1, BenefitLevel.LEVEL2];
+		case BenefitLevel.LEVEL3:
+			return [
+				BenefitLevel.LEVEL1,
+				BenefitLevel.LEVEL2,
+				BenefitLevel.LEVEL3,
+			];
+		case BenefitLevel.LEVEL4:
+			return [
+				BenefitLevel.LEVEL1,
+				BenefitLevel.LEVEL2,
+				BenefitLevel.LEVEL3,
+				BenefitLevel.LEVEL4,
+			];
+		case BenefitLevel.LEVEL5:
+			return [
+				BenefitLevel.LEVEL1,
+				BenefitLevel.LEVEL2,
+				BenefitLevel.LEVEL3,
+				BenefitLevel.LEVEL4,
+				BenefitLevel.LEVEL5,
+			];
+	}
 }
 
 export function getCompositeTokenId(

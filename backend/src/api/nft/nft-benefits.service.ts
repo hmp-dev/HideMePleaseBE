@@ -1,20 +1,23 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { type Cache } from 'cache-manager';
 import { isSameDay } from 'date-fns';
+import { GeoPosition } from 'geo-position.ts';
 
 import {
 	BENEFIT_PAGE_SIZE,
 	BENEFIT_USAGE_PAGE_SIZE,
 } from '@/api/nft/nft.constants';
 import { BenefitUsageType } from '@/api/nft/nft.types';
-import { getBenefitLevel } from '@/api/nft/nft.utils';
+import { getAllEligibleLevels } from '@/api/nft/nft.utils';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { SupportedChainMapping } from '@/modules/web3/web3.constants';
 import { AuthContext, SortOrder } from '@/types';
+import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
@@ -24,6 +27,7 @@ export class NftBenefitsService {
 		private mediaService: MediaService,
 		private moralisApiService: MoralisApiService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
+		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
 
 	async getCollectionBenefits({
@@ -41,11 +45,13 @@ export class NftBenefitsService {
 		const currentPage = isNaN(page) || !page ? 1 : page;
 
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
-		const benefitLevel = getBenefitLevel(collectionPoints);
+		const benefitLevels = getAllEligibleLevels(collectionPoints);
 
 		const spaceBenefits = await this.prisma.spaceBenefit.findMany({
 			where: {
-				level: benefitLevel,
+				level: {
+					in: benefitLevels,
+				},
 				active: true,
 			},
 			select: {
@@ -227,5 +233,84 @@ export class NftBenefitsService {
 		);
 
 		return res;
+	}
+
+	async getNftCollectionSpaces({
+		tokenAddress,
+		latitude,
+		longitude,
+	}: {
+		tokenAddress: string;
+		request: Request;
+		latitude: number | undefined;
+		longitude: number | undefined;
+	}) {
+		const collectionPoints = await this.getCollectionPoints(tokenAddress);
+		const benefitLevels = getAllEligibleLevels(collectionPoints);
+
+		const spacesOfferingTheseBenefits = await this.prisma.space.findMany({
+			where: {
+				SpaceBenefit: {
+					some: {
+						level: {
+							in: benefitLevels,
+						},
+					},
+				},
+			},
+			select: {
+				id: true,
+				name: true,
+				latitude: true,
+				longitude: true,
+				address: true,
+				image: true,
+			},
+		});
+
+		const populatedSpaces = spacesOfferingTheseBenefits.map((space) => ({
+			...space,
+			image: this.mediaService.getUrl(space.image),
+		}));
+
+		if (latitude && longitude) {
+			const userPosition = new GeoPosition(latitude, longitude);
+			const maxDistance = this.configService.get<number>(
+				'MAX_DISTANCE_FROM_SPACE',
+			);
+			const spacesWithDistance = populatedSpaces.map((space) => {
+				const spacePosition = new GeoPosition(
+					space.latitude,
+					space.longitude,
+				);
+
+				return {
+					...space,
+					distance: Number(
+						userPosition.Distance(spacePosition).toFixed(0),
+					),
+				};
+			});
+
+			const sortedSpaces = spacesWithDistance.sort((spaceA, spaceB) =>
+				spaceA.distance > spaceB.distance ? 1 : -1,
+			);
+
+			const filteredSpaces = sortedSpaces.filter(
+				(space) => space.distance <= maxDistance,
+			);
+
+			if (filteredSpaces.length === 1) {
+				return { spaces: [filteredSpaces[0]], ambiguous: false };
+			} else if (filteredSpaces.length > 1) {
+				return { spaces: filteredSpaces, ambiguous: true };
+			} else if (sortedSpaces.length) {
+				return { spaces: sortedSpaces, ambiguous: true };
+			}
+		}
+		return {
+			spaces: populatedSpaces,
+			ambiguous: populatedSpaces.length > 1,
+		};
 	}
 }

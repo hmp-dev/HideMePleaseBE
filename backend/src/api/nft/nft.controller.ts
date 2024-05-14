@@ -189,6 +189,37 @@ export class NftController {
 	}
 
 	@ApiOperation({
+		summary: 'Get nearest spaces for this nft',
+	})
+	@ApiQuery({
+		name: 'latitude',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'longitude',
+		type: 'number',
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collection/:tokenAddress/spaces')
+	getNftCollectionSpaces(
+		@Req() request: Request,
+		@Param('tokenAddress') tokenAddress: string,
+		@Query('latitude')
+		latitude?: number,
+		@Query('longitude')
+		longitude?: number,
+	) {
+		return this.nftBenefitsService.getNftCollectionSpaces({
+			request,
+			tokenAddress,
+			latitude,
+			longitude,
+		});
+	}
+
+	@ApiOperation({
 		summary: 'Update selected nft order',
 	})
 	@UseGuards(AuthGuard)
