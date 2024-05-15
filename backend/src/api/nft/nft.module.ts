@@ -18,6 +18,6 @@ import { MoralisModule } from '@/modules/moralis/moralis.module';
 		NftOwnershipService,
 		NftPointService,
 	],
-	exports: [NftService],
+	exports: [NftService, NftPointService],
 })
 export class NftModule {}

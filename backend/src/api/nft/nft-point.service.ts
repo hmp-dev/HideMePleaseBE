@@ -9,7 +9,7 @@ export class NftPointService {
 
 	constructor(private prisma: PrismaService) {}
 
-	async recalculatePoints(computeFluctuation = false) {
+	async recalculateNftCollectionPoints(computeFluctuation = false) {
 		this.logger.log('recalculatePoints started');
 
 		const [nftMembers, communityPoints, existingPoints] = await Promise.all(
@@ -94,8 +94,51 @@ export class NftPointService {
 		this.logger.log('recalculatePoints ended');
 	}
 
+	async recalculateNftCollectionUserPoints(tokenAddress: string) {
+		const [nftMembers, communityPoints] = await Promise.all([
+			this.prisma.nft.findMany({
+				select: {
+					ownedWallet: {
+						select: {
+							userId: true,
+						},
+					},
+				},
+				where: {
+					tokenAddress,
+				},
+			}),
+			this.prisma.spaceBenefitUsage.groupBy({
+				where: {
+					tokenAddress,
+				},
+				by: 'userId',
+				_sum: {
+					pointsEarned: true,
+				},
+				orderBy: {
+					_sum: {
+						pointsEarned: 'desc',
+					},
+				},
+			}),
+		]);
+
+		console.log(nftMembers);
+		console.log(communityPoints);
+
+		return { nftMembers, communityPoints };
+	}
+
+	// @Cron(CronExpression.EVERY_10_SECONDS)
+	// rec() {
+	// 	this.recalculateNftCollectionUserPoints(
+	// 		'0xe7e7ead361f3aacd73a61a9bd6c10ca17f38e945',
+	// 	);
+	// }
+
 	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
 	async computePointFluctuation() {
-		await this.recalculatePoints(true);
+		await this.recalculateNftCollectionPoints(true);
 	}
 }

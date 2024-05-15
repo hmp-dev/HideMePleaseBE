@@ -77,6 +77,25 @@ export class SpaceController {
 	}
 
 	@ApiOperation({
+		summary: 'Generate space benefit token using backdoor',
+	})
+	@ApiParam({
+		name: 'spaceId',
+		type: 'string',
+	})
+	@UseGuards(AuthGuard)
+	@Get('benefits/token-backdoor/:spaceId')
+	generateBenefitsTokenBackdoor(
+		@Req() request: Request,
+		@Param('spaceId') spaceId: string,
+	) {
+		return this.spaceService.generateBenefitsTokenBackdoor({
+			spaceId,
+			request,
+		});
+	}
+
+	@ApiOperation({
 		summary: 'Redeem space benefit',
 	})
 	@ApiParam({

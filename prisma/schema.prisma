@@ -8,39 +8,41 @@ datasource db {
 }
 
 model User {
-  createdAt                 DateTime            @default(now())
-  deleted                   Boolean             @default(false)
-  firebaseId                String?             @unique
-  updatedAt                 DateTime            @default(now()) @updatedAt
-  wldNullifierHash          String?             @unique
-  id                        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  introduction              String              @default("")
-  locationPublic            Boolean             @default(true)
-  nickName                  String              @default("")
+  createdAt                 DateTime                    @default(now())
+  deleted                   Boolean                     @default(false)
+  firebaseId                String?                     @unique
+  updatedAt                 DateTime                    @default(now()) @updatedAt
+  wldNullifierHash          String?                     @unique
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  introduction              String                      @default("")
+  locationPublic            Boolean                     @default(true)
+  nickName                  String                      @default("")
   pfpNftId                  String?
-  pfpNft                    Nft?                @relation(fields: [pfpNftId], references: [id], onDelete: SetNull)
+  pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id], onDelete: SetNull)
   CmsModule                 Wallet[]
   WelcomeNft                WelcomeNft[]
   SpaceUser                 SpaceUser[]
-  SpaceBenefitUsageUser     SpaceBenefitUsage[] @relation("user")
-  SpaceBenefitUsageVerifier SpaceBenefitUsage[] @relation("verifierUser")
+  SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
+  SpaceBenefitUsageVerifier SpaceBenefitUsage[]         @relation("verifierUser")
+  NftCollectionMemberPoints NftCollectionMemberPoints[]
 }
 
 model NftCollection {
-  id                  String               @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @default(now()) @updatedAt
-  deleted             Boolean              @default(false)
-  name                String
-  symbol              String
-  link                String?
-  tokenAddress        String               @id
-  contractType        String
-  collectionLogo      String?
-  chain               SupportedChains
-  Nft                 Nft[]
-  SpaceBenefitUsage   SpaceBenefitUsage[]
-  NftCollectionPoints NftCollectionPoints?
+  id                        String                      @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now()) @updatedAt
+  deleted                   Boolean                     @default(false)
+  name                      String
+  symbol                    String
+  link                      String?
+  tokenAddress              String                      @id
+  contractType              String
+  collectionLogo            String?
+  chain                     SupportedChains
+  Nft                       Nft[]
+  SpaceBenefitUsage         SpaceBenefitUsage[]
+  NftCollectionPoints       NftCollectionPoints?
+  NftCollectionMemberPoints NftCollectionMemberPoints[]
 }
 
 model NftCollectionPoints {
@@ -53,6 +55,19 @@ model NftCollectionPoints {
   pointFluctuation Int           @default(0)
   tokenAddress     String        @unique
   nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+}
+
+model NftCollectionMemberPoints {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @default(now()) @updatedAt
+  totalPoints      Int
+  memberRank       Int
+  pointFluctuation Int           @default(0)
+  tokenAddress     String
+  nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  userId           String        @db.Uuid
+  user             User          @relation(fields: [userId], references: [id])
 }
 
 model Nft {
@@ -114,24 +129,25 @@ model MediaFile {
 }
 
 model Space {
-  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @default(now()) @updatedAt
-  deleted             Boolean        @default(false)
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+  deleted             Boolean            @default(false)
   name                String
   latitude            Float
   longitude           Float
   address             String
   webLink             String
-  businessHoursEnd    DateTime       @db.Time(6)
-  businessHoursStart  DateTime       @db.Time(6)
+  businessHoursEnd    DateTime           @db.Time(6)
+  businessHoursStart  DateTime           @db.Time(6)
   category            SpaceCategory
-  introduction        String         @default("")
-  locationDescription String         @default("")
-  imageId             String         @db.Uuid
-  image               directus_files @relation(fields: [imageId], references: [id])
+  introduction        String             @default("")
+  locationDescription String             @default("")
+  imageId             String             @db.Uuid
+  image               directus_files     @relation(fields: [imageId], references: [id])
   SpaceBenefit        SpaceBenefit[]
   SpaceUser           SpaceUser[]
+  SpaceUserInvites    SpaceUserInvites[]
 }
 
 enum SpaceUserRole {
@@ -150,6 +166,16 @@ model SpaceUser {
   role      SpaceUserRole @default(SPACE_ADMIN)
 
   @@unique([spaceId, userId])
+}
+
+model SpaceUserInvites {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  deleted   Boolean  @default(false)
+  email     String   @unique
+  spaceId   String   @db.Uuid
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model SpaceBenefit {

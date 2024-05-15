@@ -308,6 +308,7 @@ export class NftBenefitsService {
 				return { spaces: sortedSpaces, ambiguous: true };
 			}
 		}
+
 		return {
 			spaces: populatedSpaces,
 			ambiguous: populatedSpaces.length > 1,

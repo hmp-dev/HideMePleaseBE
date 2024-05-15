@@ -1,10 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { addMinutes, isSameDay } from 'date-fns';
 import { GeoPosition } from 'geo-position.ts';
 import { validate as isValidUUID } from 'uuid';
 
+import { NftPointService } from '@/api/nft/nft-point.service';
 import { DEFAULT_POINTS } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { DecodedBenefitToken } from '@/api/space/space.types';
@@ -17,11 +18,14 @@ import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class SpaceService {
+	private logger = new Logger(SpaceService.name);
+
 	constructor(
 		private prisma: PrismaService,
 		private mediaService: MediaService,
 		private configService: ConfigService<EnvironmentVariables, true>,
 		private jwtService: JwtService,
+		private nftPointService: NftPointService,
 	) {}
 
 	async getNearestSpaces({
@@ -86,6 +90,35 @@ export class SpaceService {
 			generatedAt: new Date(),
 			validTill: addMinutes(new Date(), SPACE_TOKEN_VALIDITY_IN_MINUTES),
 			generatedBy: authContext.userId,
+		};
+
+		return this.jwtService.signAsync(token);
+	}
+
+	async generateBenefitsTokenBackdoor({
+		spaceId,
+		request,
+	}: {
+		spaceId: string;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const spaceUser = await this.prisma.spaceUser.findFirst({
+			where: {
+				spaceId,
+			},
+			select: {
+				userId: true,
+			},
+		});
+
+		const token: DecodedBenefitToken = {
+			type: JwtType.SPACE_BENEFIT,
+			spaceId,
+			generatedAt: new Date(),
+			validTill: addMinutes(new Date(), SPACE_TOKEN_VALIDITY_IN_MINUTES),
+			generatedBy: spaceUser?.userId || authContext.userId,
 		};
 
 		return this.jwtService.signAsync(token);
@@ -176,5 +209,10 @@ export class SpaceService {
 				verifierUserId: decodedToken.generatedBy,
 			},
 		});
+
+		void this.nftPointService
+			.recalculateNftCollectionPoints()
+			.then(() => this.logger.log('Recalculation of points done'))
+			.catch((e) => this.logger.log(`Error in recalculate points: ${e}`));
 	}
 }
