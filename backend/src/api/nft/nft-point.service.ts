@@ -94,51 +94,115 @@ export class NftPointService {
 		this.logger.log('recalculatePoints ended');
 	}
 
-	async recalculateNftCollectionUserPoints(tokenAddress: string) {
-		const [nftMembers, communityPoints] = await Promise.all([
-			this.prisma.nft.findMany({
-				select: {
-					ownedWallet: {
-						select: {
-							userId: true,
+	async recalculateNftCollectionUserPoints(
+		tokenAddress: string,
+		computeFluctuation = false,
+	) {
+		const [nftMembers, communityPoints, existingPoints] = await Promise.all(
+			[
+				this.prisma.nft.findMany({
+					select: {
+						ownedWallet: {
+							select: {
+								userId: true,
+							},
 						},
 					},
-				},
-				where: {
-					tokenAddress,
-				},
-			}),
-			this.prisma.spaceBenefitUsage.groupBy({
-				where: {
-					tokenAddress,
-				},
-				by: 'userId',
-				_sum: {
-					pointsEarned: true,
-				},
-				orderBy: {
-					_sum: {
-						pointsEarned: 'desc',
+					where: {
+						tokenAddress,
 					},
-				},
-			}),
-		]);
+				}),
+				this.prisma.spaceBenefitUsage.groupBy({
+					where: {
+						tokenAddress,
+					},
+					by: 'userId',
+					_sum: {
+						pointsEarned: true,
+					},
+					orderBy: {
+						_sum: {
+							pointsEarned: 'desc',
+						},
+					},
+				}),
+				computeFluctuation
+					? this.prisma.nftCollectionMemberPoints.findMany({
+							where: {
+								tokenAddress,
+							},
+							select: {
+								userId: true,
+								totalPoints: true,
+							},
+						})
+					: null,
+			],
+		);
 
-		console.log(nftMembers);
-		console.log(communityPoints);
+		const memberIds = [
+			...new Set(nftMembers.map((member) => member.ownedWallet.userId)),
+		];
 
-		return { nftMembers, communityPoints };
+		const userPointMapping: Record<string, number> = {};
+		for (const point of communityPoints) {
+			userPointMapping[point.userId] = point._sum?.pointsEarned ?? 0;
+		}
+
+		const userExistingPointMapping: Record<string, number> = {};
+		if (existingPoints) {
+			for (const point of existingPoints) {
+				userExistingPointMapping[point.userId] = point.totalPoints;
+			}
+		}
+
+		const nftMembersWithPoints = memberIds
+			.map((userId) => {
+				const totalPoints = userPointMapping[userId] ?? 0;
+				return {
+					userId,
+					tokenAddress,
+					totalPoints,
+					pointFluctuation: computeFluctuation
+						? totalPoints - (userExistingPointMapping[userId] || 0)
+						: undefined,
+				};
+			})
+			.sort((memberA, memberB) =>
+				memberA.totalPoints > memberB.totalPoints ? -1 : 1,
+			)
+			.map((nftMember, index) => ({
+				...nftMember,
+				memberRank: index + 1,
+			}));
+
+		await this.prisma.nftCollectionMemberPoints.deleteMany({
+			where: {
+				tokenAddress,
+			},
+		});
+		await this.prisma.nftCollectionMemberPoints.createMany({
+			data: nftMembersWithPoints,
+			skipDuplicates: true,
+		});
+
+		this.logger.log(`recalculateMemberPoints ended for ${tokenAddress}`);
 	}
-
-	// @Cron(CronExpression.EVERY_10_SECONDS)
-	// rec() {
-	// 	this.recalculateNftCollectionUserPoints(
-	// 		'0xe7e7ead361f3aacd73a61a9bd6c10ca17f38e945',
-	// 	);
-	// }
 
 	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
 	async computePointFluctuation() {
 		await this.recalculateNftCollectionPoints(true);
+
+		const systemNfts = await this.prisma.nftCollection.findMany({
+			select: {
+				tokenAddress: true,
+			},
+		});
+		for (const systemNft of systemNfts) {
+			await this.recalculateNftCollectionUserPoints(
+				systemNft.tokenAddress,
+				true,
+			);
+		}
 	}
 }

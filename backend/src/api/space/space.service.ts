@@ -214,5 +214,12 @@ export class SpaceService {
 			.recalculateNftCollectionPoints()
 			.then(() => this.logger.log('Recalculation of points done'))
 			.catch((e) => this.logger.log(`Error in recalculate points: ${e}`));
+
+		void this.nftPointService
+			.recalculateNftCollectionUserPoints(redeemBenefitsDTO.tokenAddress)
+			.then(() => this.logger.log('Recalculation of user points done'))
+			.catch((e) =>
+				this.logger.log(`Error in recalculate user points: ${e}`),
+			);
 	}
 }

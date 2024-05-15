@@ -14,3 +14,4 @@ export const PAGINATION_DEPTH_FOR_NFTS = 2;
 
 export const BENEFIT_USAGE_PAGE_SIZE = 10;
 export const BENEFIT_PAGE_SIZE = 10;
+export const NFT_MEMBERS_PAGE_SIZE = 10;

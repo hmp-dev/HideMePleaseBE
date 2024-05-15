@@ -8,6 +8,7 @@ import { GeoPosition } from 'geo-position.ts';
 import {
 	BENEFIT_PAGE_SIZE,
 	BENEFIT_USAGE_PAGE_SIZE,
+	NFT_MEMBERS_PAGE_SIZE,
 } from '@/api/nft/nft.constants';
 import { BenefitUsageType } from '@/api/nft/nft.types';
 import { getAllEligibleLevels } from '@/api/nft/nft.utils';
@@ -313,5 +314,51 @@ export class NftBenefitsService {
 			spaces: populatedSpaces,
 			ambiguous: populatedSpaces.length > 1,
 		};
+	}
+
+	async getNftCollectionMembers({
+		tokenAddress,
+		page,
+	}: {
+		tokenAddress: string;
+		request: Request;
+		page: number;
+	}) {
+		const currentPage = isNaN(page) || !page ? 1 : page;
+
+		const nftMembers = await this.prisma.nftCollectionMemberPoints.findMany(
+			{
+				where: {
+					tokenAddress,
+				},
+				select: {
+					user: {
+						select: {
+							nickName: true,
+							pfpNft: {
+								select: {
+									imageUrl: true,
+								},
+							},
+						},
+					},
+					totalPoints: true,
+					pointFluctuation: true,
+					memberRank: true,
+				},
+				take: NFT_MEMBERS_PAGE_SIZE,
+				skip: NFT_MEMBERS_PAGE_SIZE * (currentPage - 1),
+				orderBy: {
+					memberRank: 'asc',
+				},
+			},
+		);
+
+		return nftMembers.map((nftMember) => ({
+			...nftMember,
+			user: undefined,
+			name: nftMember.user.nickName,
+			pfpImage: nftMember.user.pfpNft?.imageUrl,
+		}));
 	}
 }

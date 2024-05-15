@@ -220,6 +220,28 @@ export class NftController {
 	}
 
 	@ApiOperation({
+		summary: 'Get nft members with rankings',
+	})
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collection/:tokenAddress/members')
+	getNftCollectionMembers(
+		@Req() request: Request,
+		@Param('tokenAddress') tokenAddress: string,
+		@Query() { page }: { page: number },
+	) {
+		return this.nftBenefitsService.getNftCollectionMembers({
+			request,
+			tokenAddress,
+			page,
+		});
+	}
+
+	@ApiOperation({
 		summary: 'Update selected nft order',
 	})
 	@UseGuards(AuthGuard)
