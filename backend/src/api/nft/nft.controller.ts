@@ -3,6 +3,7 @@ import {
 	Controller,
 	Get,
 	Param,
+	ParseFloatPipe,
 	Post,
 	Query,
 	Req,
@@ -122,18 +123,25 @@ export class NftController {
 		type: 'number',
 		required: false,
 	})
+	@ApiQuery({
+		name: 'spaceId',
+		type: 'string',
+		required: false,
+	})
 	@Get('/collection/:tokenAddress/benefits')
 	getNftBenefits(
 		@Req() request: Request,
 		@Param('tokenAddress') tokenAddress: string,
 		@Query() { page }: { page: number },
 		@Query() { pageSize }: { pageSize?: number },
+		@Query() { spaceId }: { spaceId?: string },
 	) {
 		return this.nftBenefitsService.getCollectionBenefits({
 			request,
 			tokenAddress,
 			page,
 			pageSize,
+			spaceId,
 		});
 	}
 
@@ -194,22 +202,18 @@ export class NftController {
 	@ApiQuery({
 		name: 'latitude',
 		type: 'number',
-		required: false,
 	})
 	@ApiQuery({
 		name: 'longitude',
 		type: 'number',
-		required: false,
 	})
 	@UseGuards(AuthGuard)
 	@Get('/collection/:tokenAddress/spaces')
 	getNftCollectionSpaces(
 		@Req() request: Request,
 		@Param('tokenAddress') tokenAddress: string,
-		@Query('latitude')
-		latitude?: number,
-		@Query('longitude')
-		longitude?: number,
+		@Query('latitude', ParseFloatPipe) latitude: number,
+		@Query('longitude', ParseFloatPipe) longitude: number,
 	) {
 		return this.nftBenefitsService.getNftCollectionSpaces({
 			request,

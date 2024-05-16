@@ -2,7 +2,6 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { type Cache } from 'cache-manager';
-import { isSameDay } from 'date-fns';
 import { GeoPosition } from 'geo-position.ts';
 
 import {
@@ -36,11 +35,13 @@ export class NftBenefitsService {
 		request,
 		page,
 		pageSize = BENEFIT_PAGE_SIZE,
+		spaceId,
 	}: {
 		request: Request;
 		tokenAddress: string;
 		page: number;
 		pageSize?: number;
+		spaceId?: string;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		const currentPage = isNaN(page) || !page ? 1 : page;
@@ -54,6 +55,7 @@ export class NftBenefitsService {
 					in: benefitLevels,
 				},
 				active: true,
+				spaceId,
 			},
 			select: {
 				id: true,
@@ -67,14 +69,13 @@ export class NftBenefitsService {
 					},
 				},
 				SpaceBenefitUsage: {
-					select: { createdAt: true },
+					select: { createdAt: true, tokenAddress: true },
 					where: {
 						userId: authContext.userId,
 					},
 					orderBy: {
 						createdAt: 'desc',
 					},
-					take: 1,
 				},
 			},
 			take: Number(pageSize),
@@ -82,12 +83,14 @@ export class NftBenefitsService {
 		});
 
 		return spaceBenefits.map(({ space, SpaceBenefitUsage, ...rest }) => {
-			const [spaceBenefitUsage] = SpaceBenefitUsage;
 			let used = false;
-			if (spaceBenefitUsage) {
+			if (SpaceBenefitUsage.length) {
 				used = rest.singleUse
 					? true
-					: isSameDay(spaceBenefitUsage.createdAt, new Date());
+					: SpaceBenefitUsage.some(
+							(benefitUsage) =>
+								benefitUsage.tokenAddress === tokenAddress,
+						);
 			}
 
 			return {
@@ -243,8 +246,8 @@ export class NftBenefitsService {
 	}: {
 		tokenAddress: string;
 		request: Request;
-		latitude: number | undefined;
-		longitude: number | undefined;
+		latitude: number;
+		longitude: number;
 	}) {
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevels = getAllEligibleLevels(collectionPoints);
@@ -274,46 +277,40 @@ export class NftBenefitsService {
 			image: this.mediaService.getUrl(space.image),
 		}));
 
-		if (latitude && longitude) {
-			const userPosition = new GeoPosition(latitude, longitude);
-			const maxDistance = this.configService.get<number>(
-				'MAX_DISTANCE_FROM_SPACE',
-			);
-			const spacesWithDistance = populatedSpaces.map((space) => {
-				const spacePosition = new GeoPosition(
-					space.latitude,
-					space.longitude,
-				);
-
-				return {
-					...space,
-					distance: Number(
-						userPosition.Distance(spacePosition).toFixed(0),
-					),
-				};
-			});
-
-			const sortedSpaces = spacesWithDistance.sort((spaceA, spaceB) =>
-				spaceA.distance > spaceB.distance ? 1 : -1,
+		const userPosition = new GeoPosition(latitude, longitude);
+		const maxDistance = this.configService.get<number>(
+			'MAX_DISTANCE_FROM_SPACE',
+		);
+		const spacesWithDistance = populatedSpaces.map((space) => {
+			const spacePosition = new GeoPosition(
+				space.latitude,
+				space.longitude,
 			);
 
-			const filteredSpaces = sortedSpaces.filter(
-				(space) => space.distance <= maxDistance,
-			);
+			return {
+				...space,
+				distance: Number(
+					userPosition.Distance(spacePosition).toFixed(0),
+				),
+			};
+		});
 
-			if (filteredSpaces.length === 1) {
-				return { spaces: [filteredSpaces[0]], ambiguous: false };
-			} else if (filteredSpaces.length > 1) {
-				return { spaces: filteredSpaces, ambiguous: true };
-			} else if (sortedSpaces.length) {
-				return { spaces: sortedSpaces, ambiguous: true };
-			}
+		const sortedSpaces = spacesWithDistance.sort((spaceA, spaceB) =>
+			spaceA.distance > spaceB.distance ? 1 : -1,
+		);
+
+		const filteredSpaces = sortedSpaces.filter(
+			(space) => space.distance <= maxDistance,
+		);
+
+		if (filteredSpaces.length) {
+			return {
+				spaces: filteredSpaces,
+				ambiguous: filteredSpaces.length > 1,
+			};
+		} else {
+			return { spaces: [], ambiguous: true };
 		}
-
-		return {
-			spaces: populatedSpaces,
-			ambiguous: populatedSpaces.length > 1,
-		};
 	}
 
 	async getNftCollectionMembers({

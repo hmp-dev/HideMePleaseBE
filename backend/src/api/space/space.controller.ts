@@ -5,9 +5,7 @@ import {
 	HttpCode,
 	HttpStatus,
 	Param,
-	ParseFloatPipe,
 	Post,
-	Query,
 	Req,
 	UseGuards,
 } from '@nestjs/common';
@@ -15,7 +13,6 @@ import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiParam,
-	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
 import { SpaceUserRole } from '@prisma/client';
@@ -32,31 +29,6 @@ import { AuthGuard } from '../auth/auth.guard';
 @Controller('space')
 export class SpaceController {
 	constructor(private spaceService: SpaceService) {}
-
-	@ApiOperation({
-		summary: 'Gets nearest spaces',
-	})
-	@ApiQuery({
-		name: 'latitude',
-		type: 'number',
-	})
-	@ApiQuery({
-		name: 'longitude',
-		type: 'number',
-	})
-	@UseGuards(AuthGuard)
-	@Get('nearby')
-	getWelcomeNft(
-		@Req() request: Request,
-		@Query('latitude', ParseFloatPipe) latitude: number,
-		@Query('longitude', ParseFloatPipe) longitude: number,
-	) {
-		return this.spaceService.getNearestSpaces({
-			request,
-			latitude,
-			longitude,
-		});
-	}
 
 	@ApiOperation({
 		summary: 'Generate space benefit token',

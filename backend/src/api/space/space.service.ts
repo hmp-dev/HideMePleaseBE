@@ -1,8 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { addMinutes, isSameDay } from 'date-fns';
-import { GeoPosition } from 'geo-position.ts';
 import { validate as isValidUUID } from 'uuid';
 
 import { NftPointService } from '@/api/nft/nft-point.service';
@@ -10,10 +8,8 @@ import { DEFAULT_POINTS } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { DecodedBenefitToken } from '@/api/space/space.types';
 import { SPACE_TOKEN_VALIDITY_IN_MINUTES } from '@/constants';
-import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext, JwtType } from '@/types';
-import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
@@ -22,58 +18,9 @@ export class SpaceService {
 
 	constructor(
 		private prisma: PrismaService,
-		private mediaService: MediaService,
-		private configService: ConfigService<EnvironmentVariables, true>,
 		private jwtService: JwtService,
 		private nftPointService: NftPointService,
 	) {}
-
-	async getNearestSpaces({
-		latitude,
-		longitude,
-	}: {
-		request: Request;
-		latitude: number;
-		longitude: number;
-	}) {
-		const userPosition = new GeoPosition(latitude, longitude);
-
-		const spaces = await this.prisma.space.findMany({
-			select: {
-				id: true,
-				name: true,
-				latitude: true,
-				longitude: true,
-				address: true,
-				image: true,
-			},
-		});
-
-		const maxDistance = this.configService.get<number>(
-			'MAX_DISTANCE_FROM_SPACE',
-		);
-
-		const spacesWithDistance = spaces.map((space) => {
-			const spacePosition = new GeoPosition(
-				space.latitude,
-				space.longitude,
-			);
-
-			return {
-				...space,
-				image: this.mediaService.getUrl(space.image),
-				distance: Number(
-					userPosition.Distance(spacePosition).toFixed(0),
-				),
-			};
-		});
-
-		return spacesWithDistance
-			.filter((space) => space.distance <= maxDistance)
-			.sort((spaceA, spaceB) =>
-				spaceA.distance > spaceB.distance ? 1 : -1,
-			);
-	}
 
 	generateBenefitsToken({
 		spaceId,
