@@ -6,6 +6,7 @@ import {
 	HttpStatus,
 	Param,
 	Post,
+	Query,
 	Req,
 	UseGuards,
 } from '@nestjs/common';
@@ -13,14 +14,16 @@ import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiParam,
+	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
-import { SpaceUserRole } from '@prisma/client';
+import { SpaceCategory, SpaceUserRole } from '@prisma/client';
 
 import { SetAccessRoles } from '@/api/auth/role.decorator';
 import { UserPermissionsGuard } from '@/api/auth/user-permission.guard';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { SpaceService } from '@/api/space/space.service';
+import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -29,6 +32,30 @@ import { AuthGuard } from '../auth/auth.guard';
 @Controller('space')
 export class SpaceController {
 	constructor(private spaceService: SpaceService) {}
+
+	@ApiOperation({
+		summary: 'Get spaces list',
+	})
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'category',
+		enum: SpaceCategory,
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get()
+	getSpaceList(
+		@Req() request: Request,
+		@Query() { page }: { page: number },
+		@Query('category', new EnumValidationPipe(SpaceCategory, false))
+		category: SpaceCategory,
+	) {
+		return this.spaceService.getSpaceList({ page, request, category });
+	}
 
 	@ApiOperation({
 		summary: 'Generate space benefit token',

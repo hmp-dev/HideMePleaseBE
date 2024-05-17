@@ -358,4 +358,29 @@ export class NftBenefitsService {
 			pfpImage: nftMember.user.pfpNft?.imageUrl,
 		}));
 	}
+
+	async getTopNftCollections() {
+		const topCollections = await this.prisma.nftCollectionPoints.findMany({
+			take: 3,
+			orderBy: {
+				totalPoints: 'desc',
+			},
+			select: {
+				pointFluctuation: true,
+				totalPoints: true,
+				tokenAddress: true,
+				nftCollection: {
+					select: {
+						collectionLogo: true,
+						name: true,
+					},
+				},
+			},
+		});
+
+		return topCollections.map(({ nftCollection, ...rest }) => ({
+			...rest,
+			...nftCollection,
+		}));
+	}
 }

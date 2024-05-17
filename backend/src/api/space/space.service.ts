@@ -1,13 +1,18 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { SpaceCategory } from '@prisma/client';
 import { addMinutes, isSameDay } from 'date-fns';
 import { validate as isValidUUID } from 'uuid';
 
 import { NftPointService } from '@/api/nft/nft-point.service';
-import { DEFAULT_POINTS } from '@/api/space/space.constants';
+import {
+	DEFAULT_POINTS,
+	SPACE_LIST_PAGE_SIZE,
+} from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { DecodedBenefitToken } from '@/api/space/space.types';
 import { SPACE_TOKEN_VALIDITY_IN_MINUTES } from '@/constants';
+import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext, JwtType } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -20,6 +25,7 @@ export class SpaceService {
 		private prisma: PrismaService,
 		private jwtService: JwtService,
 		private nftPointService: NftPointService,
+		private mediaService: MediaService,
 	) {}
 
 	generateBenefitsToken({
@@ -168,5 +174,46 @@ export class SpaceService {
 			.catch((e) =>
 				this.logger.log(`Error in recalculate user points: ${e}`),
 			);
+	}
+
+	async getSpaceList({
+		category,
+		page,
+	}: {
+		request: Request;
+		category: SpaceCategory;
+		page: number;
+	}) {
+		const currentPage = isNaN(page) || !page ? 1 : page;
+
+		const spaces = await this.prisma.space.findMany({
+			where: {
+				category,
+			},
+			select: {
+				id: true,
+				name: true,
+				image: true,
+				category: true,
+				SpaceBenefit: {
+					select: {
+						description: true,
+					},
+					where: {
+						isRepresentative: true,
+					},
+					take: 1,
+				},
+			},
+			take: Number(SPACE_LIST_PAGE_SIZE),
+			skip: Number(SPACE_LIST_PAGE_SIZE) * (currentPage - 1),
+		});
+
+		return spaces.map(({ SpaceBenefit, ...rest }) => ({
+			...rest,
+			benefitDescription: SpaceBenefit[0]?.description,
+			image: this.mediaService.getUrl(rest.image),
+			hidingCount: 0, // TODO: Update logic
+		}));
 	}
 }

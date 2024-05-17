@@ -244,6 +244,14 @@ export class NftController {
 			page,
 		});
 	}
+	@ApiOperation({
+		summary: 'Get top nft collections',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collections/top')
+	getTopNftCollections() {
+		return this.nftBenefitsService.getTopNftCollections();
+	}
 
 	@ApiOperation({
 		summary: 'Update selected nft order',
