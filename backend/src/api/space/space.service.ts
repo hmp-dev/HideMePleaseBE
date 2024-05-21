@@ -1,9 +1,15 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	Logger,
+	NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SpaceCategory } from '@prisma/client';
 import { addMinutes, isSameDay } from 'date-fns';
 import { validate as isValidUUID } from 'uuid';
 
+import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftPointService } from '@/api/nft/nft-point.service';
 import {
 	DEFAULT_POINTS,
@@ -26,6 +32,7 @@ export class SpaceService {
 		private jwtService: JwtService,
 		private nftPointService: NftPointService,
 		private mediaService: MediaService,
+		private nftBenefitsService: NftBenefitsService,
 	) {}
 
 	generateBenefitsToken({
@@ -215,5 +222,81 @@ export class SpaceService {
 			image: this.mediaService.getUrl(rest.image),
 			hidingCount: 0, // TODO: Update logic
 		}));
+	}
+
+	async getSpace({ spaceId }: { request: Request; spaceId: string }) {
+		const space = await this.prisma.space.findFirst({
+			where: {
+				id: spaceId,
+			},
+			select: {
+				name: true,
+				latitude: true,
+				longitude: true,
+				address: true,
+				businessHoursStart: true,
+				businessHoursEnd: true,
+				category: true,
+				introduction: true,
+				locationDescription: true,
+				image: true,
+			},
+		});
+		if (!space) {
+			throw new NotFoundException(ErrorCodes.ENTITY_NOT_FOUND);
+		}
+
+		return {
+			...space,
+			image: this.mediaService.getUrl(space.image),
+		};
+	}
+
+	async getSpaceBenefits({
+		request,
+		spaceId,
+		next,
+	}: {
+		request: Request;
+		spaceId: string;
+		next?: string;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const userNfts = await this.prisma.nftCollection.findMany({
+			where: {
+				Nft: {
+					some: {
+						ownedWallet: {
+							userId: authContext.userId,
+						},
+					},
+				},
+			},
+			select: {
+				tokenAddress: true,
+			},
+		});
+		if (!userNfts.length) {
+			return [];
+		}
+
+		const nftAddresses = userNfts.map((nft) => nft.tokenAddress);
+
+		const nftsAfterSkip = next
+			? nftAddresses.slice(nftAddresses.indexOf(next))
+			: nftAddresses;
+
+		const [currentNft, nextNft] = nftsAfterSkip;
+		return {
+			benefits: await this.nftBenefitsService.getCollectionBenefits({
+				tokenAddress: currentNft,
+				request,
+				pageSize: 1000,
+				spaceId,
+				page: 1,
+			}),
+			next: nextNft ?? null,
+		};
 	}
 }

@@ -99,6 +99,7 @@ export class NftBenefitsService {
 				spaceName: space.name,
 				spaceImage: this.mediaService.getUrl(space.image),
 				used,
+				tokenAddress,
 			};
 		});
 	}

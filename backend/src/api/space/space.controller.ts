@@ -58,6 +58,34 @@ export class SpaceController {
 	}
 
 	@ApiOperation({
+		summary: 'Get space details',
+	})
+	@UseGuards(AuthGuard)
+	@Get('space/:spaceId')
+	getSpace(@Req() request: Request, @Param('spaceId') spaceId: string) {
+		return this.spaceService.getSpace({ request, spaceId });
+	}
+
+	@ApiOperation({
+		summary: 'Get space benefits',
+	})
+	@ApiQuery({
+		name: 'next',
+		type: 'string',
+		description: 'next cursor for pagination',
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('space/:spaceId/benefits')
+	getSpaceBenefits(
+		@Req() request: Request,
+		@Param('spaceId') spaceId: string,
+		@Query() { next }: { next: string },
+	) {
+		return this.spaceService.getSpaceBenefits({ request, spaceId, next });
+	}
+
+	@ApiOperation({
 		summary: 'Generate space benefit token',
 	})
 	@ApiParam({
