@@ -139,8 +139,8 @@ model Space {
   longitude           Float
   address             String
   webLink             String
-  businessHoursEnd    DateTime             @db.Time(6)
-  businessHoursStart  DateTime             @db.Time(6)
+  businessHoursEnd    String
+  businessHoursStart  String
   category            SpaceCategory
   introduction        String               @default("")
   locationDescription String               @default("")

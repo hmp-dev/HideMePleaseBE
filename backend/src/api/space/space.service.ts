@@ -1,12 +1,15 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
 	BadRequestException,
+	Inject,
 	Injectable,
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SpaceCategory } from '@prisma/client';
-import { addMinutes, isSameDay } from 'date-fns';
+import type { Cache } from 'cache-manager';
+import { addMinutes, isSameDay, subDays } from 'date-fns';
 import { validate as isValidUUID } from 'uuid';
 
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
@@ -17,7 +20,7 @@ import {
 } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { DecodedBenefitToken } from '@/api/space/space.types';
-import { SPACE_TOKEN_VALIDITY_IN_MINUTES } from '@/constants';
+import { CACHE_TTL, SPACE_TOKEN_VALIDITY_IN_MINUTES } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext, JwtType } from '@/types';
@@ -33,6 +36,7 @@ export class SpaceService {
 		private nftPointService: NftPointService,
 		private mediaService: MediaService,
 		private nftBenefitsService: NftBenefitsService,
+		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
 
 	generateBenefitsToken({
@@ -193,6 +197,8 @@ export class SpaceService {
 	}) {
 		const currentPage = isNaN(page) || !page ? 1 : page;
 
+		const mostPointsSpaceId = await this.getSpaceWithMostPointsInLastWeek();
+
 		const spaces = await this.prisma.space.findMany({
 			where: {
 				category,
@@ -221,6 +227,7 @@ export class SpaceService {
 			benefitDescription: SpaceBenefit[0]?.description,
 			image: this.mediaService.getUrl(rest.image),
 			hidingCount: 0, // TODO: Update logic
+			hot: mostPointsSpaceId === rest.id,
 		}));
 	}
 
@@ -298,5 +305,148 @@ export class SpaceService {
 			}),
 			next: nextNft ?? null,
 		};
+	}
+
+	async getSpaceRecommendations() {
+		const cacheKey = 'SPACE_RECOMMENDATIONS';
+		const cachedRecommendations = await this.cacheManager.get(cacheKey);
+		if (cachedRecommendations) {
+			return cachedRecommendations;
+		}
+
+		const benefitUsages = await this.prisma.spaceBenefitUsage.findMany({
+			// where: {
+			// 	createdAt: {
+			// 		gt: startOfDay(new Date()),
+			// 	},
+			// },
+			select: {
+				userId: true,
+				pointsEarned: true,
+				benefit: {
+					select: {
+						space: {
+							select: {
+								name: true,
+								id: true,
+							},
+						},
+					},
+				},
+			},
+		});
+
+		const spaceBenefitAggregate: Record<
+			string,
+			{
+				spaceId: string;
+				spaceName: string;
+				users: Set<string>;
+				points: number;
+			}
+		> = {};
+
+		for (const benefitUsage of benefitUsages) {
+			const { space } = benefitUsage.benefit;
+			if (!spaceBenefitAggregate[space.id]) {
+				spaceBenefitAggregate[space.id] = {
+					spaceId: space.id,
+					spaceName: space.name,
+					points: 0,
+					users: new Set<string>(),
+				};
+			}
+			spaceBenefitAggregate[space.id].points += benefitUsage.pointsEarned;
+			spaceBenefitAggregate[space.id].users.add(benefitUsage.userId);
+		}
+
+		const spacesList = Object.values(spaceBenefitAggregate);
+		spacesList.sort((spaceA, spaceB) => {
+			if (spaceA.points === spaceB.points) {
+				return Math.random() > 0.5 ? -1 : 1;
+			}
+			if (spaceA.points > spaceB.points) {
+				return -1;
+			}
+
+			return 1;
+		});
+
+		const recommendations = spacesList.map(
+			({ spaceId, spaceName, users }) => ({
+				spaceId,
+				spaceName,
+				users: users.size,
+			}),
+		);
+
+		await this.cacheManager.set(
+			cacheKey,
+			recommendations,
+			CACHE_TTL.THIRTY_MIN_IN_MILLISECONDS,
+		);
+
+		return recommendations;
+	}
+
+	async getSpaceWithMostPointsInLastWeek() {
+		const cacheKey = 'SPACE_WITH_MOST_POINTS_IN_LAST_WEEK';
+		const cachedSpaceId = await this.cacheManager.get<string>(cacheKey);
+		if (cachedSpaceId) {
+			return cachedSpaceId;
+		}
+
+		const oneWeekBefore = subDays(new Date(), 7);
+
+		const benefitUsages = await this.prisma.spaceBenefitUsage.findMany({
+			where: {
+				createdAt: {
+					gt: oneWeekBefore,
+				},
+			},
+			select: {
+				pointsEarned: true,
+				benefit: {
+					select: {
+						space: {
+							select: {
+								id: true,
+							},
+						},
+					},
+				},
+			},
+		});
+
+		const spacePoints: Record<string, number> = {};
+
+		for (const benefitUsage of benefitUsages) {
+			const { space } = benefitUsage.benefit;
+			if (!spacePoints[space.id]) {
+				spacePoints[space.id] = 0;
+			}
+
+			spacePoints[space.id] += benefitUsage.pointsEarned;
+		}
+
+		const spacesList = Object.entries(spacePoints).map(
+			([spaceId, points]) => ({ spaceId, points }),
+		);
+		spacesList.sort((spaceA, spaceB) =>
+			spaceA.points > spaceB.points ? -1 : 1,
+		);
+
+		const [mostPointsEarned] = spacesList;
+		if (!mostPointsEarned) {
+			return null;
+		}
+
+		await this.cacheManager.set(
+			cacheKey,
+			mostPointsEarned.spaceId,
+			CACHE_TTL.ONE_HOUR_IN_MILLISECONDS,
+		);
+
+		return mostPointsEarned.spaceId;
 	}
 }

@@ -58,6 +58,15 @@ export class SpaceController {
 	}
 
 	@ApiOperation({
+		summary: 'Get space recommendations',
+	})
+	@UseGuards(AuthGuard)
+	@Get('recommendations')
+	getSpaceRecommendations() {
+		return this.spaceService.getSpaceRecommendations();
+	}
+
+	@ApiOperation({
 		summary: 'Get space details',
 	})
 	@UseGuards(AuthGuard)
