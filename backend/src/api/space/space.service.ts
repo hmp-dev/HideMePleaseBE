@@ -197,7 +197,7 @@ export class SpaceService {
 	}) {
 		const currentPage = isNaN(page) || !page ? 1 : page;
 
-		const mostPointsSpaceId = await this.getSpaceWithMostPointsInLastWeek();
+		const mostPointsSpace = await this.getSpaceWithMostPointsInLastWeek();
 
 		const spaces = await this.prisma.space.findMany({
 			where: {
@@ -227,7 +227,11 @@ export class SpaceService {
 			benefitDescription: SpaceBenefit[0]?.description,
 			image: this.mediaService.getUrl(rest.image),
 			hidingCount: 0, // TODO: Update logic
-			hot: mostPointsSpaceId === rest.id,
+			hot: mostPointsSpace?.spaceId === rest.id,
+			hotPoints:
+				mostPointsSpace?.spaceId === rest.id
+					? mostPointsSpace?.points
+					: undefined,
 		}));
 	}
 
@@ -391,9 +395,12 @@ export class SpaceService {
 
 	async getSpaceWithMostPointsInLastWeek() {
 		const cacheKey = 'SPACE_WITH_MOST_POINTS_IN_LAST_WEEK';
-		const cachedSpaceId = await this.cacheManager.get<string>(cacheKey);
-		if (cachedSpaceId) {
-			return cachedSpaceId;
+		const cachedSpace = await this.cacheManager.get<{
+			spaceId: string;
+			points: number;
+		}>(cacheKey);
+		if (cachedSpace) {
+			return cachedSpace;
 		}
 
 		const oneWeekBefore = subDays(new Date(), 7);
@@ -443,10 +450,10 @@ export class SpaceService {
 
 		await this.cacheManager.set(
 			cacheKey,
-			mostPointsEarned.spaceId,
+			mostPointsEarned,
 			CACHE_TTL.ONE_HOUR_IN_MILLISECONDS,
 		);
 
-		return mostPointsEarned.spaceId;
+		return mostPointsEarned;
 	}
 }
