@@ -13,7 +13,8 @@
 		"prisma:format": "prisma format",
 		"prisma:generate": "prisma generate",
 		"prisma:migrate:deploy": "prisma migrate deploy",
-		"prisma:migrate:dev": "prisma migrate dev"
+		"prisma:migrate:dev": "prisma migrate dev",
+		"export-directus": "pnpx ts-node --compilerOptions {\\\"module\\\":\\\"commonjs\\\"} ./export-directus.ts"
 	},
 	"dependencies": {
 		"@prisma/client": "^5.12.1",
