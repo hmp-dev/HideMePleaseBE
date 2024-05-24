@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/api/auth/auth.module';
+import { UserLocationService } from '@/api/users/user-location.service';
 import { UsersController } from '@/api/users/users.controller';
 import { UsersService } from '@/api/users/users.service';
 import { WorldcoinModule } from '@/modules/worldcoin/worldcoin.module';
@@ -8,7 +9,7 @@ import { WorldcoinModule } from '@/modules/worldcoin/worldcoin.module';
 @Module({
 	imports: [WorldcoinModule, AuthModule],
 	controllers: [UsersController],
-	providers: [UsersService],
-	exports: [],
+	providers: [UsersService, UserLocationService],
+	exports: [UserLocationService],
 })
 export class UsersModule {}

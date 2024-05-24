@@ -1,0 +1,1 @@
+export const LOCATION_VALIDITY_IN_HOURS = 1;

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateUserProfileDTO {
 	@ApiProperty()
@@ -21,4 +21,19 @@ export class UpdateUserProfileDTO {
 	@IsOptional()
 	@IsString()
 	pfpNftId?: string;
+}
+
+export class UpdateLastKnownLocationDTO {
+	@ApiProperty()
+	@IsNumber()
+	latitude!: number;
+
+	@ApiProperty()
+	@IsNumber()
+	longitude!: number;
+
+	@ApiProperty()
+	@IsOptional()
+	@IsString()
+	spaceId?: string;
 }

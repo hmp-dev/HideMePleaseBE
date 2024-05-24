@@ -67,6 +67,15 @@ export class SpaceController {
 	}
 
 	@ApiOperation({
+		summary: 'Get new spaces',
+	})
+	@UseGuards(AuthGuard)
+	@Get('new-spaces')
+	getNewSpaces() {
+		return this.spaceService.getNewSpaces();
+	}
+
+	@ApiOperation({
 		summary: 'Get space details',
 	})
 	@UseGuards(AuthGuard)

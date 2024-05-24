@@ -1,7 +1,19 @@
-import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+	Body,
+	Controller,
+	Get,
+	Patch,
+	Post,
+	Req,
+	UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { UpdateUserProfileDTO } from '@/api/users/users.dto';
+import { UserLocationService } from '@/api/users/user-location.service';
+import {
+	UpdateLastKnownLocationDTO,
+	UpdateUserProfileDTO,
+} from '@/api/users/users.dto';
 import { UsersService } from '@/api/users/users.service';
 import { AuthContext } from '@/types';
 
@@ -15,6 +27,7 @@ export class UsersController {
 	constructor(
 		private ensureUserService: EnsureUserService,
 		private usersService: UsersService,
+		private userLocationService: UserLocationService,
 	) {}
 
 	@ApiOperation({
@@ -48,6 +61,21 @@ export class UsersController {
 		return this.usersService.updateUserProfile({
 			request,
 			updateUserProfileDTO,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Update last known location',
+	})
+	@UseGuards(AuthGuard)
+	@Post('/location')
+	async updateUserLocation(
+		@Req() request: Request,
+		@Body() updateLastKnownLocationDTO: UpdateLastKnownLocationDTO,
+	) {
+		return this.userLocationService.updateUserLocation({
+			request,
+			updateLastKnownLocationDTO,
 		});
 	}
 }

@@ -51,7 +51,6 @@ export class UsersService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		console.log(nickName, pfpNftId, locationPublic, introduction);
 		await this.prisma.user.update({
 			where: {
 				id: authContext.userId,

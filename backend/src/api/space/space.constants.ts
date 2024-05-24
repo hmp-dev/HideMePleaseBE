@@ -3,3 +3,4 @@ export const DEFAULT_POINTS = {
 };
 
 export const SPACE_LIST_PAGE_SIZE = 10;
+export const SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS = 70;

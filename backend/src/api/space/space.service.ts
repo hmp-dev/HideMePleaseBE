@@ -17,9 +17,11 @@ import { NftPointService } from '@/api/nft/nft-point.service';
 import {
 	DEFAULT_POINTS,
 	SPACE_LIST_PAGE_SIZE,
+	SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS,
 } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { DecodedBenefitToken } from '@/api/space/space.types';
+import { UserLocationService } from '@/api/users/user-location.service';
 import { CACHE_TTL, SPACE_TOKEN_VALIDITY_IN_MINUTES } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -36,6 +38,7 @@ export class SpaceService {
 		private nftPointService: NftPointService,
 		private mediaService: MediaService,
 		private nftBenefitsService: NftBenefitsService,
+		private userLocationService: UserLocationService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
 
@@ -222,11 +225,16 @@ export class SpaceService {
 			skip: Number(SPACE_LIST_PAGE_SIZE) * (currentPage - 1),
 		});
 
+		const hidingUsers =
+			await this.userLocationService.getNumberOfUsersHidingInSpaces(
+				spaces.map((space) => space.id),
+			);
+
 		return spaces.map(({ SpaceBenefit, ...rest }) => ({
 			...rest,
 			benefitDescription: SpaceBenefit[0]?.description,
 			image: this.mediaService.getUrl(rest.image),
-			hidingCount: 0, // TODO: Update logic
+			hidingCount: hidingUsers[rest.id],
 			hot: mostPointsSpace?.spaceId === rest.id,
 			hotPoints:
 				mostPointsSpace?.spaceId === rest.id
@@ -455,5 +463,49 @@ export class SpaceService {
 		);
 
 		return mostPointsEarned;
+	}
+
+	async getNewSpaces() {
+		const newSpaces = await this.prisma.space.findMany({
+			where: {
+				createdAt: {
+					gte: subDays(
+						new Date(),
+						SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS,
+					),
+				},
+			},
+			select: {
+				id: true,
+				name: true,
+				image: true,
+				SpaceBenefit: {
+					select: {
+						description: true,
+						isRepresentative: true,
+					},
+					orderBy: {
+						isRepresentative: 'desc',
+					},
+				},
+			},
+		});
+
+		const hidingUsers =
+			await this.userLocationService.getNumberOfUsersHidingInSpaces(
+				newSpaces.map((space) => space.id),
+			);
+
+		console.log(hidingUsers);
+
+		return newSpaces.map(({ SpaceBenefit, ...space }) => ({
+			...space,
+			image: this.mediaService.getUrl(space.image),
+			mainBenefitDescription: SpaceBenefit[0]?.description,
+			remainingBenefitCount: SpaceBenefit.length
+				? SpaceBenefit.length - 1
+				: SpaceBenefit.length,
+			hidingCount: hidingUsers[space.id],
+		}));
 	}
 }
