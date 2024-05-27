@@ -374,6 +374,7 @@ export class NftBenefitsService {
 					select: {
 						collectionLogo: true,
 						name: true,
+						chain: true,
 					},
 				},
 			},
