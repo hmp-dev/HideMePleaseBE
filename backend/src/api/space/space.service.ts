@@ -6,10 +6,11 @@ import {
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { SpaceCategory } from '@prisma/client';
 import type { Cache } from 'cache-manager';
-import { addMinutes, isSameDay, subDays } from 'date-fns';
+import { isSameDay, subDays } from 'date-fns';
+import { GeoPosition } from 'geo-position.ts';
 import { validate as isValidUUID } from 'uuid';
 
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
@@ -20,12 +21,12 @@ import {
 	SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS,
 } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
-import { DecodedBenefitToken } from '@/api/space/space.types';
 import { UserLocationService } from '@/api/users/user-location.service';
-import { CACHE_TTL, SPACE_TOKEN_VALIDITY_IN_MINUTES } from '@/constants';
+import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { AuthContext, JwtType } from '@/types';
+import { AuthContext } from '@/types';
+import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
@@ -34,62 +35,13 @@ export class SpaceService {
 
 	constructor(
 		private prisma: PrismaService,
-		private jwtService: JwtService,
 		private nftPointService: NftPointService,
 		private mediaService: MediaService,
 		private nftBenefitsService: NftBenefitsService,
 		private userLocationService: UserLocationService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
+		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
-
-	generateBenefitsToken({
-		spaceId,
-		request,
-	}: {
-		request: Request;
-		spaceId: string;
-	}) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-
-		const token: DecodedBenefitToken = {
-			type: JwtType.SPACE_BENEFIT,
-			spaceId,
-			generatedAt: new Date(),
-			validTill: addMinutes(new Date(), SPACE_TOKEN_VALIDITY_IN_MINUTES),
-			generatedBy: authContext.userId,
-		};
-
-		return this.jwtService.signAsync(token);
-	}
-
-	async generateBenefitsTokenBackdoor({
-		spaceId,
-		request,
-	}: {
-		spaceId: string;
-		request: Request;
-	}) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-
-		const spaceUser = await this.prisma.spaceUser.findFirst({
-			where: {
-				spaceId,
-			},
-			select: {
-				userId: true,
-			},
-		});
-
-		const token: DecodedBenefitToken = {
-			type: JwtType.SPACE_BENEFIT,
-			spaceId,
-			generatedAt: new Date(),
-			validTill: addMinutes(new Date(), SPACE_TOKEN_VALIDITY_IN_MINUTES),
-			generatedBy: spaceUser?.userId || authContext.userId,
-		};
-
-		return this.jwtService.signAsync(token);
-	}
 
 	async redeemBenefit({
 		redeemBenefitsDTO,
@@ -101,14 +53,6 @@ export class SpaceService {
 		redeemBenefitsDTO: RedeemBenefitsDTO;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-
-		const decodedToken = (await this.jwtService.verifyAsync(
-			redeemBenefitsDTO.token,
-		)) as unknown as DecodedBenefitToken;
-
-		if (new Date(decodedToken.validTill) < new Date()) {
-			throw new BadRequestException(ErrorCodes.BENEFIT_TOKEN_EXPIRED);
-		}
 		if (!isValidUUID(benefitId)) {
 			throw new BadRequestException(ErrorCodes.INVALID_BENEFIT_ID);
 		}
@@ -116,13 +60,33 @@ export class SpaceService {
 		const benefit = await this.prisma.spaceBenefit.findFirst({
 			where: {
 				id: benefitId,
-				spaceId: decodedToken.spaceId,
+				spaceId: redeemBenefitsDTO.spaceId,
 				active: true,
 			},
+			include: {
+				space: true,
+			},
 		});
-
 		if (!benefit) {
 			throw new BadRequestException(ErrorCodes.ENTITY_NOT_FOUND);
+		}
+
+		const userPosition = new GeoPosition(
+			redeemBenefitsDTO.latitude,
+			redeemBenefitsDTO.longitude,
+		);
+		const spacePosition = new GeoPosition(
+			benefit.space.latitude,
+			benefit.space.longitude,
+		);
+		const maxDistance = this.configService.get<number>(
+			'MAX_DISTANCE_FROM_SPACE',
+		);
+		const spaceDistance = Number(
+			userPosition.Distance(spacePosition).toFixed(0),
+		);
+		if (spaceDistance > maxDistance) {
+			throw new BadRequestException(ErrorCodes.SPACE_OUT_OF_RANGE);
 		}
 
 		if (benefit.singleUse) {
@@ -173,7 +137,6 @@ export class SpaceService {
 				userId: authContext.userId,
 				tokenAddress: redeemBenefitsDTO.tokenAddress,
 				pointsEarned: DEFAULT_POINTS.VISIT_SPACE,
-				verifierUserId: decodedToken.generatedBy,
 			},
 		});
 
@@ -264,9 +227,14 @@ export class SpaceService {
 		if (!space) {
 			throw new NotFoundException(ErrorCodes.ENTITY_NOT_FOUND);
 		}
+		const hidingUsers =
+			await this.userLocationService.getNumberOfUsersHidingInSpaces([
+				spaceId,
+			]);
 
 		return {
 			...space,
+			hidingCount: hidingUsers[spaceId],
 			image: this.mediaService.getUrl(space.image),
 		};
 	}

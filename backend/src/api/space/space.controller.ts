@@ -17,10 +17,8 @@ import {
 	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
-import { SpaceCategory, SpaceUserRole } from '@prisma/client';
+import { SpaceCategory } from '@prisma/client';
 
-import { SetAccessRoles } from '@/api/auth/role.decorator';
-import { UserPermissionsGuard } from '@/api/auth/user-permission.guard';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { SpaceService } from '@/api/space/space.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
@@ -101,43 +99,6 @@ export class SpaceController {
 		@Query() { next }: { next: string },
 	) {
 		return this.spaceService.getSpaceBenefits({ request, spaceId, next });
-	}
-
-	@ApiOperation({
-		summary: 'Generate space benefit token',
-	})
-	@ApiParam({
-		name: 'spaceId',
-		type: 'string',
-	})
-	@UseGuards(UserPermissionsGuard)
-	@UseGuards(AuthGuard)
-	@SetAccessRoles(SpaceUserRole.SPACE_ADMIN)
-	@Get('benefits/token/:spaceId')
-	generateBenefitsToken(
-		@Req() request: Request,
-		@Param('spaceId') spaceId: string,
-	) {
-		return this.spaceService.generateBenefitsToken({ spaceId, request });
-	}
-
-	@ApiOperation({
-		summary: 'Generate space benefit token using backdoor',
-	})
-	@ApiParam({
-		name: 'spaceId',
-		type: 'string',
-	})
-	@UseGuards(AuthGuard)
-	@Get('benefits/token-backdoor/:spaceId')
-	generateBenefitsTokenBackdoor(
-		@Req() request: Request,
-		@Param('spaceId') spaceId: string,
-	) {
-		return this.spaceService.generateBenefitsTokenBackdoor({
-			spaceId,
-			request,
-		});
 	}
 
 	@ApiOperation({

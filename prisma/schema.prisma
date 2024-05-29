@@ -16,16 +16,25 @@ model User {
   id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   introduction              String                      @default("")
   locationPublic            Boolean                     @default(true)
+  notificationsEnabled      Boolean                     @default(true)
+  fcmToken                  String?
   nickName                  String                      @default("")
   pfpNftId                  String?
   pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id], onDelete: SetNull)
-  CmsModule                 Wallet[]
+  Wallets                   Wallet[]
   WelcomeNft                WelcomeNft[]
   SpaceUser                 SpaceUser[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
-  SpaceBenefitUsageVerifier SpaceBenefitUsage[]         @relation("verifierUser")
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   UserLastKnownSpace        UserLastKnownSpace[]
+}
+
+model Announcements {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  title       String
+  description String
 }
 
 model NftCollection {
@@ -207,19 +216,17 @@ model UserLastKnownSpace {
 }
 
 model SpaceBenefitUsage {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @default(now()) @updatedAt
-  deleted        Boolean       @default(false)
-  benefitId      String        @db.Uuid
-  userId         String        @db.Uuid
-  pointsEarned   Int           @default(1)
-  tokenAddress   String
-  benefit        SpaceBenefit  @relation(fields: [benefitId], references: [id])
-  nftCollection  NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
-  user           User          @relation("user", fields: [userId], references: [id])
-  verifierUserId String        @db.Uuid
-  verifierUser   User          @relation("verifierUser", fields: [verifierUserId], references: [id])
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  deleted       Boolean       @default(false)
+  benefitId     String        @db.Uuid
+  userId        String        @db.Uuid
+  pointsEarned  Int           @default(1)
+  tokenAddress  String
+  benefit       SpaceBenefit  @relation(fields: [benefitId], references: [id])
+  nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  user          User          @relation("user", fields: [userId], references: [id])
 }
 
 model directus_activity {

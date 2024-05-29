@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { CreateWalletDTO } from '@/api/wallet/wallet.dto';
+import { getWalletDeleteName } from '@/api/wallet/wallet.utils';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 
@@ -45,10 +46,27 @@ export class WalletService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		await this.prisma.wallet.delete({
+		const wallet = await this.prisma.wallet.findFirst({
 			where: {
 				id: walletId,
 				userId: authContext.userId,
+			},
+			select: {
+				publicAddress: true,
+			},
+		});
+
+		if (!wallet) {
+			return;
+		}
+
+		await this.prisma.wallet.update({
+			where: {
+				id: walletId,
+			},
+			data: {
+				publicAddress: getWalletDeleteName(wallet.publicAddress),
+				deleted: true,
 			},
 		});
 	}

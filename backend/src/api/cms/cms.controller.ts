@@ -1,6 +1,8 @@
 import {
 	Controller,
+	Get,
 	Put,
+	Query,
 	Req,
 	UploadedFile,
 	UseGuards,
@@ -12,6 +14,7 @@ import {
 	ApiBody,
 	ApiConsumes,
 	ApiOperation,
+	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
 
@@ -46,5 +49,28 @@ export class CmsController {
 		@UploadedFile() file: Express.Multer.File,
 	) {
 		return this.cmsService.uploadImage({ request, file });
+	}
+
+	@ApiOperation({
+		summary: 'Gets announcements',
+	})
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('/announcements')
+	getAnnouncements(@Query() { page }: { page: number }) {
+		return this.cmsService.getAnnouncements({ page });
+	}
+
+	@ApiOperation({
+		summary: 'Gets space partner program link',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/partner-program')
+	getPartnerProgramLink() {
+		return this.cmsService.getPartnerProgramLink();
 	}
 }

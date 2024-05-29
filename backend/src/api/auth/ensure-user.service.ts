@@ -10,14 +10,16 @@ export class EnsureUserService {
 	async getOrCreateUser({
 		authContext,
 		name,
+		fcmToken,
 	}: {
 		authContext: Partial<AuthContext>;
 		name?: string;
+		fcmToken?: string;
 	}) {
 		try {
 			return await this.retrieveUser(authContext);
 		} catch {
-			return await this.createUser(authContext, name);
+			return await this.createUser(authContext, name, fcmToken);
 		}
 	}
 
@@ -44,12 +46,17 @@ export class EnsureUserService {
 		});
 	}
 
-	private async createUser(authContext: Partial<AuthContext>, name?: string) {
+	private async createUser(
+		authContext: Partial<AuthContext>,
+		name?: string,
+		fcmToken?: string,
+	) {
 		return await this.prisma.user.create({
 			data: {
 				firebaseId: authContext.firebaseId,
 				wldNullifierHash: authContext.nullifierHash,
 				nickName: name,
+				fcmToken,
 			},
 			select: {
 				id: true,

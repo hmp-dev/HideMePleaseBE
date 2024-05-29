@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Patch,
 	Post,
@@ -38,6 +39,15 @@ export class UsersController {
 	async getUser(@Req() request: Request) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		return this.ensureUserService.getOrCreateUser({ authContext });
+	}
+
+	@ApiOperation({
+		summary: 'Delete user',
+	})
+	@UseGuards(AuthGuard)
+	@Delete('/')
+	async deleteUser(@Req() request: Request) {
+		return this.usersService.deleteUser({ request });
 	}
 
 	@ApiOperation({

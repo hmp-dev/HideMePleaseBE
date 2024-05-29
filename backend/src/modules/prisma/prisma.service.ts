@@ -35,6 +35,8 @@ export class PrismaService
 				models: {
 					Wallet: true,
 					Nft: true,
+					User: true,
+					SpaceBenefitUsage: true,
 				},
 			}),
 		);

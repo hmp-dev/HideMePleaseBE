@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+import { getWalletDeleteName } from '@/api/wallet/wallet.utils';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -19,6 +20,7 @@ export class UsersService {
 				nickName: true,
 				introduction: true,
 				locationPublic: true,
+				notificationsEnabled: true,
 				pfpNft: {
 					select: {
 						id: true,
@@ -43,6 +45,7 @@ export class UsersService {
 			pfpNftId,
 			locationPublic,
 			introduction,
+			notificationsEnabled,
 		},
 		request,
 	}: {
@@ -60,9 +63,84 @@ export class UsersService {
 				introduction,
 				locationPublic,
 				pfpNftId,
+				notificationsEnabled,
 			},
 		});
 
 		return this.getUserProfile({ request });
+	}
+
+	async deleteUser({ request }: { request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const user = await this.prisma.user.findFirst({
+			where: {
+				id: authContext.userId,
+			},
+			select: {
+				firebaseId: true,
+				wldNullifierHash: true,
+				Wallets: {
+					select: {
+						id: true,
+						publicAddress: true,
+					},
+				},
+				SpaceBenefitUsageUser: {
+					select: {
+						id: true,
+					},
+				},
+			},
+		});
+
+		if (!user) {
+			return;
+		}
+
+		await Promise.all(
+			user.Wallets.map((wallet) =>
+				this.prisma.wallet.update({
+					where: {
+						id: wallet.id,
+					},
+					data: {
+						deleted: true,
+						publicAddress: getWalletDeleteName(
+							wallet.publicAddress,
+						),
+					},
+				}),
+			),
+		);
+
+		await this.prisma.spaceBenefitUsage.deleteMany({
+			where: {
+				id: {
+					in: user.SpaceBenefitUsageUser.map(({ id }) => id),
+				},
+			},
+		});
+
+		await this.prisma.nftCollectionMemberPoints.deleteMany({
+			where: {
+				userId: authContext.userId,
+			},
+		});
+
+		await this.prisma.user.update({
+			where: {
+				id: authContext.userId,
+			},
+			data: {
+				deleted: true,
+				firebaseId: user.firebaseId
+					? `${user.firebaseId}_deleted_${Date.now()}`
+					: undefined,
+				wldNullifierHash: user.wldNullifierHash
+					? `${user.wldNullifierHash}_deleted_${Date.now()}`
+					: undefined,
+			},
+		});
 	}
 }

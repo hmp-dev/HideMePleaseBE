@@ -19,6 +19,11 @@ export class UpdateUserProfileDTO {
 
 	@ApiProperty()
 	@IsOptional()
+	@IsBoolean()
+	notificationsEnabled?: boolean;
+
+	@ApiProperty()
+	@IsOptional()
 	@IsString()
 	pfpNftId?: string;
 }
