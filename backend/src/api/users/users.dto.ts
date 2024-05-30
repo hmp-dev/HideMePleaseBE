@@ -26,6 +26,11 @@ export class UpdateUserProfileDTO {
 	@IsOptional()
 	@IsString()
 	pfpNftId?: string;
+
+	@ApiProperty()
+	@IsOptional()
+	@IsString()
+	fcmToken?: string;
 }
 
 export class UpdateLastKnownLocationDTO {

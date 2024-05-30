@@ -46,6 +46,7 @@ export class UsersService {
 			locationPublic,
 			introduction,
 			notificationsEnabled,
+			fcmToken,
 		},
 		request,
 	}: {
@@ -64,6 +65,7 @@ export class UsersService {
 				locationPublic,
 				pfpNftId,
 				notificationsEnabled,
+				fcmToken,
 			},
 		});
 

@@ -5,10 +5,6 @@ export class FirebaseLoginDTO {
 	@ApiProperty()
 	@IsString()
 	token!: string;
-
-	@ApiProperty()
-	@IsString()
-	fcmToken!: string;
 }
 
 export class WorldcoinLoginDTO {
@@ -31,8 +27,4 @@ export class WorldcoinLoginDTO {
 	@ApiProperty()
 	@IsString()
 	action!: string;
-
-	@ApiProperty()
-	@IsString()
-	fcmToken!: string;
 }

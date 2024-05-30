@@ -17,7 +17,7 @@ export class AuthService {
 	) {}
 
 	async firebaseLogin({
-		firebaseLoginDTO: { token, fcmToken },
+		firebaseLoginDTO: { token },
 	}: {
 		firebaseLoginDTO: FirebaseLoginDTO;
 	}) {
@@ -32,7 +32,6 @@ export class AuthService {
 		const user = await this.ensureUserService.getOrCreateUser({
 			authContext: partialContext,
 			name: decodedIdToken['name'] as string,
-			fcmToken,
 		});
 
 		const authContext: AuthContext = {
@@ -58,7 +57,6 @@ export class AuthService {
 
 		const user = await this.ensureUserService.getOrCreateUser({
 			authContext: partialContext,
-			fcmToken: worldcoinLoginDTO.fcmToken,
 		});
 
 		const authContext: AuthContext = {
