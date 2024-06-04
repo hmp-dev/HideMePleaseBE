@@ -1,8 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { auth } from 'firebase-admin';
+import { auth, messaging } from 'firebase-admin';
 import { App, cert, initializeApp, ServiceAccount } from 'firebase-admin/app';
+import { Message } from 'firebase-admin/lib/messaging';
 
+import { NotificationType } from '@/api/notification/notification.types';
 import { EnvironmentVariables } from '@/utils/env';
 
 @Injectable()
@@ -64,5 +66,50 @@ export class FirebaseService implements OnModuleInit {
 			this.logger.error('invalid auth token %o', e);
 			throw new Error('invalid token');
 		}
+	}
+
+	async sendNotifications(messages: Message[]) {
+		try {
+			await messaging().sendEach(messages);
+		} catch (error) {
+			this.logger.error(`FCM notification failure ${error}`);
+		}
+	}
+
+	buildNotification({
+		type,
+		title,
+		body,
+		fcmToken,
+	}: {
+		type: NotificationType;
+		title: string;
+		body: string;
+		fcmToken: string;
+	}) {
+		return {
+			data: {
+				type,
+			},
+			notification: {
+				title,
+				body,
+			},
+			token: fcmToken,
+		};
+	}
+
+	async buildAndSendNotification(params: {
+		type: NotificationType;
+		title: string;
+		body: string;
+		fcmToken: string;
+	}) {
+		const notification = this.buildNotification(params);
+		if (!notification) {
+			return;
+		}
+
+		await this.sendNotifications([notification]);
 	}
 }

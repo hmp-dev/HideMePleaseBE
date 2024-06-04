@@ -1,0 +1,4 @@
+{
+	"userRankChanged": "User {nickName} rank changed from {oldRank} to {newRank}",
+	"communityRankUpdate": "{community} rank update"
+}

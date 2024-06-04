@@ -1,13 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
+import { NotificationService } from '@/api/notification/notification.service';
+import { NotificationType } from '@/api/notification/notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
 @Injectable()
 export class NftPointService {
 	private logger = new Logger(NftPointService.name);
 
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private notificationService: NotificationService,
+	) {}
 
 	async recalculateNftCollectionPoints(computeFluctuation = false) {
 		this.logger.log('recalculatePoints started');
@@ -126,17 +131,16 @@ export class NftPointService {
 						},
 					},
 				}),
-				computeFluctuation
-					? this.prisma.nftCollectionMemberPoints.findMany({
-							where: {
-								tokenAddress,
-							},
-							select: {
-								userId: true,
-								totalPoints: true,
-							},
-						})
-					: null,
+				this.prisma.nftCollectionMemberPoints.findMany({
+					where: {
+						tokenAddress,
+					},
+					select: {
+						userId: true,
+						totalPoints: true,
+						memberRank: true,
+					},
+				}),
 			],
 		);
 
@@ -150,9 +154,11 @@ export class NftPointService {
 		}
 
 		const userExistingPointMapping: Record<string, number> = {};
+		const userExistingRankMapping: Record<string, number> = {};
 		if (existingPoints) {
 			for (const point of existingPoints) {
 				userExistingPointMapping[point.userId] = point.totalPoints;
+				userExistingRankMapping[point.userId] = point.memberRank;
 			}
 		}
 
@@ -171,10 +177,35 @@ export class NftPointService {
 			.sort((memberA, memberB) =>
 				memberA.totalPoints > memberB.totalPoints ? -1 : 1,
 			)
-			.map((nftMember, index) => ({
-				...nftMember,
-				memberRank: index + 1,
-			}));
+			.map((nftMember, index) => {
+				const newRank = index + 1;
+				const oldRank = userExistingRankMapping[nftMember.userId];
+
+				if (oldRank !== newRank) {
+					void this.notificationService.sendNotification({
+						type: NotificationType.UserCommunityRankChange,
+						userId: nftMember.userId,
+						oldRank,
+						newRank,
+						tokenAddress,
+					});
+				}
+
+				if (oldRank && newRank < oldRank) {
+					void this.notificationService.sendNotification({
+						type: NotificationType.UserCommunityRankFallen,
+						userId: nftMember.userId,
+						oldRank,
+						newRank,
+						tokenAddress,
+					});
+				}
+
+				return {
+					...nftMember,
+					memberRank: newRank,
+				};
+			});
 
 		await this.prisma.nftCollectionMemberPoints.deleteMany({
 			where: {

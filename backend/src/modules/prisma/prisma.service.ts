@@ -34,7 +34,6 @@ export class PrismaService
 				// Add all models which need to support soft delete here
 				models: {
 					Wallet: true,
-					Nft: true,
 					User: true,
 					SpaceBenefitUsage: true,
 				},

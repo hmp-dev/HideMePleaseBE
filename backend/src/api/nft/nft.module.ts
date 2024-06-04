@@ -6,11 +6,12 @@ import { NftService } from '@/api/nft/nft.service';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { NftPointService } from '@/api/nft/nft-point.service';
+import { NotificationModule } from '@/api/notification/notification.module';
 import { UsersModule } from '@/api/users/users.module';
 import { MoralisModule } from '@/modules/moralis/moralis.module';
 
 @Module({
-	imports: [AuthModule, UsersModule, MoralisModule],
+	imports: [AuthModule, UsersModule, MoralisModule, NotificationModule],
 	controllers: [NftController],
 	providers: [
 		NftService,
