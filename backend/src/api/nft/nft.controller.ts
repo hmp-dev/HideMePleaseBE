@@ -19,8 +19,9 @@ import { SupportedChains } from '@prisma/client';
 
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
 import { NftService } from '@/api/nft/nft.service';
-import { BenefitUsageType } from '@/api/nft/nft.types';
+import { BenefitUsageType, NftCommunitySortOrder } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
+import { NftCommunityService } from '@/api/nft/nft-community.service';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 import { AuthContext, SortOrder } from '@/types';
@@ -35,6 +36,7 @@ export class NftController {
 		private nftService: NftService,
 		private nftBenefitsService: NftBenefitsService,
 		private nftOwnershipService: NftOwnershipService,
+		private nftCommunityService: NftCommunityService,
 	) {}
 
 	@ApiOperation({
@@ -273,6 +275,7 @@ export class NftController {
 			page,
 		});
 	}
+
 	@ApiOperation({
 		summary: 'Get top nft collections',
 	})
@@ -280,6 +283,32 @@ export class NftController {
 	@Get('/collections/top')
 	getTopNftCollections() {
 		return this.nftBenefitsService.getTopNftCollections();
+	}
+
+	@ApiOperation({
+		summary: 'Get nft communities',
+	})
+	@ApiQuery({
+		name: 'order',
+		enum: NftCommunitySortOrder,
+	})
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collections/communities')
+	getNftCommunities(
+		@Req() request: Request,
+		@Query() { page }: { page: number },
+		@Query() { order }: { order: NftCommunitySortOrder },
+	) {
+		return this.nftCommunityService.getNftCommunities({
+			request,
+			page,
+			order,
+		});
 	}
 
 	@ApiOperation({

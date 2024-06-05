@@ -34,3 +34,8 @@ export enum BenefitUsageType {
 	SPACE_VISIT = 'SPACE_VISIT',
 	COMMUNITY = 'COMMUNITY',
 }
+
+export enum NftCommunitySortOrder {
+	POINTS = 'points',
+	MEMBERS = 'members',
+}
