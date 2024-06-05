@@ -65,10 +65,6 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsNumber()
 	MAX_DISTANCE_FROM_SPACE!: number;
-
-	@IsNotEmpty()
-	@IsString()
-	SPACE_PARTNERSHIP_FORM_LINK!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

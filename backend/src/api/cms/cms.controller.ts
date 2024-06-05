@@ -66,11 +66,11 @@ export class CmsController {
 	}
 
 	@ApiOperation({
-		summary: 'Gets space partner program link',
+		summary: 'Get Settings banner',
 	})
 	@UseGuards(AuthGuard)
-	@Get('/partner-program')
-	getPartnerProgramLink() {
-		return this.cmsService.getPartnerProgramLink();
+	@Get('/settings/banner')
+	getSettingsBanner() {
+		return this.cmsService.getSettingsBanner();
 	}
 }

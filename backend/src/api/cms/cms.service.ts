@@ -1,17 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 import { ANNOUNCEMENTS_PAGE_SIZE } from '@/api/cms/cms.constants';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { EnvironmentVariables } from '@/utils/env';
 
 @Injectable()
 export class CmsService {
 	constructor(
 		private mediaService: MediaService,
 		private prisma: PrismaService,
-		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
 
 	async uploadImage({
@@ -37,12 +34,23 @@ export class CmsService {
 			},
 			take: ANNOUNCEMENTS_PAGE_SIZE,
 			skip: ANNOUNCEMENTS_PAGE_SIZE * (currentPage - 1),
+			orderBy: {
+				createdAt: 'desc',
+			},
 		});
 	}
 
-	getPartnerProgramLink() {
+	async getSettingsBanner() {
+		const systemConfig = await this.prisma.systemConfig.findFirst({
+			select: {
+				settingsBannerLink: true,
+				settingsBannerHeading: true,
+				settingsBannerDescription: true,
+			},
+		});
+
 		return {
-			link: this.configService.get<string>('SPACE_PARTNERSHIP_FORM_LINK'),
+			...systemConfig,
 		};
 	}
 }
