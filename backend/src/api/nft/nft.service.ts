@@ -199,6 +199,35 @@ export class NftService {
 		};
 	}
 
+	async getNftCollectionsPopulated(params: {
+		nextCursor?: string;
+		request: Request;
+		chain: SupportedChains;
+	}) {
+		let response = await this.getNftCollections(params);
+		const collections = response.collections;
+
+		while (
+			collections.length < PAGE_SIZES.NFT_COLLECTIONS &&
+			response.next
+		) {
+			response = await this.getNftCollections({
+				...params,
+				nextCursor: response.next,
+			});
+
+			for (const collection of response.collections) {
+				collections.push(collection);
+			}
+		}
+
+		return {
+			collections,
+			selectedNftCount: response.selectedNftCount,
+			next: response.next,
+		};
+	}
+
 	async getNftCollections({
 		request,
 		chain,
@@ -207,7 +236,11 @@ export class NftService {
 		request: Request;
 		chain: SupportedChains;
 		nextCursor?: string;
-	}) {
+	}): Promise<{
+		collections: any[];
+		selectedNftCount: number;
+		next: string | null;
+	}> {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		const userWallets = await this.prisma.wallet.findMany({
 			where: {
@@ -219,7 +252,11 @@ export class NftService {
 		});
 
 		if (!userWallets.length) {
-			return [];
+			return {
+				collections: [],
+				selectedNftCount: 0,
+				next: null,
+			};
 		}
 
 		const parsedNextCursor: NftCollectionCursor = nextCursor

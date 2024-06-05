@@ -88,6 +88,35 @@ export class NftController {
 	}
 
 	@ApiOperation({
+		summary: 'Gets populated page NFT collections in my wallets',
+	})
+	@ApiQuery({
+		name: 'chain',
+		enum: SupportedChains,
+		required: false,
+	})
+	@ApiQuery({
+		name: 'next',
+		type: 'string',
+		description: 'next cursor for pagination',
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collections/populated')
+	getNftCollectionsPopulated(
+		@Req() request: Request,
+		@Query() { next }: { next?: string },
+		@Query('chain', new EnumValidationPipe(SupportedChains, false))
+		chain: SupportedChains,
+	) {
+		return this.nftService.getNftCollectionsPopulated({
+			request,
+			chain,
+			nextCursor: next,
+		});
+	}
+
+	@ApiOperation({
 		summary: 'Gets my selected NFT collections',
 	})
 	@UseGuards(AuthGuard)

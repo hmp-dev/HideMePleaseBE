@@ -22,8 +22,7 @@ export const MORALIS_CACHE_TTL = {
 };
 
 export const PAGE_SIZES = {
-	// NFT_COLLECTIONS: 10,
-	NFT_COLLECTIONS: 2,
+	NFT_COLLECTIONS: 6,
 };
 
 export interface EvmNftCollectionDataWithWallet extends EvmNftCollectionData {
