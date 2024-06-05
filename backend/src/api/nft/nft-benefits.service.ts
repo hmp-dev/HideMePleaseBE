@@ -8,6 +8,7 @@ import {
 	BENEFIT_PAGE_SIZE,
 	BENEFIT_USAGE_PAGE_SIZE,
 	NFT_MEMBERS_PAGE_SIZE,
+	TOP_NFT_PAGE_SIZE,
 } from '@/api/nft/nft.constants';
 import { BenefitUsageType } from '@/api/nft/nft.types';
 import { getAllEligibleLevels } from '@/api/nft/nft.utils';
@@ -324,8 +325,8 @@ export class NftBenefitsService {
 	}) {
 		const currentPage = isNaN(page) || !page ? 1 : page;
 
-		const nftMembers = await this.prisma.nftCollectionMemberPoints.findMany(
-			{
+		const [nftMembers, nftMemberCount] = await Promise.all([
+			this.prisma.nftCollectionMemberPoints.findMany({
 				where: {
 					tokenAddress,
 				},
@@ -349,40 +350,84 @@ export class NftBenefitsService {
 				orderBy: {
 					memberRank: 'asc',
 				},
-			},
-		);
+			}),
+			this.prisma.nftCollectionMemberPoints.count({
+				where: {
+					tokenAddress,
+				},
+			}),
+		]);
 
-		return nftMembers.map((nftMember) => ({
-			...nftMember,
-			user: undefined,
-			name: nftMember.user.nickName,
-			pfpImage: nftMember.user.pfpNft?.imageUrl,
-		}));
+		return {
+			members: nftMembers.map((nftMember) => ({
+				...nftMember,
+				user: undefined,
+				name: nftMember.user.nickName,
+				pfpImage: nftMember.user.pfpNft?.imageUrl,
+			})),
+			nftMemberCount,
+		};
 	}
 
-	async getTopNftCollections() {
-		const topCollections = await this.prisma.nftCollectionPoints.findMany({
-			take: 3,
-			orderBy: {
-				totalPoints: 'desc',
-			},
-			select: {
-				pointFluctuation: true,
-				totalPoints: true,
-				tokenAddress: true,
-				nftCollection: {
-					select: {
-						collectionLogo: true,
-						name: true,
-						chain: true,
+	async getTopNftCollections({
+		page,
+		pageSize = TOP_NFT_PAGE_SIZE,
+		request,
+	}: {
+		page: number;
+		pageSize?: number;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const currentPage = isNaN(page) || !page ? 1 : page;
+
+		const [topCollections, userCommunityList] = await Promise.all([
+			this.prisma.nftCollectionPoints.findMany({
+				orderBy: {
+					totalPoints: 'desc',
+				},
+				take: Number(pageSize),
+				skip: Number(pageSize) * (currentPage - 1),
+				select: {
+					pointFluctuation: true,
+					totalPoints: true,
+					tokenAddress: true,
+					totalMembers: true,
+					nftCollection: {
+						select: {
+							collectionLogo: true,
+							name: true,
+							chain: true,
+						},
 					},
 				},
-			},
-		});
+			}),
+			this.prisma.nftCollection.findMany({
+				where: {
+					Nft: {
+						some: {
+							ownedWallet: {
+								userId: authContext.userId,
+							},
+						},
+					},
+				},
+				select: {
+					tokenAddress: true,
+				},
+			}),
+		]);
+
+		const userCommunityAddresses = new Set<string>();
+		for (const community of userCommunityList) {
+			userCommunityAddresses.add(community.tokenAddress);
+		}
 
 		return topCollections.map(({ nftCollection, ...rest }) => ({
 			...rest,
 			...nftCollection,
+			ownedCollection: userCommunityAddresses.has(rest.tokenAddress),
 		}));
 	}
 }

@@ -228,6 +228,21 @@ export class NftController {
 	}
 
 	@ApiOperation({
+		summary: 'Get nft collection information',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collection/:tokenAddress/info')
+	getNftCollectionInfo(
+		@Req() request: Request,
+		@Param('tokenAddress') tokenAddress: string,
+	) {
+		return this.nftCommunityService.getNftCollectionInfo({
+			request,
+			tokenAddress,
+		});
+	}
+
+	@ApiOperation({
 		summary: 'Get nearest spaces for this nft',
 	})
 	@ApiQuery({
@@ -279,10 +294,28 @@ export class NftController {
 	@ApiOperation({
 		summary: 'Get top nft collections',
 	})
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'pageSize',
+		type: 'number',
+		required: false,
+	})
 	@UseGuards(AuthGuard)
 	@Get('/collections/top')
-	getTopNftCollections() {
-		return this.nftBenefitsService.getTopNftCollections();
+	getTopNftCollections(
+		@Req() request: Request,
+		@Query() { page }: { page: number },
+		@Query() { pageSize }: { pageSize?: number },
+	) {
+		return this.nftBenefitsService.getTopNftCollections({
+			page,
+			pageSize,
+			request,
+		});
 	}
 
 	@ApiOperation({

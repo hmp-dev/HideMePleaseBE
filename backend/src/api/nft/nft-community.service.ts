@@ -39,14 +39,6 @@ export class NftCommunityService {
 					},
 					select: {
 						tokenAddress: true,
-						name: true,
-						collectionLogo: true,
-						chain: true,
-						NftCollectionPoints: {
-							select: {
-								totalMembers: true,
-							},
-						},
 					},
 				}),
 				this.prisma.nftCollectionPoints.findMany({
@@ -182,5 +174,56 @@ export class NftCommunityService {
 			...community,
 			eventCount: 1 + Math.floor(Math.random() * 100),
 		}));
+	}
+
+	async getNftCollectionInfo({
+		tokenAddress,
+		request,
+	}: {
+		tokenAddress: string;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const [userCommunity, nftCollection] = await Promise.all([
+			this.prisma.nftCollection.findFirst({
+				where: {
+					Nft: {
+						some: {
+							ownedWallet: {
+								userId: authContext.userId,
+							},
+						},
+					},
+					tokenAddress,
+				},
+				select: {
+					tokenAddress: true,
+				},
+			}),
+			this.prisma.nftCollection.findFirst({
+				where: {
+					tokenAddress,
+				},
+				select: {
+					name: true,
+					chain: true,
+					collectionLogo: true,
+					NftCollectionPoints: {
+						select: {
+							totalPoints: true,
+							communityRank: true,
+						},
+					},
+				},
+			}),
+		]);
+
+		return {
+			...nftCollection,
+			NftCollectionPoints: undefined,
+			...nftCollection?.NftCollectionPoints,
+			ownedCollection: !!userCommunity,
+		};
 	}
 }
