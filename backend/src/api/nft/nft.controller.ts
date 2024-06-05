@@ -312,6 +312,28 @@ export class NftController {
 	}
 
 	@ApiOperation({
+		summary: 'Get hottest nft communities',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collections/communities/hot')
+	getHottestNftCommunities(@Req() request: Request) {
+		return this.nftCommunityService.getHottestNftCommunities({
+			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Get user nft communities',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collections/communities/me')
+	getUserNftCommunities(@Req() request: Request) {
+		return this.nftCommunityService.getUserNftCommunities({
+			request,
+		});
+	}
+
+	@ApiOperation({
 		summary: 'Update selected nft order',
 	})
 	@UseGuards(AuthGuard)
