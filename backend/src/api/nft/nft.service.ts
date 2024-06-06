@@ -329,7 +329,7 @@ export class NftService {
 			} else if (nextWallet) {
 				next = { nextWalletAddress: nextWallet, liveData: true };
 			} else {
-				next = { liveData: true };
+				next = null;
 			}
 
 			walletNftCollections.push(
@@ -387,7 +387,7 @@ export class NftService {
 		return {
 			collections: responseCollections,
 			selectedNftCount,
-			next: this.jwtService.sign(next),
+			next: next ? this.jwtService.sign(next) : next,
 		};
 	}
 

@@ -50,59 +50,76 @@ export class NftBenefitsService {
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevels = getAllEligibleLevels(collectionPoints);
 
-		const spaceBenefits = await this.prisma.spaceBenefit.findMany({
-			where: {
-				level: {
-					in: benefitLevels,
+		const [spaceBenefits, benefitCount] = await Promise.all([
+			this.prisma.spaceBenefit.findMany({
+				where: {
+					level: {
+						in: benefitLevels,
+					},
+					active: true,
+					spaceId,
 				},
-				active: true,
-				spaceId,
-			},
-			select: {
-				id: true,
-				description: true,
-				singleUse: true,
-				space: {
-					select: {
-						id: true,
-						name: true,
-						image: true,
+				select: {
+					id: true,
+					description: true,
+					singleUse: true,
+					space: {
+						select: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+					SpaceBenefitUsage: {
+						select: { createdAt: true, tokenAddress: true },
+						where: {
+							userId: authContext.userId,
+						},
+						orderBy: {
+							createdAt: 'desc',
+						},
 					},
 				},
-				SpaceBenefitUsage: {
-					select: { createdAt: true, tokenAddress: true },
-					where: {
-						userId: authContext.userId,
+				take: Number(pageSize),
+				skip: Number(pageSize) * (currentPage - 1),
+			}),
+			this.prisma.spaceBenefit.count({
+				where: {
+					level: {
+						in: benefitLevels,
 					},
-					orderBy: {
-						createdAt: 'desc',
-					},
+					active: true,
+					spaceId,
 				},
-			},
-			take: Number(pageSize),
-			skip: Number(pageSize) * (currentPage - 1),
-		});
+			}),
+		]);
 
-		return spaceBenefits.map(({ space, SpaceBenefitUsage, ...rest }) => {
-			let used = false;
-			if (SpaceBenefitUsage.length) {
-				used = rest.singleUse
-					? true
-					: SpaceBenefitUsage.some(
-							(benefitUsage) =>
-								benefitUsage.tokenAddress === tokenAddress,
-						);
-			}
+		return {
+			benefits: spaceBenefits.map(
+				({ space, SpaceBenefitUsage, ...rest }) => {
+					let used = false;
+					if (SpaceBenefitUsage.length) {
+						used = rest.singleUse
+							? true
+							: SpaceBenefitUsage.some(
+									(benefitUsage) =>
+										benefitUsage.tokenAddress ===
+										tokenAddress,
+								);
+					}
 
-			return {
-				...rest,
-				spaceId: space.id,
-				spaceName: space.name,
-				spaceImage: this.mediaService.getUrl(space.image),
-				used,
-				tokenAddress,
-			};
-		});
+					return {
+						...rest,
+						spaceId: space.id,
+						spaceName: space.name,
+						spaceImage: this.mediaService.getUrl(space.image),
+						used,
+						tokenAddress,
+					};
+				},
+			),
+			benefitCount,
+		};
 	}
 
 	async getCollectionPoints(tokenAddress: string) {
@@ -333,6 +350,7 @@ export class NftBenefitsService {
 				select: {
 					user: {
 						select: {
+							id: true,
 							nickName: true,
 							pfpNft: {
 								select: {
