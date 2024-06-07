@@ -1,5 +1,4 @@
 import {
-	Body,
 	Controller,
 	Get,
 	Param,
@@ -15,16 +14,11 @@ import {
 	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
-import { SupportedChains } from '@prisma/client';
 
-import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/nft/nft.dto';
-import { NftService } from '@/api/nft/nft.service';
-import { BenefitUsageType, NftCommunitySortOrder } from '@/api/nft/nft.types';
+import { NftCommunitySortOrder } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftCommunityService } from '@/api/nft/nft-community.service';
-import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
-import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
-import { AuthContext, SortOrder } from '@/types';
+import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
 
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -33,9 +27,8 @@ import { AuthGuard } from '../auth/auth.guard';
 @Controller('nft')
 export class NftController {
 	constructor(
-		private nftService: NftService,
+		private nftService: WelcomeNftService,
 		private nftBenefitsService: NftBenefitsService,
-		private nftOwnershipService: NftOwnershipService,
 		private nftCommunityService: NftCommunityService,
 	) {}
 
@@ -52,92 +45,12 @@ export class NftController {
 		summary: 'Consume welcome nft',
 	})
 	@UseGuards(AuthGuard)
-	@Get('/welcome/:welcomeNftId')
+	@Post('/welcome/:welcomeNftId')
 	consumeWelcomeNft(
 		@Req() request: Request,
 		@Param('welcomeNftId') welcomeNftId: number,
 	) {
 		return this.nftService.consumeWelcomeNft({ request, welcomeNftId });
-	}
-
-	@ApiOperation({
-		summary: 'Gets all NFT collections in my wallets',
-	})
-	@ApiQuery({
-		name: 'chain',
-		enum: SupportedChains,
-		required: false,
-	})
-	@ApiQuery({
-		name: 'next',
-		type: 'string',
-		description: 'next cursor for pagination',
-		required: false,
-	})
-	@UseGuards(AuthGuard)
-	@Get('/collections')
-	getNftCollections(
-		@Req() request: Request,
-		@Query() { next }: { next?: string },
-		@Query('chain', new EnumValidationPipe(SupportedChains, false))
-		chain: SupportedChains,
-	) {
-		return this.nftService.getNftCollections({
-			request,
-			chain,
-			nextCursor: next,
-		});
-	}
-
-	@ApiOperation({
-		summary: 'Gets populated page NFT collections in my wallets',
-	})
-	@ApiQuery({
-		name: 'chain',
-		enum: SupportedChains,
-		required: false,
-	})
-	@ApiQuery({
-		name: 'next',
-		type: 'string',
-		description: 'next cursor for pagination',
-		required: false,
-	})
-	@UseGuards(AuthGuard)
-	@Get('/collections/populated')
-	getNftCollectionsPopulated(
-		@Req() request: Request,
-		@Query() { next }: { next?: string },
-		@Query('chain', new EnumValidationPipe(SupportedChains, false))
-		chain: SupportedChains,
-	) {
-		return this.nftService.getNftCollectionsPopulated({
-			request,
-			chain,
-			nextCursor: next,
-		});
-	}
-
-	@ApiOperation({
-		summary: 'Gets my selected NFT collections',
-	})
-	@UseGuards(AuthGuard)
-	@Get('/nfts/selected')
-	getSelectedNftCollections(@Req() request: Request) {
-		return this.nftService.getSelectedNfts({
-			request,
-		});
-	}
-
-	@ApiOperation({
-		summary: 'Gets my selected NFT collections with points',
-	})
-	@UseGuards(AuthGuard)
-	@Get('/nfts/selected/points')
-	getSelectedNftCollectionsWithPoints(@Req() request: Request) {
-		return this.nftService.getSelectedNftsWithPoints({
-			request,
-		});
 	}
 
 	@ApiOperation({
@@ -173,42 +86,6 @@ export class NftController {
 			page,
 			pageSize,
 			spaceId,
-		});
-	}
-
-	@ApiOperation({
-		summary: 'Get nft collection usage history',
-	})
-	@ApiQuery({
-		name: 'type',
-		enum: BenefitUsageType,
-		required: false,
-	})
-	@ApiQuery({
-		name: 'page',
-		type: 'number',
-		required: false,
-	})
-	@ApiQuery({
-		name: 'order',
-		enum: SortOrder,
-		required: false,
-	})
-	@UseGuards(AuthGuard)
-	@Get('/collection/:tokenAddress/usage-history')
-	getNftCollectionUsageHistory(
-		@Req() request: Request,
-		@Param('tokenAddress') tokenAddress: string,
-		@Query() { type }: { type?: BenefitUsageType },
-		@Query() { page }: { page: number },
-		@Query() { order }: { order?: SortOrder },
-	) {
-		return this.nftBenefitsService.getNftCollectionUsageHistory({
-			request,
-			tokenAddress,
-			type,
-			page,
-			order,
 		});
 	}
 
@@ -292,7 +169,7 @@ export class NftController {
 	}
 
 	@ApiOperation({
-		summary: 'Get top nft collections',
+		summary: 'Get ranked nft collections',
 	})
 	@ApiQuery({
 		name: 'page',
@@ -305,7 +182,7 @@ export class NftController {
 		required: false,
 	})
 	@UseGuards(AuthGuard)
-	@Get('/collections/top')
+	@Get('/collections')
 	getTopNftCollections(
 		@Req() request: Request,
 		@Query() { page }: { page: number },
@@ -353,55 +230,5 @@ export class NftController {
 		return this.nftCommunityService.getHottestNftCommunities({
 			request,
 		});
-	}
-
-	@ApiOperation({
-		summary: 'Get user nft communities',
-	})
-	@UseGuards(AuthGuard)
-	@Get('/collections/communities/me')
-	getUserNftCommunities(@Req() request: Request) {
-		return this.nftCommunityService.getUserNftCommunities({
-			request,
-		});
-	}
-
-	@ApiOperation({
-		summary: 'Update selected nft order',
-	})
-	@UseGuards(AuthGuard)
-	@Post('/collections/selected/order')
-	updateSelectedNftCollectionOrder(
-		@Req() request: Request,
-		@Body() selectedNftOrderDTO: SelectedNftOrderDTO,
-	) {
-		return this.nftService.updateSelectedNftCollectionOrder({
-			request,
-			selectedNftOrderDTO,
-		});
-	}
-
-	@ApiOperation({
-		summary: 'Toggle collection token selected',
-	})
-	@UseGuards(AuthGuard)
-	@Post('token/select')
-	async toggleNftSelected(
-		@Req() request: Request,
-		@Body() selectNftDTO: SelectNftDTO,
-	) {
-		return this.nftService.toggleNftSelected({ request, selectNftDTO });
-	}
-
-	@ApiOperation({
-		summary: 'Trigger manual ownership check',
-	})
-	@UseGuards(AuthGuard)
-	@Post('ownership-check')
-	async triggerOwnershipCheck(@Req() request: Request) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-		return this.nftOwnershipService.checkUserNftOwnership(
-			authContext.userId,
-		);
 	}
 }

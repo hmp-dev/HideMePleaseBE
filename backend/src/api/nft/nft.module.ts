@@ -2,25 +2,30 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/api/auth/auth.module';
 import { NftController } from '@/api/nft/nft.controller';
-import { NftService } from '@/api/nft/nft.service';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftCommunityService } from '@/api/nft/nft-community.service';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { NftPointService } from '@/api/nft/nft-point.service';
+import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
 import { NotificationModule } from '@/api/notification/notification.module';
-import { UsersModule } from '@/api/users/users.module';
 import { MoralisModule } from '@/modules/moralis/moralis.module';
 
 @Module({
-	imports: [AuthModule, UsersModule, MoralisModule, NotificationModule],
+	imports: [AuthModule, MoralisModule, NotificationModule],
 	controllers: [NftController],
 	providers: [
-		NftService,
+		WelcomeNftService,
 		NftBenefitsService,
 		NftOwnershipService,
 		NftPointService,
 		NftCommunityService,
 	],
-	exports: [NftService, NftPointService, NftBenefitsService],
+	exports: [
+		WelcomeNftService,
+		NftPointService,
+		NftBenefitsService,
+		NftOwnershipService,
+		NftCommunityService,
+	],
 })
 export class NftModule {}

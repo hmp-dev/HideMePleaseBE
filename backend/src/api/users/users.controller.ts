@@ -1,91 +1,104 @@
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import {
-	Body,
-	Controller,
-	Delete,
-	Get,
-	Patch,
-	Post,
-	Req,
-	UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+	ApiBearerAuth,
+	ApiOperation,
+	ApiQuery,
+	ApiTags,
+} from '@nestjs/swagger';
 
-import { UserLocationService } from '@/api/users/user-location.service';
-import {
-	UpdateLastKnownLocationDTO,
-	UpdateUserProfileDTO,
-} from '@/api/users/users.dto';
+import { BenefitUsageType } from '@/api/nft/nft.types';
+import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
+import { userIdToRequest } from '@/api/users/user.utils';
+import { UserNftService } from '@/api/users/user-nft.service';
 import { UsersService } from '@/api/users/users.service';
-import { AuthContext } from '@/types';
+import { SortOrder } from '@/types';
 
 import { AuthGuard } from '../auth/auth.guard';
-import { EnsureUserService } from '../auth/ensure-user.service';
 
-@ApiTags('User')
+@ApiTags('Users')
 @ApiBearerAuth()
-@Controller('user')
+@Controller('users/:userId')
 export class UsersController {
 	constructor(
-		private ensureUserService: EnsureUserService,
 		private usersService: UsersService,
-		private userLocationService: UserLocationService,
+		private userNftService: UserNftService,
+		private nftBenefitsService: NftBenefitsService,
 	) {}
 
 	@ApiOperation({
-		summary: 'Gets base user',
-	})
-	@UseGuards(AuthGuard)
-	@Get('/')
-	async getUser(@Req() request: Request) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-		return this.ensureUserService.getOrCreateUser({ authContext });
-	}
-
-	@ApiOperation({
-		summary: 'Delete user',
-	})
-	@UseGuards(AuthGuard)
-	@Delete('/')
-	async deleteUser(@Req() request: Request) {
-		return this.usersService.deleteUser({ request });
-	}
-
-	@ApiOperation({
-		summary: 'Gets user profile',
+		summary: 'Gets user profile by userId',
+		description: '6.9 Member Details_NFT',
 	})
 	@UseGuards(AuthGuard)
 	@Get('/profile')
-	async getUserProfile(@Req() request: Request) {
+	async getUserProfileById(@Param('userId') userId: string) {
+		const request = userIdToRequest(userId);
+
 		return this.usersService.getUserProfile({ request });
 	}
 
 	@ApiOperation({
-		summary: 'Update user profile',
+		summary: 'Gets selected NFT collections by userId',
+		description: '6.9 Member Details_NFT',
 	})
 	@UseGuards(AuthGuard)
-	@Patch('/profile')
-	async updateUserProfile(
-		@Req() request: Request,
-		@Body() updateUserProfileDTO: UpdateUserProfileDTO,
-	) {
-		return this.usersService.updateUserProfile({
+	@Get('/collections/selected')
+	getSelectedNftCollections(@Param('userId') userId: string) {
+		const request = userIdToRequest(userId);
+
+		return this.userNftService.getSelectedNfts({
 			request,
-			updateUserProfileDTO,
 		});
 	}
 
 	@ApiOperation({
-		summary: 'Update last known location',
+		summary: 'Gets selected NFT collections with points by userId',
 	})
 	@UseGuards(AuthGuard)
-	@Post('/location')
-	async updateUserLocation(
-		@Req() request: Request,
-		@Body() updateLastKnownLocationDTO: UpdateLastKnownLocationDTO,
-	) {
-		return this.userLocationService.updateUserLocation({
+	@Get('/collections/selected/points')
+	getSelectedNftCollectionsWithPoints(@Param('userId') userId: string) {
+		const request = userIdToRequest(userId);
+
+		return this.userNftService.getSelectedNftsWithPoints({
 			request,
-			updateLastKnownLocationDTO,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Get nft collection usage history by userId',
+	})
+	@ApiQuery({
+		name: 'type',
+		enum: BenefitUsageType,
+		required: false,
+	})
+	@ApiQuery({
+		name: 'page',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'order',
+		enum: SortOrder,
+		required: false,
+	})
+	@UseGuards(AuthGuard)
+	@Get('/collection/:tokenAddress/usage-history')
+	getNftCollectionUsageHistory(
+		@Param('userId') userId: string,
+		@Param('tokenAddress') tokenAddress: string,
+		@Query() { type }: { type?: BenefitUsageType },
+		@Query() { page }: { page: number },
+		@Query() { order }: { order?: SortOrder },
+	) {
+		const request = userIdToRequest(userId);
+
+		return this.nftBenefitsService.getNftCollectionUsageHistory({
+			request,
+			tokenAddress,
+			type,
+			page,
+			order,
 		});
 	}
 }

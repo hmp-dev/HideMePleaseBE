@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+	IsArray,
+	IsBoolean,
+	IsNumber,
+	IsOptional,
+	IsString,
+} from 'class-validator';
 
 export class UpdateUserProfileDTO {
 	@ApiProperty()
@@ -46,4 +52,24 @@ export class UpdateLastKnownLocationDTO {
 	@IsOptional()
 	@IsString()
 	spaceId?: string;
+}
+
+export class SelectNftDTO {
+	@ApiProperty()
+	@IsString()
+	nftId!: string;
+
+	@ApiProperty()
+	@IsBoolean()
+	selected!: boolean;
+
+	@ApiProperty()
+	@IsNumber()
+	order!: number;
+}
+
+export class SelectedNftOrderDTO {
+	@ApiProperty()
+	@IsArray()
+	order!: string[];
 }
