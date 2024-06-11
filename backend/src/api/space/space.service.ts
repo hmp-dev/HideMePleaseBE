@@ -276,13 +276,13 @@ export class SpaceService {
 
 		const [currentNft, nextNft] = nftsAfterSkip;
 		return {
-			benefits: await this.nftBenefitsService.getCollectionBenefits({
+			...(await this.nftBenefitsService.getCollectionBenefits({
 				tokenAddress: currentNft,
 				request,
 				pageSize: 1000,
 				spaceId,
 				page: 1,
-			}),
+			})),
 			next: nextNft ?? null,
 		};
 	}
