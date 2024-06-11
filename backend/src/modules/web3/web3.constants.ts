@@ -10,6 +10,8 @@ export const SupportedChainMapping = {
 	[SupportedChains.ETHEREUM]: EvmChain.ETHEREUM,
 	[SupportedChains.POLYGON]: EvmChain.POLYGON,
 	[SupportedChains.MUMBAI]: EvmChain.MUMBAI,
+	[SupportedChains.SOLANA]: EvmChain.MUMBAI,
+	[SupportedChains.KLAYTN]: EvmChain.MUMBAI,
 } satisfies Record<SupportedChains, EvmChain>;
 
 export const SupportedChainReverseMapping = {

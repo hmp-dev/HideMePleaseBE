@@ -78,6 +78,14 @@ export class UserController {
 		return this.usersService.getUserProfile({ request });
 	}
 
+	@ApiOperation({ summary: 'Check if user exists by nickName' })
+	@Get('/nickName/exists')
+	async doesUserExistByNickName(
+		@Query('nickName') nickName: string,
+	): Promise<boolean> {
+		return this.usersService.doesUserExistByNickName(nickName);
+	}
+
 	@ApiOperation({
 		summary: 'Update user profile',
 	})

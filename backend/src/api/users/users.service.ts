@@ -145,4 +145,17 @@ export class UsersService {
 			},
 		});
 	}
+
+	async doesUserExistByNickName(nickName: string) {
+		return Boolean(
+			await this.prisma.user.findFirst({
+				where: {
+					nickName,
+				},
+				select: {
+					id: true,
+				},
+			}),
+		);
+	}
 }
