@@ -82,6 +82,7 @@ export class UsersService {
 			select: {
 				firebaseId: true,
 				wldNullifierHash: true,
+				nickName: true,
 				Wallets: {
 					select: {
 						id: true,
@@ -141,6 +142,9 @@ export class UsersService {
 					: undefined,
 				wldNullifierHash: user.wldNullifierHash
 					? `${user.wldNullifierHash}_deleted_${Date.now()}`
+					: undefined,
+				nickName: user.nickName
+					? `${user.nickName}_deleted_${Date.now()}`
 					: undefined,
 			},
 		});
