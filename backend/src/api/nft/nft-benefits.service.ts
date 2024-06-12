@@ -352,6 +352,7 @@ export class NftBenefitsService {
 						select: {
 							id: true,
 							nickName: true,
+							introduction: true,
 							pfpNft: {
 								select: {
 									imageUrl: true,
@@ -382,6 +383,7 @@ export class NftBenefitsService {
 				user: undefined,
 				userId: nftMember.user.id,
 				name: nftMember.user.nickName,
+				introduction: nftMember.user.introduction,
 				pfpImage: nftMember.user.pfpNft?.imageUrl,
 			})),
 			nftMemberCount,
