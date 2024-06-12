@@ -380,6 +380,7 @@ export class NftBenefitsService {
 			members: nftMembers.map((nftMember) => ({
 				...nftMember,
 				user: undefined,
+				userId: nftMember.user.id,
 				name: nftMember.user.nickName,
 				pfpImage: nftMember.user.pfpNft?.imageUrl,
 			})),
