@@ -20,3 +20,11 @@ export const SupportedChainCovalentMapping = {
 	[SupportedChains.POLYGON]: 'matic-mainnet',
 	[SupportedChains.MUMBAI]: 'matic-mumbai',
 } satisfies Record<string, Chain>;
+
+export const ChainToSymbolMapping = {
+	[SupportedChains.ETHEREUM]: 'Eth',
+	[SupportedChains.POLYGON]: 'Matic',
+	[SupportedChains.MUMBAI]: 'Matic',
+	[SupportedChains.SOLANA]: 'Sol',
+	[SupportedChains.KLAYTN]: 'Klay',
+};

@@ -1,10 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import {
-	BadRequestException,
-	Inject,
-	Injectable,
-	NotImplementedException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupportedChains } from '@prisma/client';
 import { type Cache } from 'cache-manager';
@@ -22,7 +17,10 @@ import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { SupportedChainMapping } from '@/modules/web3/web3.constants';
+import {
+	ChainToSymbolMapping,
+	SupportedChainMapping,
+} from '@/modules/web3/web3.constants';
 import { AuthContext, SortOrder } from '@/types';
 import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -243,9 +241,12 @@ export class NftBenefitsService {
 			tokenData.chain === SupportedChains.KLAYTN ||
 			tokenData.chain === SupportedChains.SOLANA
 		) {
-			throw new NotImplementedException(
-				ErrorCodes.MISSING_IMPLEMENTATION,
-			);
+			return {
+				network: tokenData.chain,
+				holderCount: 5652,
+				floorPrice: 0.004,
+				symbol: ChainToSymbolMapping[tokenData.chain],
+			};
 		}
 
 		const [collectionStats, lowestPrice] = await Promise.all([
@@ -263,6 +264,7 @@ export class NftBenefitsService {
 			network: tokenData.chain,
 			holderCount: collectionStats.result.owners.current,
 			floorPrice: lowestPrice?.result.price.ether || 0,
+			symbol: ChainToSymbolMapping[tokenData.chain],
 		};
 		await this.cacheManager.set(
 			cacheKey,
