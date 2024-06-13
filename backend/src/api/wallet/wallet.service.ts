@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 import { CreateWalletDTO } from '@/api/wallet/wallet.dto';
 import { getWalletDeleteName } from '@/api/wallet/wallet.utils';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
+import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class WalletService {
@@ -18,13 +19,17 @@ export class WalletService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		return await this.prisma.wallet.create({
-			data: {
-				userId: authContext.userId,
-				publicAddress: publicAddress.toLowerCase(),
-				provider,
-			},
-		});
+		try {
+			return await this.prisma.wallet.create({
+				data: {
+					userId: authContext.userId,
+					publicAddress: publicAddress.toLowerCase(),
+					provider,
+				},
+			});
+		} catch {
+			throw new ConflictException(ErrorCodes.WALLET_ALREADY_LINKED);
+		}
 	}
 
 	async getWallets({ request }: { request: Request }) {
