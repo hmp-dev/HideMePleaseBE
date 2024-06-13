@@ -7,17 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum LoginType {
-  FIREBASE
-  WORLD_ID
-}
-
 model User {
   createdAt                 DateTime                    @default(now())
   deleted                   Boolean                     @default(false)
   firebaseId                String?                     @unique
-  loginType                 LoginType
-  email                     String?
   updatedAt                 DateTime                    @default(now()) @updatedAt
   wldNullifierHash          String?                     @unique
   id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -27,6 +20,8 @@ model User {
   pfpNftId                  String?
   notificationsEnabled      Boolean                     @default(true)
   fcmToken                  String?
+  loginType                 LoginType
+  email                     String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceUser                 SpaceUser[]
@@ -102,19 +97,18 @@ model Nft {
   order              Int           @default(0)
   lastOwnershipCheck DateTime      @default(now())
   ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])
-  nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: SetNull, onUpdate: NoAction)
   User               User[]
 
   @@unique([tokenAddress, tokenId])
 }
 
 model Wallet {
-  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @default(now()) @updatedAt
   deleted       Boolean        @default(false)
   userId        String         @db.Uuid
-  publicAddress String         @unique
+  publicAddress String         @id @unique
   provider      WalletProvider
   Nft           Nft[]
   user          User           @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
@@ -227,9 +221,9 @@ model SpaceBenefitUsage {
   userId        String        @db.Uuid
   pointsEarned  Int           @default(1)
   tokenAddress  String
-  benefit       SpaceBenefit  @relation(fields: [benefitId], references: [id])
-  nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
-  user          User          @relation("user", fields: [userId], references: [id])
+  benefit       SpaceBenefit  @relation(fields: [benefitId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: SetNull, onUpdate: NoAction)
+  user          User          @relation("user", fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 }
 
 model SystemConfig {
@@ -668,6 +662,11 @@ model directus_webhooks {
   was_active_before_deprecation Boolean         @default(false)
   migrated_flow                 String?         @db.Uuid
   directus_flows                directus_flows? @relation(fields: [migrated_flow], references: [id], onUpdate: NoAction, map: "directus_webhooks_migrated_flow_foreign")
+}
+
+enum LoginType {
+  FIREBASE
+  WORLD_ID
 }
 
 enum SpaceUserRole {

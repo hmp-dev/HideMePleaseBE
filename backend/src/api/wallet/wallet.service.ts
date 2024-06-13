@@ -20,13 +20,15 @@ export class WalletService {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
 		try {
-			return await this.prisma.wallet.create({
+			const wallet = await this.prisma.wallet.create({
 				data: {
 					userId: authContext.userId,
 					publicAddress: publicAddress.toLowerCase(),
 					provider,
 				},
 			});
+
+			return { ...wallet, id: wallet.publicAddress };
 		} catch {
 			throw new ConflictException(ErrorCodes.WALLET_ALREADY_LINKED);
 		}
@@ -35,25 +37,30 @@ export class WalletService {
 	async getWallets({ request }: { request: Request }) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		return await this.prisma.wallet.findMany({
+		const wallets = await this.prisma.wallet.findMany({
 			where: {
 				userId: authContext.userId,
 			},
 		});
+
+		return wallets.map((wallet) => ({
+			...wallet,
+			id: wallet.publicAddress,
+		}));
 	}
 
 	async deleteWallet({
 		request,
-		walletId,
+		publicAddress,
 	}: {
 		request: Request;
-		walletId: string;
+		publicAddress: string;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
 		const wallet = await this.prisma.wallet.findFirst({
 			where: {
-				id: walletId,
+				publicAddress,
 				userId: authContext.userId,
 			},
 			select: {
@@ -67,7 +74,7 @@ export class WalletService {
 
 		await this.prisma.wallet.update({
 			where: {
-				id: walletId,
+				publicAddress,
 			},
 			data: {
 				publicAddress: getWalletDeleteName(wallet.publicAddress),

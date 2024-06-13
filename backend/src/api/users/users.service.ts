@@ -85,7 +85,6 @@ export class UsersService {
 				nickName: true,
 				Wallets: {
 					select: {
-						id: true,
 						publicAddress: true,
 					},
 				},
@@ -105,7 +104,7 @@ export class UsersService {
 			user.Wallets.map((wallet) =>
 				this.prisma.wallet.update({
 					where: {
-						id: wallet.id,
+						publicAddress: wallet.publicAddress,
 					},
 					data: {
 						deleted: true,

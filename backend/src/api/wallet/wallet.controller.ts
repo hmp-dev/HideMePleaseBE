@@ -46,11 +46,11 @@ export class WalletController {
 		summary: 'delete a wallet',
 	})
 	@UseGuards(AuthGuard)
-	@Delete('id/:walletId')
+	@Delete('id/:publicAddress')
 	async deleteWallet(
 		@Req() request: Request,
-		@Param('walletId') walletId: string,
+		@Param('publicAddress') publicAddress: string,
 	) {
-		return this.walletService.deleteWallet({ request, walletId });
+		return this.walletService.deleteWallet({ request, publicAddress });
 	}
 }
