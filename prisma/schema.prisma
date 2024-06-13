@@ -17,6 +17,7 @@ model User {
   deleted                   Boolean                     @default(false)
   firebaseId                String?                     @unique
   loginType                 LoginType
+  email                     String?
   updatedAt                 DateTime                    @default(now()) @updatedAt
   wldNullifierHash          String?                     @unique
   id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
