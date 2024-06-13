@@ -3,19 +3,12 @@ import { JwtService } from '@nestjs/jwt';
 import { SupportedChains } from '@prisma/client';
 
 import { NftCollectionCursor } from '@/api/nft/nft.types';
-import { getCompositeTokenId } from '@/api/nft/nft.utils';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/users/users.dto';
-import {
-	EvmNftCollectionDataWithWallet,
-	PAGE_SIZES,
-} from '@/modules/moralis/moralis.constants';
-import { MoralisNftService } from '@/modules/moralis/moralis-nft.service';
+import { PAGE_SIZES } from '@/constants';
+import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import {
-	SupportedChainMapping,
-	SupportedChainReverseMapping,
-} from '@/modules/web3/web3.constants';
+import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 
@@ -23,9 +16,9 @@ import { ErrorCodes } from '@/utils/errorCodes';
 export class UserNftService {
 	constructor(
 		private prisma: PrismaService,
-		private moralisNftService: MoralisNftService,
 		private nftOwnershipService: NftOwnershipService,
 		private jwtService: JwtService,
+		private unifiedNftService: UnifiedNftService,
 	) {}
 
 	async getSelectedNfts({ request }: { request: Request }) {
@@ -310,7 +303,6 @@ export class UserNftService {
 			({ nftCollection }) => ({
 				...nftCollection,
 				chainSymbol: nftCollection.chain,
-				chain: SupportedChainMapping[nftCollection.chain].hex,
 				Nft: undefined,
 				tokens: nftCollection.Nft.map((nft) => ({
 					...nft,
@@ -435,22 +427,22 @@ export class UserNftService {
 			selectedNfts.map(({ tokenAddress }) => tokenAddress),
 		);
 
-		const walletNftCollections: EvmNftCollectionDataWithWallet[] = [];
+		const walletNftCollections: NftCollectionWithTokens[] = [];
 		let next: NftCollectionCursor = { liveData: true };
 
 		for (const [index, walletAddress] of walletsAfterSkip.entries()) {
-			const nftCollections =
-				await this.moralisNftService.getWalletNFTCollections({
-					walletAddress,
-					chainOrChains: chain,
-					cursor: parsedNextCursor?.cursor || undefined,
-					cursorType: parsedNextCursor?.cursorType,
-				});
+			const response = await this.unifiedNftService.getNftsForAddress({
+				walletAddress,
+				chainOrChains: chain,
+				nextChain: parsedNextCursor?.nextChain,
+				nextPage: parsedNextCursor?.nextPage,
+				selectedNftIds,
+			});
 
 			const nextWallet = walletsAfterSkip[index + 1];
-			if (nftCollections.next) {
+			if (response.next) {
 				next = {
-					...nftCollections.next,
+					...response.next,
 					nextWalletAddress: walletAddress,
 					liveData: true,
 				};
@@ -461,59 +453,26 @@ export class UserNftService {
 			}
 
 			walletNftCollections.push(
-				...nftCollections.nftCollections
-					.filter(
-						(nftCollection) =>
-							!selectedNftAddresses.has(
-								nftCollection.tokenAddress.toJSON(),
-							),
-					)
-					.map((nftCollection) => ({
-						...nftCollection.result,
-						walletAddress,
-					})),
+				...response.nftCollections.filter(
+					(nftCollection) =>
+						!selectedNftAddresses.has(nftCollection.tokenAddress),
+				),
 			);
+
 			if (walletNftCollections.length >= PAGE_SIZES.NFT_COLLECTIONS) {
 				break;
 			}
 		}
 
-		const populatedNftCollections =
-			await this.moralisNftService.populateNftCollectionsWithTokens(
-				walletNftCollections,
-			);
-
-		const responseCollections = populatedNftCollections.map(
-			(nftCollection) => ({
-				...nftCollection,
-				chainSymbol:
-					SupportedChainReverseMapping[nftCollection.chain.hex],
-				tokens: nftCollection.tokens.map((token) => {
-					const nftId = getCompositeTokenId(
-						nftCollection.tokenAddress.toJSON(),
-						token.tokenId,
-					);
-					return {
-						id: nftId,
-						tokenId: token.tokenId,
-						name: token.name,
-						updatedAt: token.media?.updatedAt,
-						imageUrl: token.media?.mediaCollection?.medium.url,
-						ownerWalletAddress:
-							token.ownerOf?.toJSON() as unknown as string,
-						selected: selectedNftIds.has(nftId),
-					};
-				}),
-			}),
-		);
-
 		await this.nftOwnershipService.syncWalletNftCollections(
 			walletNftCollections,
 		);
-		await this.nftOwnershipService.syncWalletNftTokens(responseCollections);
+		await this.nftOwnershipService.syncWalletNftTokens(
+			walletNftCollections,
+		);
 
 		return {
-			collections: responseCollections,
+			collections: walletNftCollections,
 			selectedNftCount,
 			next: next ? this.jwtService.sign(next) : next,
 		};

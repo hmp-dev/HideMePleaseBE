@@ -65,6 +65,14 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsNumber()
 	MAX_DISTANCE_FROM_SPACE!: number;
+
+	@IsNotEmpty()
+	@IsString()
+	COVALENT_API_KEY!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	UNMARSHAL_API_KEY!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

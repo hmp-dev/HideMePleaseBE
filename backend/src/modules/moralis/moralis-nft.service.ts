@@ -1,43 +1,40 @@
 import { EvmNftCollection } from '@moralisweb3/common-evm-utils';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotImplementedException } from '@nestjs/common';
 import { SupportedChains } from '@prisma/client';
 
-import {
-	EvmNftCollectionDataWithTokens,
-	EvmNftCollectionDataWithWallet,
-	PAGE_SIZES,
-} from '@/modules/moralis/moralis.constants';
+import { PAGE_SIZES } from '@/constants';
 import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
 import {
 	SupportedChainMapping,
 	SupportedChainsList,
 } from '@/modules/web3/web3.constants';
+import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class MoralisNftService {
 	constructor(private moralisApiService: MoralisApiService) {}
 
-	async getWalletNfts(
-		walletAddress: string,
-		chainOrChains:
-			| SupportedChains
-			| SupportedChains[] = SupportedChainsList,
-	) {
-		const chains = Array.isArray(chainOrChains)
-			? chainOrChains
-			: [chainOrChains];
-
-		const chainWiseNfts = await Promise.all(
-			chains.map((chain) =>
-				this.moralisApiService.getWalletNFTs({
-					address: walletAddress,
-					chain: SupportedChainMapping[chain].hex,
-				}),
-			),
-		);
-
-		return chainWiseNfts.map((nft) => nft.result);
-	}
+	// async getWalletNfts(
+	// 	walletAddress: string,
+	// 	chainOrChains:
+	// 		| SupportedChains
+	// 		| SupportedChains[] = SupportedChainsList,
+	// ) {
+	// 	const chains = Array.isArray(chainOrChains)
+	// 		? chainOrChains
+	// 		: [chainOrChains];
+	//
+	// 	const chainWiseNfts = await Promise.all(
+	// 		chains.map((chain) =>
+	// 			this.moralisApiService.getWalletNFTs({
+	// 				address: walletAddress,
+	// 				chain: SupportedChainMapping[chain].hex,
+	// 			}),
+	// 		),
+	// 	);
+	//
+	// 	return chainWiseNfts.map((nft) => nft.result);
+	// }
 
 	async getWalletNFTCollections({
 		walletAddress,
@@ -67,6 +64,14 @@ export class MoralisNftService {
 		} | null = null;
 
 		for (const [index, chain] of chainsAfterSkip.entries()) {
+			if (
+				chain === SupportedChains.KLAYTN ||
+				chain === SupportedChains.SOLANA
+			) {
+				throw new NotImplementedException(
+					ErrorCodes.MISSING_IMPLEMENTATION,
+				);
+			}
 			const collections =
 				await this.moralisApiService.getWalletNFTCollections({
 					address: walletAddress,
@@ -92,30 +97,5 @@ export class MoralisNftService {
 		}
 
 		return { nftCollections, next };
-	}
-
-	async populateNftCollectionsWithTokens(
-		nftCollections: EvmNftCollectionDataWithWallet[],
-	): Promise<EvmNftCollectionDataWithTokens[]> {
-		// TODO: Group by chain and pass token address as array for optimisation
-		return Promise.all(
-			nftCollections.map((nftCollection) =>
-				this.populateNftCollectionWithTokens(nftCollection),
-			),
-		);
-	}
-
-	async populateNftCollectionWithTokens(
-		nftCollection: EvmNftCollectionDataWithWallet,
-	): Promise<EvmNftCollectionDataWithTokens> {
-		const populatedCollection = await this.moralisApiService.getWalletNFTs({
-			address: nftCollection.walletAddress,
-			chain: nftCollection.chain,
-			tokenAddresses: [nftCollection.tokenAddress],
-			mediaItems: true,
-			normalizeMetadata: true,
-		});
-
-		return { ...nftCollection, tokens: populatedCollection.result };
 	}
 }

@@ -9,9 +9,10 @@ import { NftPointService } from '@/api/nft/nft-point.service';
 import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
 import { NotificationModule } from '@/api/notification/notification.module';
 import { MoralisModule } from '@/modules/moralis/moralis.module';
+import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 
 @Module({
-	imports: [AuthModule, MoralisModule, NotificationModule],
+	imports: [AuthModule, NotificationModule, UnifiedNftModule, MoralisModule],
 	controllers: [NftController],
 	providers: [
 		WelcomeNftService,

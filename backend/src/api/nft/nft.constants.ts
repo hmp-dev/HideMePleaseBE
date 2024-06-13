@@ -10,7 +10,7 @@ export const BENEFIT_POINT_CAP: Record<BenefitLevel, number> = {
 
 export const OWNERSHIP_CHECK_CONCURRENCY = 4;
 export const CHAIN_CHECK_CONCURRENCY = 2;
-export const PAGINATION_DEPTH_FOR_NFTS = 2;
+export const PAGINATION_DEPTH_FOR_NFTS = 10000;
 
 export const BENEFIT_USAGE_PAGE_SIZE = 10;
 export const BENEFIT_PAGE_SIZE = 10;

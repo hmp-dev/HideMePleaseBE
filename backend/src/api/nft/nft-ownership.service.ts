@@ -1,4 +1,3 @@
-import { EvmAddress } from '@moralisweb3/common-evm-utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Nft, NftCollection, SupportedChains } from '@prisma/client';
@@ -10,15 +9,10 @@ import {
 	PAGINATION_DEPTH_FOR_NFTS,
 } from '@/api/nft/nft.constants';
 import { NftCreateWithCollection } from '@/api/nft/nft.types';
-import { evmNftToNft } from '@/api/nft/nft.utils';
-import { EvmNftCollectionDataWithWallet } from '@/modules/moralis/moralis.constants';
-import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
+import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import {
-	SupportedChainMapping,
-	SupportedChainReverseMapping,
-	SupportedChainsList,
-} from '@/modules/web3/web3.constants';
+import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
+import { SupportedChainsList } from '@/modules/web3/web3.constants';
 
 @Injectable()
 export class NftOwnershipService {
@@ -26,18 +20,19 @@ export class NftOwnershipService {
 
 	constructor(
 		private prisma: PrismaService,
-		private moralisApiService: MoralisApiService,
+		private unifiedNftService: UnifiedNftService,
 	) {}
 
 	async syncWalletNftCollections(
-		walletNftCollections: EvmNftCollectionDataWithWallet[],
+		walletNftCollections: NftCollectionWithTokens[],
 	) {
 		const alreadyCreatedCollections =
 			await this.prisma.nftCollection.findMany({
 				where: {
 					tokenAddress: {
-						in: walletNftCollections.map((walletNftCollection) =>
-							walletNftCollection.tokenAddress.toJSON(),
+						in: walletNftCollections.map(
+							(walletNftCollection) =>
+								walletNftCollection.tokenAddress,
 						),
 					},
 				},
@@ -54,10 +49,8 @@ export class NftOwnershipService {
 
 		const finalCollections = walletNftCollections.filter(
 			(walletNftCollection) =>
-				!excludedAddresses.has(
-					walletNftCollection.tokenAddress.toJSON(),
-				),
-		) as (EvmNftCollectionDataWithWallet & { collectionLogo: string })[];
+				!excludedAddresses.has(walletNftCollection.tokenAddress),
+		) as (NftCollectionWithTokens & { collectionLogo: string })[];
 
 		await this.prisma.nftCollection.createMany({
 			data: finalCollections.map(
@@ -67,33 +60,20 @@ export class NftOwnershipService {
 					tokenAddress,
 					contractType,
 					collectionLogo,
-					chain,
+					chainSymbol,
 				}) => ({
 					name: name || '',
 					symbol: symbol || name || '',
-					tokenAddress: tokenAddress.toJSON(),
+					tokenAddress: tokenAddress,
 					contractType: contractType || '',
 					collectionLogo,
-					chain: SupportedChainReverseMapping[chain.hex],
+					chain: chainSymbol,
 				}),
 			),
 		});
 	}
 
-	async syncWalletNftTokens(
-		nftCollections: {
-			tokenAddress: EvmAddress;
-			tokens: {
-				tokenId: string | number;
-				imageUrl?: string;
-				name?: string;
-				selected: any;
-				updatedAt?: Date;
-				ownerWalletAddress: string;
-				id: string;
-			}[];
-		}[],
-	) {
+	async syncWalletNftTokens(nftCollections: NftCollectionWithTokens[]) {
 		const tokens: Pick<
 			Nft,
 			| 'name'
@@ -111,8 +91,8 @@ export class NftOwnershipService {
 					name: token.name || '',
 					tokenId: token.tokenId.toString(),
 					imageUrl: token.imageUrl || '',
-					tokenAddress: collection.tokenAddress.toJSON(),
-					tokenUpdatedAt: token.updatedAt ?? null,
+					tokenAddress: collection.tokenAddress,
+					tokenUpdatedAt: null,
 					id: token.id,
 					ownedWalletAddress: token.ownerWalletAddress,
 				});
@@ -157,6 +137,7 @@ export class NftOwnershipService {
 					lastOwnershipCheck: new Date(),
 				}),
 			),
+			skipDuplicates: true,
 		});
 	}
 
@@ -201,10 +182,10 @@ export class NftOwnershipService {
 
 			collectionsToCreate.push({
 				tokenAddress: nft.tokenAddress,
-				contractType: nft.contractType,
+				contractType: nft.contractType || '',
 				chain,
 				name: nft.name,
-				symbol: nft.symbol,
+				symbol: nft.symbol || '',
 				collectionLogo: nft.imageUrl,
 			});
 			// so this does not get added again
@@ -278,43 +259,68 @@ export class NftOwnershipService {
 		)
 			.for(SupportedChainsList)
 			.process(async (supportedChain) => {
-				const systemNfts = await this.prisma.nft.findMany({
-					where: {
-						ownedWalletAddress: walletAddress,
-						nftCollection: {
-							chain: supportedChain,
-						},
-						selected: true,
-					},
-					select: {
-						tokenAddress: true,
-					},
+				// const systemNfts = await this.prisma.nft.findMany({
+				// 	where: {
+				// 		ownedWalletAddress: walletAddress,
+				// 		nftCollection: {
+				// 			chain: supportedChain,
+				// 		},
+				// 		selected: true,
+				// 	},
+				// 	select: {
+				// 		tokenAddress: true,
+				// 	},
+				// });
+
+				let res = await this.unifiedNftService.getNftsForAddress({
+					walletAddress,
+					selectedNftIds: new Set(),
 				});
 
-				let res = await this.moralisApiService.getWalletNFTs({
-					address: walletAddress,
-					chain: SupportedChainMapping[supportedChain].hex,
-					mediaItems: true,
-					normalizeMetadata: true,
-					tokenAddresses: systemNfts.map((nft) => nft.tokenAddress),
-				});
+				// let res = await this.moralisApiService.getWalletNFTs({
+				// 	address: walletAddress,
+				// 	chain: SupportedChainMapping[supportedChain].hex,
+				// 	mediaItems: true,
+				// 	normalizeMetadata: true,
+				// 	tokenAddresses: systemNfts.map((nft) => nft.tokenAddress),
+				// });
 
 				const nftData: NftCreateWithCollection[] = [];
 
-				res.result.forEach((token) => {
-					nftData.push(evmNftToNft(token));
+				res.nftCollections.forEach((nftCollection) => {
+					nftCollection.tokens.forEach((token) => {
+						nftData.push({
+							...token,
+							imageUrl: token.imageUrl || '',
+							name: token.name || '',
+							tokenId: token.tokenId?.toString() || '',
+							tokenAddress: nftCollection.tokenAddress,
+							ownedWalletAddress: nftCollection.walletAddress,
+						});
+					});
 				});
 
 				let currentDepth = 0;
-				while (
-					res.hasNext() &&
-					currentDepth < PAGINATION_DEPTH_FOR_NFTS
-				) {
+				while (res.next && currentDepth < PAGINATION_DEPTH_FOR_NFTS) {
 					currentDepth++;
-					res = await res.next();
+					res = await this.unifiedNftService.getNftsForAddress({
+						walletAddress,
+						selectedNftIds: new Set(),
+						nextPage: res.next?.nextPage,
+						nextChain: res.next?.nextChain,
+					});
 
-					res.result.forEach((token) => {
-						nftData.push(evmNftToNft(token));
+					res.nftCollections.forEach((nftCollection) => {
+						nftCollection.tokens.forEach((token) => {
+							nftData.push({
+								...token,
+								imageUrl: token.imageUrl || '',
+								name: token.name || '',
+								tokenId: token.tokenId?.toString() || '',
+								tokenAddress: nftCollection.tokenAddress,
+								ownedWalletAddress: nftCollection.walletAddress,
+							});
+						});
 					});
 				}
 

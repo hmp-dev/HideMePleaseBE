@@ -1,4 +1,4 @@
-import { EvmNft, EvmNftCollectionData } from '@moralisweb3/common-evm-utils';
+import { SupportedChains } from '@prisma/client';
 
 import { CACHE_TTL } from '@/constants';
 
@@ -21,14 +21,22 @@ export const MORALIS_CACHE_TTL = {
 	DEFAULT_TTL: CACHE_TTL.ONE_MIN,
 };
 
-export const PAGE_SIZES = {
-	NFT_COLLECTIONS: 6,
-};
-
-export interface EvmNftCollectionDataWithWallet extends EvmNftCollectionData {
+export interface NftCollectionWithTokens {
+	chainSymbol: SupportedChains;
+	contractType?: string;
+	name: string;
+	symbol?: string;
+	tokenAddress: string;
 	walletAddress: string;
+	collectionLogo?: string;
+	tokens: NftToken[];
 }
-export interface EvmNftCollectionDataWithTokens
-	extends EvmNftCollectionDataWithWallet {
-	tokens: EvmNft[];
+
+export interface NftToken {
+	id: string;
+	tokenId: string;
+	name?: string;
+	imageUrl?: string;
+	selected: boolean;
+	ownerWalletAddress: string;
 }

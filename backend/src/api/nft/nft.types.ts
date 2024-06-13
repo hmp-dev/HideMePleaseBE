@@ -13,20 +13,20 @@ export type NftCreateDTO = Pick<
 	| 'imageUrl'
 	| 'tokenAddress'
 	| 'tokenId'
-	| 'tokenUpdatedAt'
 	| 'ownedWalletAddress'
-	| 'lastOwnershipCheck'
 >;
 
 export interface NftCreateWithCollection extends NftCreateDTO {
-	contractType: string;
-	symbol: string;
+	contractType?: string;
+	symbol?: string;
+	lastOwnershipCheck?: Date;
+	tokenUpdatedAt?: Date;
 }
 
 export type NftCollectionCursor = {
-	cursorType?: SupportedChains;
-	cursor?: string | null;
+	nextChain?: SupportedChains;
 	nextWalletAddress?: string;
+	nextPage?: string;
 	liveData: boolean;
 } | null;
 

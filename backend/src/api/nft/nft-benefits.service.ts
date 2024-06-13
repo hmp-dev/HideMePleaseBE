@@ -1,6 +1,12 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+	BadRequestException,
+	Inject,
+	Injectable,
+	NotImplementedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SupportedChains } from '@prisma/client';
 import { type Cache } from 'cache-manager';
 import { GeoPosition } from 'geo-position.ts';
 
@@ -231,6 +237,15 @@ export class NftBenefitsService {
 		});
 		if (!tokenData) {
 			throw new BadRequestException(ErrorCodes.ENTITY_NOT_FOUND);
+		}
+
+		if (
+			tokenData.chain === SupportedChains.KLAYTN ||
+			tokenData.chain === SupportedChains.SOLANA
+		) {
+			throw new NotImplementedException(
+				ErrorCodes.MISSING_IMPLEMENTATION,
+			);
 		}
 
 		const [collectionStats, lowestPrice] = await Promise.all([

@@ -1,21 +1,22 @@
+import { Chain } from '@covalenthq/client-sdk/dist/services/CovalentClient';
 import { EvmChain } from '@moralisweb3/common-evm-utils';
 import { SupportedChains } from '@prisma/client';
 
 export const SupportedChainsList = [
 	SupportedChains.ETHEREUM,
 	SupportedChains.POLYGON,
+	SupportedChains.KLAYTN,
+	SupportedChains.SOLANA,
 ];
 
 export const SupportedChainMapping = {
 	[SupportedChains.ETHEREUM]: EvmChain.ETHEREUM,
 	[SupportedChains.POLYGON]: EvmChain.POLYGON,
 	[SupportedChains.MUMBAI]: EvmChain.MUMBAI,
-	[SupportedChains.SOLANA]: EvmChain.MUMBAI,
-	[SupportedChains.KLAYTN]: EvmChain.MUMBAI,
-} satisfies Record<SupportedChains, EvmChain>;
+} satisfies Record<string, EvmChain>;
 
-export const SupportedChainReverseMapping = {
-	[EvmChain.ETHEREUM.hex]: SupportedChains.ETHEREUM,
-	[EvmChain.MUMBAI.hex]: SupportedChains.MUMBAI,
-	[EvmChain.POLYGON.hex]: SupportedChains.POLYGON,
-} satisfies Record<string, SupportedChains>;
+export const SupportedChainCovalentMapping = {
+	[SupportedChains.ETHEREUM]: 'eth-mainnet',
+	[SupportedChains.POLYGON]: 'matic-mainnet',
+	[SupportedChains.MUMBAI]: 'matic-mumbai',
+} satisfies Record<string, Chain>;
