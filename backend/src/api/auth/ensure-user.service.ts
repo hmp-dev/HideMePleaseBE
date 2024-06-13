@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { getLoginType } from '@/api/auth/auth.utils';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 
@@ -50,6 +51,7 @@ export class EnsureUserService {
 				firebaseId: authContext.firebaseId,
 				wldNullifierHash: authContext.nullifierHash,
 				nickName: name,
+				loginType: getLoginType(authContext),
 			},
 			select: {
 				id: true,

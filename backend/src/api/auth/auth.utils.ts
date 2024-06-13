@@ -1,3 +1,4 @@
+import { LoginType } from '@prisma/client';
 import { Request } from 'express';
 
 import { AuthContext } from '@/types';
@@ -12,4 +13,11 @@ export function getRolesCacheKey(authContext: AuthContext, spaceId?: string) {
 	return spaceId
 		? JSON.stringify(authContext) + spaceId
 		: JSON.stringify(authContext);
+}
+
+export function getLoginType(authContext: Partial<AuthContext>): LoginType {
+	if (authContext.firebaseId) {
+		return LoginType.FIREBASE;
+	}
+	return LoginType.WORLD_ID;
 }

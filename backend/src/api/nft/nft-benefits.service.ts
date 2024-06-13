@@ -241,6 +241,7 @@ export class NftBenefitsService {
 			tokenData.chain === SupportedChains.KLAYTN ||
 			tokenData.chain === SupportedChains.SOLANA
 		) {
+			// TODO: implement this lmao
 			return {
 				network: tokenData.chain,
 				holderCount: 5652,

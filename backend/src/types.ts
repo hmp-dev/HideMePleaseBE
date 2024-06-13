@@ -1,3 +1,5 @@
+import { LoginType } from '@prisma/client';
+
 export enum SupportedLanguage {
 	ENGLISH = 'en',
 	KOREAN = 'ko',
@@ -8,11 +10,6 @@ export interface AuthContext {
 	userId: string;
 	firebaseId?: string;
 	nullifierHash?: string;
-}
-
-export enum LoginType {
-	FIREBASE = 'FIREBASE',
-	WORLDCOIN = 'WORLDCOIN',
 }
 
 export enum JwtType {

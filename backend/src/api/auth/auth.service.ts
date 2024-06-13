@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { LoginType } from '@prisma/client';
 
 import { FirebaseLoginDTO, WorldcoinLoginDTO } from '@/api/auth/auth.dto';
 import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { FirebaseService } from '@/modules/firebase/firebase.service';
 import { WorldcoinService } from '@/modules/worldcoin/worldcoin.service';
-import { AuthContext, LoginType } from '@/types';
+import { AuthContext } from '@/types';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +24,8 @@ export class AuthService {
 	}) {
 		const decodedIdToken =
 			await this.firebaseService.decodeBearerToken(token);
+
+		console.log('decodedIdToken', decodedIdToken);
 
 		const partialContext = {
 			firebaseId: decodedIdToken.uid,
@@ -51,7 +54,7 @@ export class AuthService {
 			await this.worldcoinService.verifyCredentials(worldcoinLoginDTO);
 
 		const partialContext = {
-			loginType: LoginType.WORLDCOIN,
+			loginType: LoginType.WORLD_ID,
 			nullifierHash,
 		};
 

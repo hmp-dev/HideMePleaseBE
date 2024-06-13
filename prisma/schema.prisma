@@ -7,10 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum LoginType {
+  FIREBASE
+  WORLD_ID
+}
+
 model User {
   createdAt                 DateTime                    @default(now())
   deleted                   Boolean                     @default(false)
   firebaseId                String?                     @unique
+  loginType                 LoginType
   updatedAt                 DateTime                    @default(now()) @updatedAt
   wldNullifierHash          String?                     @unique
   id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid

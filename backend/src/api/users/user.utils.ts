@@ -1,4 +1,6 @@
-import { AuthContext, LoginType } from '@/types';
+import { LoginType } from '@prisma/client';
+
+import { AuthContext } from '@/types';
 
 export function userIdToRequest(userId: string) {
 	const authContext: AuthContext = {
