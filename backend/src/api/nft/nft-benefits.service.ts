@@ -424,7 +424,7 @@ export class NftBenefitsService {
 		const [topCollections, userCommunityList] = await Promise.all([
 			this.prisma.nftCollectionPoints.findMany({
 				orderBy: {
-					communityRank: 'desc',
+					communityRank: 'asc',
 				},
 				take: Number(pageSize),
 				skip: Number(pageSize) * (currentPage - 1),
