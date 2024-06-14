@@ -433,6 +433,7 @@ export class NftBenefitsService {
 					totalPoints: true,
 					tokenAddress: true,
 					totalMembers: true,
+					communityRank: true,
 					nftCollection: {
 						select: {
 							collectionLogo: true,
