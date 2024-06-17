@@ -5,8 +5,10 @@ import {
 	NotificationType,
 	UnifiedNotification,
 } from '@/api/notification/notification.types';
+import { PAGE_SIZES } from '@/constants';
 import { FirebaseService } from '@/modules/firebase/firebase.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { AuthContext } from '@/types';
 
 @Injectable()
 export class NotificationService {
@@ -55,6 +57,7 @@ export class NotificationService {
 						select: {
 							user: {
 								select: {
+									id: true,
 									fcmToken: true,
 								},
 							},
@@ -92,6 +95,20 @@ export class NotificationService {
 		});
 
 		await Promise.all(
+			allUsersInCommunity.map((communityUser) =>
+				this.prisma.notification.create({
+					data: {
+						title,
+						body,
+						type,
+						sent: true,
+						userId: communityUser.ownedWallet.user.id,
+					},
+				}),
+			),
+		);
+
+		await Promise.all(
 			[...communityFcmTokens].map((fcmToken) =>
 				this.firebaseService.buildAndSendNotification({
 					type,
@@ -101,5 +118,36 @@ export class NotificationService {
 				}),
 			),
 		);
+	}
+
+	async getUserNotifications({
+		request,
+		page,
+	}: {
+		request: Request;
+		page: number;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const currentPage = isNaN(page) || !page ? 1 : page;
+
+		return this.prisma.notification.findMany({
+			where: {
+				userId: authContext.userId,
+				sent: true,
+			},
+			take: PAGE_SIZES.NOTIFICATION,
+			skip: PAGE_SIZES.NOTIFICATION * (currentPage - 1),
+			orderBy: {
+				createdAt: 'desc',
+			},
+			select: {
+				id: true,
+				createdAt: true,
+				title: true,
+				body: true,
+				type: true,
+				params: true,
+			},
+		});
 	}
 }

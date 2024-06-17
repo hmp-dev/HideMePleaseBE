@@ -27,4 +27,5 @@ export const CACHE_TTL = {
 
 export const PAGE_SIZES = {
 	NFT_COLLECTIONS: 6,
+	NOTIFICATION: 10,
 };
