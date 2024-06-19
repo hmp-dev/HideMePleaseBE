@@ -3,11 +3,13 @@ import {
 	BadRequestException,
 	Inject,
 	Injectable,
+	InternalServerErrorException,
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SpaceCategory } from '@prisma/client';
+import { PromisePool } from '@supercharge/promise-pool';
 import type { Cache } from 'cache-manager';
 import { isSameDay, subDays } from 'date-fns';
 import { GeoPosition } from 'geo-position.ts';
@@ -242,11 +244,9 @@ export class SpaceService {
 	async getSpaceBenefits({
 		request,
 		spaceId,
-		next,
 	}: {
 		request: Request;
 		spaceId: string;
-		next?: string;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
@@ -271,20 +271,27 @@ export class SpaceService {
 
 		const nftAddresses = userNfts.map((nft) => nft.tokenAddress);
 
-		const nftsAfterSkip = next
-			? nftAddresses.slice(nftAddresses.indexOf(next))
-			: nftAddresses;
+		const { errors, results } = await PromisePool.withConcurrency(4)
+			.for(nftAddresses)
+			.process(async (tokenAddress) => {
+				return await this.nftBenefitsService.getCollectionBenefits({
+					tokenAddress,
+					request,
+					pageSize: 1000,
+					spaceId,
+					page: 1,
+				});
+			});
 
-		const [currentNft, nextNft] = nftsAfterSkip;
+		if (errors.length) {
+			throw new InternalServerErrorException(ErrorCodes.UNHANDLED_ERROR);
+		}
+
+		const benefits = results.map((benefit) => benefit.benefits).flat(1);
+
 		return {
-			...(await this.nftBenefitsService.getCollectionBenefits({
-				tokenAddress: currentNft,
-				request,
-				pageSize: 1000,
-				spaceId,
-				page: 1,
-			})),
-			next: nextNft ?? null,
+			benefits,
+			benefitCount: benefits.length,
 		};
 	}
 
@@ -464,8 +471,6 @@ export class SpaceService {
 			await this.userLocationService.getNumberOfUsersHidingInSpaces(
 				newSpaces.map((space) => space.id),
 			);
-
-		console.log(hidingUsers);
 
 		return newSpaces.map(({ SpaceBenefit, ...space }) => ({
 			...space,
