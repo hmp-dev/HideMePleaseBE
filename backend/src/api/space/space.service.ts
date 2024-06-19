@@ -257,6 +257,7 @@ export class SpaceService {
 						ownedWallet: {
 							userId: authContext.userId,
 						},
+						selected: true,
 					},
 				},
 			},
