@@ -215,6 +215,7 @@ export class WelcomeNftService {
 			description: systemNft.description || systemNft.name,
 			image: this.mediaService.getUrl(systemNft.image),
 			name: tokenName,
+			sendable: false,
 		};
 
 		const uploadedMetadata = await this.mediaService.uploadJson(
