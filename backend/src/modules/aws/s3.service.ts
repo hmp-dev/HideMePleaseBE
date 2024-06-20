@@ -44,6 +44,22 @@ export class S3Service {
 		return this.s3.upload(params).promise();
 	}
 
+	async uploadJson({ json, bucket }: { json: string; bucket: string }) {
+		const params = {
+			Bucket: bucket,
+			Key: `${uuid()}.json`,
+			Body: json,
+			ContentType: 'application/json',
+			ContentDisposition: 'inline',
+			CreateBucketConfiguration: {
+				LocationConstraint:
+					this.configService.get<string>('AWS_REGION'),
+			},
+		};
+
+		return this.s3.upload(params).promise();
+	}
+
 	getSignedUrl({ bucket, key }: MediaFile): string | undefined {
 		return this.s3.getSignedUrl('getObject', {
 			Bucket: bucket,

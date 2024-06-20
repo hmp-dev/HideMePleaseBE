@@ -21,6 +21,7 @@ export class UsersService {
 				introduction: true,
 				locationPublic: true,
 				notificationsEnabled: true,
+				freeNftClaimed: true,
 				pfpNft: {
 					select: {
 						id: true,

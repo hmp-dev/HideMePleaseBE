@@ -68,9 +68,9 @@ export class FirebaseService implements OnModuleInit {
 		}
 	}
 
-	async sendNotifications(messages: Message[]) {
+	async sendNotifications(message: Message) {
 		try {
-			await messaging().sendEach(messages);
+			await messaging().send(message);
 		} catch (error) {
 			this.logger.error(`FCM notification failure ${error}`);
 		}
@@ -110,6 +110,6 @@ export class FirebaseService implements OnModuleInit {
 			return;
 		}
 
-		await this.sendNotifications([notification]);
+		await this.sendNotifications(notification);
 	}
 }

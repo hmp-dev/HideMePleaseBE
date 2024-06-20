@@ -73,6 +73,18 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	UNMARSHAL_API_KEY!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	KLAYTN_ACCESS_KEY!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	KLAYTN_ACCESS_KEY_SECRET!: string;
+
+	@IsNotEmpty()
+	@IsNumber()
+	KLAYTN_CHAIN_ID!: number;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

@@ -9,6 +9,7 @@ import {
 	PAGINATION_DEPTH_FOR_NFTS,
 } from '@/api/nft/nft.constants';
 import { NftCreateWithCollection } from '@/api/nft/nft.types';
+import { KlaytnNftService } from '@/modules/klaytn/klaytn-nft.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
@@ -21,6 +22,7 @@ export class NftOwnershipService {
 	constructor(
 		private prisma: PrismaService,
 		private unifiedNftService: UnifiedNftService,
+		private klaytnNftService: KlaytnNftService,
 	) {}
 
 	async syncWalletNftCollections(
@@ -390,5 +392,77 @@ export class NftOwnershipService {
 		for (const user of users) {
 			await this.checkUserNftOwnership(user.id);
 		}
+	}
+
+	@Cron(CronExpression.EVERY_MINUTE)
+	async syncSubmittedNftContracts() {
+		this.logger.log(`syncSubmittedNftContracts start`);
+
+		const systemNfts = await this.prisma.systemNftCollection.findMany({
+			where: {
+				addressUpdated: false,
+				contractSubmitted: true,
+			},
+		});
+
+		if (!systemNfts.length) {
+			return;
+		}
+
+		const contracts = await this.klaytnNftService.getContractList();
+
+		const aliasAddressMap: Record<string, string> = {};
+
+		contracts.items.forEach(
+			(item) => (aliasAddressMap[item.alias] = item.address),
+		);
+
+		for (const collection of systemNfts) {
+			if (aliasAddressMap[collection.alias]) {
+				await this.prisma.systemNftCollection.updateMany({
+					where: {
+						alias: collection.alias,
+					},
+					data: {
+						tokenAddress: aliasAddressMap[collection.alias],
+						addressUpdated: true,
+					},
+				});
+			}
+		}
+
+		this.logger.log(`syncSubmittedNftContracts end`);
+	}
+
+	@Cron(CronExpression.EVERY_MINUTE)
+	async deployPendingNftContract() {
+		this.logger.log(`deployPendingNftContracts start`);
+
+		const systemNfts = await this.prisma.systemNftCollection.findMany({
+			where: {
+				contractSubmitted: false,
+			},
+		});
+
+		for (const collection of systemNfts) {
+			this.logger.log(`Deploying ${collection.alias} contract`);
+
+			const response = await this.klaytnNftService.deployContract({
+				name: collection.name,
+				alias: collection.alias,
+				symbol: collection.symbol,
+			});
+			this.logger.log(`Deploy response: ${JSON.stringify(response)}`);
+			await this.prisma.systemNftCollection.update({
+				where: {
+					alias: collection.alias,
+				},
+				data: {
+					contractSubmitted: true,
+				},
+			});
+		}
+
+		this.logger.log(`deployPendingNftContracts start`);
 	}
 }

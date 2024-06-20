@@ -35,22 +35,38 @@ export class NftController {
 	@ApiOperation({
 		summary: 'Gets welcome nft',
 	})
+	@ApiQuery({
+		name: 'latitude',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'longitude',
+		type: 'number',
+		required: false,
+	})
 	@UseGuards(AuthGuard)
 	@Get('/welcome')
-	getWelcomeNft() {
-		return this.nftService.getWelcomeNft();
+	getWelcomeNft(
+		@Query('latitude') latitude: number,
+		@Query('longitude') longitude: number,
+	) {
+		return this.nftService.getWelcomeNft({
+			latitude,
+			longitude,
+		});
 	}
 
 	@ApiOperation({
 		summary: 'Consume welcome nft',
 	})
 	@UseGuards(AuthGuard)
-	@Post('/welcome/:welcomeNftId')
+	@Post('/welcome/:tokenAddress')
 	consumeWelcomeNft(
 		@Req() request: Request,
-		@Param('welcomeNftId') welcomeNftId: number,
+		@Param('tokenAddress') tokenAddress: string,
 	) {
-		return this.nftService.consumeWelcomeNft({ request, welcomeNftId });
+		return this.nftService.consumeWelcomeNft({ request, tokenAddress });
 	}
 
 	@ApiOperation({

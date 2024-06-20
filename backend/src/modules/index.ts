@@ -7,6 +7,7 @@ import path from 'path';
 import { Options } from 'pino-http';
 
 import { GLOBAL_LANG } from '@/constants';
+import { KlaytnModule } from '@/modules/klaytn/klaytn.module';
 import { MediaModule } from '@/modules/media/media.module';
 import { validateEnv } from '@/utils/env';
 import { isDevelopment, isTest } from '@/utils/predicates';
@@ -34,6 +35,7 @@ const DEFAULT_MODULES = [
 	}),
 	ScheduleModule.forRoot(),
 	MediaModule,
+	KlaytnModule,
 ];
 
 /* c8 ignore next */

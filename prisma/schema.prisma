@@ -23,13 +23,13 @@ model User {
   loginType                 LoginType
   email                     String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
+  Notification              Notification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceUser                 SpaceUser[]
   pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id])
   UserLastKnownSpace        UserLastKnownSpace[]
   Wallets                   Wallet[]
-  WelcomeNft                WelcomeNft[]
-  Notification              Notification[]
+  freeNftClaimed            Boolean                     @default(false)
 }
 
 model Announcements {
@@ -56,6 +56,41 @@ model NftCollection {
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   NftCollectionPoints       NftCollectionPoints?
   SpaceBenefitUsage         SpaceBenefitUsage[]
+}
+
+model SystemNftCollection {
+  tokenAddress      String         @id @default(cuid())
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now()) @updatedAt
+  name              String         @unique
+  symbol            String         @unique
+  alias             String         @unique
+  contractType      String         @default("KIP-17")
+  description       String?
+  lastMintedTokenId Int            @default(0)
+  maxMintedTokens   Int            @default(200)
+  addressUpdated    Boolean        @default(false)
+  contractSubmitted Boolean        @default(false)
+  spaceId           String?        @db.Uuid
+  space             Space?         @relation(fields: [spaceId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  imageId           String         @db.Uuid
+  image             directus_files @relation(fields: [imageId], references: [id])
+  SystemNft         SystemNft[]
+}
+
+model SystemNft {
+  id               String              @id
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @default(now()) @updatedAt
+  tokenAddress     String
+  nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  name             String
+  tokenId          Int
+  tokenUri         String
+  tokenFileId      Int
+  tokenFile        MediaFile           @relation(fields: [tokenFileId], references: [id])
+  imageUrl         String
+  recipientAddress String
 }
 
 model NftCollectionPoints {
@@ -115,36 +150,22 @@ model Wallet {
   user          User           @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 }
 
-model WelcomeNft {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(now()) @updatedAt
-  siteLink  String
-  imageId   Int
-  used      Boolean   @default(false)
-  userId    String?   @db.Uuid
-  image     MediaFile @relation(fields: [imageId], references: [id])
-  user      User?     @relation(fields: [userId], references: [id])
-
-  @@index([used])
-}
-
 model MediaFile {
-  id         Int          @id @default(autoincrement())
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @default(now()) @updatedAt
-  deleted    Boolean?     @default(false)
-  key        String
-  bucket     String
-  mimeType   String
-  WelcomeNft WelcomeNft[]
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+  deleted   Boolean?    @default(false)
+  key       String
+  bucket    String
+  mimeType  String
+  SystemNft SystemNft[]
 }
 
 model Space {
-  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @default(now()) @updatedAt
-  deleted             Boolean              @default(false)
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now()) @updatedAt
+  deleted             Boolean               @default(false)
   name                String
   latitude            Float
   longitude           Float
@@ -153,14 +174,15 @@ model Space {
   businessHoursEnd    String
   businessHoursStart  String
   category            SpaceCategory
-  introduction        String               @default("")
-  locationDescription String               @default("")
-  imageId             String               @db.Uuid
-  image               directus_files       @relation(fields: [imageId], references: [id])
+  introduction        String                @default("")
+  locationDescription String                @default("")
+  imageId             String                @db.Uuid
+  image               directus_files        @relation(fields: [imageId], references: [id])
   SpaceBenefit        SpaceBenefit[]
   SpaceUser           SpaceUser[]
   SpaceUserInvites    SpaceUserInvites[]
   UserLastKnownSpace  UserLastKnownSpace[]
+  SystemNftCollection SystemNftCollection[]
 }
 
 model SpaceUser {
@@ -333,37 +355,38 @@ model directus_fields {
 }
 
 model directus_files {
-  id                                                                    String              @id @db.Uuid
-  storage                                                               String              @db.VarChar(255)
-  filename_disk                                                         String?             @db.VarChar(255)
-  filename_download                                                     String              @db.VarChar(255)
-  title                                                                 String?             @db.VarChar(255)
-  type                                                                  String?             @db.VarChar(255)
-  folder                                                                String?             @db.Uuid
-  uploaded_by                                                           String?             @db.Uuid
-  uploaded_on                                                           DateTime            @default(now()) @db.Timestamptz(6)
-  modified_by                                                           String?             @db.Uuid
-  modified_on                                                           DateTime            @default(now()) @db.Timestamptz(6)
-  charset                                                               String?             @db.VarChar(50)
+  id                                                                    String                @id @db.Uuid
+  storage                                                               String                @db.VarChar(255)
+  filename_disk                                                         String?               @db.VarChar(255)
+  filename_download                                                     String                @db.VarChar(255)
+  title                                                                 String?               @db.VarChar(255)
+  type                                                                  String?               @db.VarChar(255)
+  folder                                                                String?               @db.Uuid
+  uploaded_by                                                           String?               @db.Uuid
+  uploaded_on                                                           DateTime              @default(now()) @db.Timestamptz(6)
+  modified_by                                                           String?               @db.Uuid
+  modified_on                                                           DateTime              @default(now()) @db.Timestamptz(6)
+  charset                                                               String?               @db.VarChar(50)
   filesize                                                              BigInt?
   width                                                                 Int?
   height                                                                Int?
   duration                                                              Int?
-  embed                                                                 String?             @db.VarChar(200)
+  embed                                                                 String?               @db.VarChar(200)
   description                                                           String?
   location                                                              String?
   tags                                                                  String?
-  metadata                                                              Json?               @db.Json
+  metadata                                                              Json?                 @db.Json
   focal_point_x                                                         Int?
   focal_point_y                                                         Int?
   Space                                                                 Space[]
-  directus_folders                                                      directus_folders?   @relation(fields: [folder], references: [id], onUpdate: NoAction, map: "directus_files_folder_foreign")
-  directus_users_directus_files_modified_byTodirectus_users             directus_users?     @relation("directus_files_modified_byTodirectus_users", fields: [modified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_modified_by_foreign")
-  directus_users_directus_files_uploaded_byTodirectus_users             directus_users?     @relation("directus_files_uploaded_byTodirectus_users", fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_uploaded_by_foreign")
-  directus_settings_directus_settings_project_logoTodirectus_files      directus_settings[] @relation("directus_settings_project_logoTodirectus_files")
-  directus_settings_directus_settings_public_backgroundTodirectus_files directus_settings[] @relation("directus_settings_public_backgroundTodirectus_files")
-  directus_settings_directus_settings_public_faviconTodirectus_files    directus_settings[] @relation("directus_settings_public_faviconTodirectus_files")
-  directus_settings_directus_settings_public_foregroundTodirectus_files directus_settings[] @relation("directus_settings_public_foregroundTodirectus_files")
+  directus_folders                                                      directus_folders?     @relation(fields: [folder], references: [id], onUpdate: NoAction, map: "directus_files_folder_foreign")
+  directus_users_directus_files_modified_byTodirectus_users             directus_users?       @relation("directus_files_modified_byTodirectus_users", fields: [modified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_modified_by_foreign")
+  directus_users_directus_files_uploaded_byTodirectus_users             directus_users?       @relation("directus_files_uploaded_byTodirectus_users", fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_uploaded_by_foreign")
+  directus_settings_directus_settings_project_logoTodirectus_files      directus_settings[]   @relation("directus_settings_project_logoTodirectus_files")
+  directus_settings_directus_settings_public_backgroundTodirectus_files directus_settings[]   @relation("directus_settings_public_backgroundTodirectus_files")
+  directus_settings_directus_settings_public_faviconTodirectus_files    directus_settings[]   @relation("directus_settings_public_faviconTodirectus_files")
+  directus_settings_directus_settings_public_foregroundTodirectus_files directus_settings[]   @relation("directus_settings_public_foregroundTodirectus_files")
+  SystemNftCollection                                                   SystemNftCollection[]
 }
 
 model directus_flows {
@@ -536,6 +559,7 @@ model directus_sessions {
   user_agent      String?
   share           String?          @db.Uuid
   origin          String?          @db.VarChar(255)
+  next_token      String?
   directus_shares directus_shares? @relation(fields: [share], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "directus_sessions_share_foreign")
   directus_users  directus_users?  @relation(fields: [user], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "directus_sessions_user_foreign")
 }

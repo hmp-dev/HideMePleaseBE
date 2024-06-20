@@ -27,6 +27,19 @@ export class MediaService {
 		});
 	}
 
+	async uploadJson(json: string): Promise<MediaFile> {
+		const bucket = this.configService.get<string>('S3_BUCKET');
+		const { Key: key } = await this.s3Service.uploadJson({ json, bucket });
+
+		return await this.prisma.mediaFile.create({
+			data: {
+				key,
+				mimeType: 'application/json',
+				bucket,
+			},
+		});
+	}
+
 	async deleteMedia(mediaFile: MediaFile): Promise<void> {
 		await this.s3Service.deleteFile(mediaFile);
 		await this.prisma.mediaFile.delete({
