@@ -30,6 +30,7 @@ model User {
   UserLastKnownSpace        UserLastKnownSpace[]
   Wallets                   Wallet[]
   freeNftClaimed            Boolean                     @default(false)
+  ScheduleNotification      ScheduleNotification[]
 }
 
 model Announcements {
@@ -270,6 +271,18 @@ model Notification {
   sent      Boolean  @default(false)
   userId    String   @db.Uuid
   User      User     @relation(fields: [userId], references: [id])
+}
+
+model ScheduleNotification {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  title        String
+  body         String
+  sent         Boolean  @default(false)
+  scheduleTime DateTime @default(now())
+  userId       String?  @db.Uuid
+  User         User?    @relation(fields: [userId], references: [id])
 }
 
 model directus_activity {

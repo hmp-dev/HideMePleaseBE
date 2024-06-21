@@ -185,7 +185,6 @@ export class NftPointService {
 					void this.notificationService.sendNotification({
 						type: NotificationType.UserCommunityRankChange,
 						userId: nftMember.userId,
-						oldRank,
 						newRank,
 						tokenAddress,
 					});

@@ -42,6 +42,7 @@ export class CovalentService implements OnModuleInit {
 		const collections = await this.client.NftService.getNftsForAddress(
 			SupportedChainCovalentMapping[chain],
 			walletAddress,
+			{ noSpam: true },
 		);
 
 		const nftCollections: NftCollectionWithTokens[] =
