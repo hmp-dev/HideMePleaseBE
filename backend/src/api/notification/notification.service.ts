@@ -298,7 +298,7 @@ export class NotificationService {
 			});
 	}
 
-	@Cron(CronExpression.EVERY_10_SECONDS)
+	@Cron(CronExpression.EVERY_MINUTE)
 	async sendPendingNotifications() {
 		const notifications = await this.prisma.scheduleNotification.findMany({
 			where: {
@@ -323,7 +323,7 @@ export class NotificationService {
 						id: notification.id,
 					},
 					data: {
-						sent: false,
+						sent: true,
 					},
 				});
 			} catch (e) {
