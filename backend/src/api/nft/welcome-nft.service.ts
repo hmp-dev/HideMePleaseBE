@@ -4,7 +4,6 @@ import {
 	InternalServerErrorException,
 	Logger,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { WalletProvider } from '@prisma/client';
 import { GeoPosition } from 'geo-position.ts';
 
@@ -12,8 +11,8 @@ import { getCompositeTokenId } from '@/api/nft/nft.utils';
 import { KlaytnNftService } from '@/modules/klaytn/klaytn-nft.service';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
-import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
@@ -23,8 +22,8 @@ export class WelcomeNftService {
 	constructor(
 		private prisma: PrismaService,
 		private mediaService: MediaService,
-		private configService: ConfigService<EnvironmentVariables, true>,
 		private klaytnNftService: KlaytnNftService,
+		private systemConfig: SystemConfigService,
 	) {}
 
 	async getAppropriateSystemNft({
@@ -59,9 +58,9 @@ export class WelcomeNftService {
 				Number(latitude),
 				Number(longitude),
 			);
-			const maxDistance = this.configService.get<number>(
-				'MAX_DISTANCE_FROM_SPACE',
-			);
+			const maxDistance = (await this.systemConfig.get())
+				.maxDistanceFromSpace;
+
 			const spacesWithDistance = spacesOfferingWelcomeNfts.map((nft) => {
 				if (!nft.space) {
 					throw new InternalServerErrorException(

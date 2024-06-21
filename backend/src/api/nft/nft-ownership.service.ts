@@ -396,8 +396,6 @@ export class NftOwnershipService {
 
 	@Cron(CronExpression.EVERY_MINUTE)
 	async syncSubmittedNftContracts() {
-		this.logger.log(`syncSubmittedNftContracts start`);
-
 		const systemNfts = await this.prisma.systemNftCollection.findMany({
 			where: {
 				addressUpdated: false,
@@ -408,7 +406,7 @@ export class NftOwnershipService {
 		if (!systemNfts.length) {
 			return;
 		}
-
+		this.logger.log(`syncSubmittedNftContracts start`);
 		const contracts = await this.klaytnNftService.getContractList();
 
 		const aliasAddressMap: Record<string, string> = {};
@@ -430,14 +428,10 @@ export class NftOwnershipService {
 				});
 			}
 		}
-
-		this.logger.log(`syncSubmittedNftContracts end`);
 	}
 
 	@Cron(CronExpression.EVERY_MINUTE)
 	async deployPendingNftContract() {
-		this.logger.log(`deployPendingNftContracts start`);
-
 		const systemNfts = await this.prisma.systemNftCollection.findMany({
 			where: {
 				contractSubmitted: false,
@@ -462,7 +456,5 @@ export class NftOwnershipService {
 				},
 			});
 		}
-
-		this.logger.log(`deployPendingNftContracts start`);
 	}
 }

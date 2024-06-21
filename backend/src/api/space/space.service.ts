@@ -7,7 +7,6 @@ import {
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SpaceCategory } from '@prisma/client';
 import { PromisePool } from '@supercharge/promise-pool';
 import type { Cache } from 'cache-manager';
@@ -27,8 +26,8 @@ import { UserLocationService } from '@/api/users/user-location.service';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
-import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
@@ -42,7 +41,7 @@ export class SpaceService {
 		private nftBenefitsService: NftBenefitsService,
 		private userLocationService: UserLocationService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
-		private configService: ConfigService<EnvironmentVariables, true>,
+		private systemConfig: SystemConfigService,
 	) {}
 
 	async redeemBenefit({
@@ -81,9 +80,8 @@ export class SpaceService {
 			benefit.space.latitude,
 			benefit.space.longitude,
 		);
-		const maxDistance = this.configService.get<number>(
-			'MAX_DISTANCE_FROM_SPACE',
-		);
+		const maxDistance = (await this.systemConfig.get())
+			.maxDistanceFromSpace;
 		const spaceDistance = Number(
 			userPosition.Distance(spacePosition).toFixed(0),
 		);

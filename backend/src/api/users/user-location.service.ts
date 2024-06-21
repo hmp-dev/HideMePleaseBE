@@ -1,20 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { subHours } from 'date-fns';
 import { GeoPosition } from 'geo-position.ts';
 
 import { LOCATION_VALIDITY_IN_HOURS } from '@/api/users/users.constants';
 import { UpdateLastKnownLocationDTO } from '@/api/users/users.dto';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
-import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class UserLocationService {
 	constructor(
 		private prisma: PrismaService,
-		private configService: ConfigService<EnvironmentVariables, true>,
+		private systemConfig: SystemConfigService,
 	) {}
 
 	async updateUserLocation({
@@ -59,9 +58,9 @@ export class UserLocationService {
 		});
 
 		const userPosition = new GeoPosition(latitude, longitude);
-		const maxDistance = this.configService.get<number>(
-			'MAX_DISTANCE_FROM_SPACE',
-		);
+		const maxDistance = (await this.systemConfig.get())
+			.maxDistanceFromSpace;
+
 		const spacesWithDistance = allSpaces.map((space) => {
 			const spacePosition = new GeoPosition(
 				space.latitude,

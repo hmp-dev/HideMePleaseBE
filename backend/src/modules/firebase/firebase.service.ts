@@ -70,7 +70,7 @@ export class FirebaseService implements OnModuleInit {
 
 	async sendNotifications(message: Message) {
 		try {
-			await messaging().send(message);
+			await messaging().send(message).then(console.log);
 		} catch (error) {
 			this.logger.error(`FCM notification failure ${error}`);
 		}

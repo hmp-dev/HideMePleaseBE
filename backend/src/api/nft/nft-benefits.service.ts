@@ -1,6 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { SupportedChains } from '@prisma/client';
 import { type Cache } from 'cache-manager';
 import { GeoPosition } from 'geo-position.ts';
@@ -17,12 +16,12 @@ import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import {
 	ChainToSymbolMapping,
 	SupportedChainMapping,
 } from '@/modules/web3/web3.constants';
 import { AuthContext, SortOrder } from '@/types';
-import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
@@ -31,8 +30,8 @@ export class NftBenefitsService {
 		private prisma: PrismaService,
 		private mediaService: MediaService,
 		private moralisApiService: MoralisApiService,
+		private systemConfig: SystemConfigService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
-		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
 
 	async getCollectionBenefits({
@@ -315,9 +314,8 @@ export class NftBenefitsService {
 		}));
 
 		const userPosition = new GeoPosition(latitude, longitude);
-		const maxDistance = this.configService.get<number>(
-			'MAX_DISTANCE_FROM_SPACE',
-		);
+		const maxDistance = (await this.systemConfig.get())
+			.maxDistanceFromSpace;
 		const spacesWithDistance = populatedSpaces.map((space) => {
 			const spacePosition = new GeoPosition(
 				space.latitude,

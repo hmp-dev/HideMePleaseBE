@@ -3,12 +3,14 @@ import { Injectable } from '@nestjs/common';
 import { ANNOUNCEMENTS_PAGE_SIZE } from '@/api/cms/cms.constants';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SystemConfigService } from '@/modules/system-config/system-config.service';
 
 @Injectable()
 export class CmsService {
 	constructor(
 		private mediaService: MediaService,
 		private prisma: PrismaService,
+		private systemConfig: SystemConfigService,
 	) {}
 
 	async uploadImage({
@@ -41,16 +43,16 @@ export class CmsService {
 	}
 
 	async getSettingsBanner() {
-		const systemConfig = await this.prisma.systemConfig.findFirst({
-			select: {
-				settingsBannerLink: true,
-				settingsBannerHeading: true,
-				settingsBannerDescription: true,
-			},
-		});
+		const {
+			settingsBannerLink,
+			settingsBannerDescription,
+			settingsBannerHeading,
+		} = await this.systemConfig.get();
 
 		return {
-			...systemConfig,
+			settingsBannerLink,
+			settingsBannerDescription,
+			settingsBannerHeading,
 		};
 	}
 }

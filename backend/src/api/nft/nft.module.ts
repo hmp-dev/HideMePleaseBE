@@ -10,6 +10,7 @@ import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
 import { NotificationModule } from '@/api/notification/notification.module';
 import { KlaytnModule } from '@/modules/klaytn/klaytn.module';
 import { MoralisModule } from '@/modules/moralis/moralis.module';
+import { SystemConfigModule } from '@/modules/system-config/system-config.module';
 import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 		UnifiedNftModule,
 		MoralisModule,
 		KlaytnModule,
+		SystemConfigModule,
 	],
 	controllers: [NftController],
 	providers: [

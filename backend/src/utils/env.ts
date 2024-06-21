@@ -63,10 +63,6 @@ export class EnvironmentVariables {
 	S3_BUCKET!: string;
 
 	@IsNotEmpty()
-	@IsNumber()
-	MAX_DISTANCE_FROM_SPACE!: number;
-
-	@IsNotEmpty()
 	@IsString()
 	COVALENT_API_KEY!: string;
 

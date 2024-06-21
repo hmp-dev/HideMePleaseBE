@@ -8,6 +8,7 @@ import { UsersController } from '@/api/users/users.controller';
 import { UsersService } from '@/api/users/users.service';
 import { CovalentModule } from '@/modules/covalent/covalent.module';
 import { MoralisModule } from '@/modules/moralis/moralis.module';
+import { SystemConfigModule } from '@/modules/system-config/system-config.module';
 import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 import { WorldcoinModule } from '@/modules/worldcoin/worldcoin.module';
 
@@ -21,6 +22,7 @@ import { UserController } from './user.controller';
 		NftModule,
 		CovalentModule,
 		UnifiedNftModule,
+		SystemConfigModule,
 	],
 	controllers: [UsersController, UserController],
 	providers: [UsersService, UserLocationService, UserNftService],

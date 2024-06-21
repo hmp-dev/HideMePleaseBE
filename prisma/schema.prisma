@@ -256,6 +256,7 @@ model SystemConfig {
   settingsBannerLink        String?
   settingsBannerHeading     String?
   settingsBannerDescription String?
+  maxDistanceFromSpace      Int      @default(100)
 }
 
 model Notification {
