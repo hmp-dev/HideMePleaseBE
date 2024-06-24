@@ -44,15 +44,31 @@ export class SpaceController {
 		enum: SpaceCategory,
 		required: false,
 	})
+	@ApiQuery({
+		name: 'latitude',
+		type: 'number',
+	})
+	@ApiQuery({
+		name: 'longitude',
+		type: 'number',
+	})
 	@UseGuards(AuthGuard)
 	@Get()
 	getSpaceList(
 		@Req() request: Request,
 		@Query() { page }: { page: number },
+		@Query('latitude') latitude: number,
+		@Query('longitude') longitude: number,
 		@Query('category', new EnumValidationPipe(SpaceCategory, false))
 		category: SpaceCategory,
 	) {
-		return this.spaceService.getSpaceList({ page, request, category });
+		return this.spaceService.getSpaceList({
+			page,
+			request,
+			category,
+			latitude,
+			longitude,
+		});
 	}
 
 	@ApiOperation({

@@ -22,6 +22,7 @@ import {
 	SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS,
 } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
+import { SpaceWithLocation } from '@/api/space/space.types';
 import { UserLocationService } from '@/api/users/user-location.service';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
@@ -153,21 +154,109 @@ export class SpaceService {
 			);
 	}
 
+	private async getSpacesWithLocation() {
+		const cacheKey = 'SPACE_WITH_LOCATIONS';
+		const cachedSpaces =
+			await this.cacheManager.get<SpaceWithLocation[]>(cacheKey);
+		if (cachedSpaces) {
+			return cachedSpaces;
+		}
+
+		const spaces = await this.prisma.space.findMany({
+			select: {
+				id: true,
+				latitude: true,
+				longitude: true,
+			},
+		});
+
+		const formattedSpaces: SpaceWithLocation[] = spaces.map((space) => ({
+			spaceId: space.id,
+			longitude: space.longitude,
+			latitude: space.latitude,
+		}));
+
+		await this.cacheManager.set(
+			cacheKey,
+			formattedSpaces,
+			CACHE_TTL.TEN_MIN_IN_MILLISECONDS,
+		);
+
+		return formattedSpaces;
+	}
+
+	private async getSpacesSortedByLocation({
+		latitude,
+		longitude,
+	}: {
+		latitude: number;
+		longitude: number;
+	}) {
+		const spaces = await this.getSpacesWithLocation();
+		const userPosition = new GeoPosition(latitude, longitude);
+
+		const spacesWithDistance = spaces.map((space) => {
+			const spacePosition = new GeoPosition(
+				space.latitude,
+				space.longitude,
+			);
+
+			return {
+				...space,
+				distance: Number(
+					userPosition.Distance(spacePosition).toFixed(0),
+				),
+			};
+		});
+
+		return spacesWithDistance
+			.sort((spaceA, spaceB) =>
+				spaceA.distance > spaceB.distance ? 1 : -1,
+			)
+			.map((space) => space.spaceId);
+	}
+
 	async getSpaceList({
 		category,
 		page,
+		latitude,
+		longitude,
 	}: {
 		request: Request;
 		category: SpaceCategory;
 		page: number;
+		latitude: number;
+		longitude: number;
 	}) {
-		const currentPage = isNaN(page) || !page ? 1 : page;
+		const currentPage = isNaN(page) || !page ? 1 : Number(page);
 
 		const mostPointsSpace = await this.getSpaceWithMostPointsInLastWeek();
+
+		const sortedSpaceIds = await this.getSpacesSortedByLocation({
+			latitude,
+			longitude,
+		});
+
+		const skip = SPACE_LIST_PAGE_SIZE * (currentPage - 1);
+
+		let spaceIds = sortedSpaceIds.slice(skip, SPACE_LIST_PAGE_SIZE + skip);
+
+		// Hottest space should be at top
+		if (mostPointsSpace?.spaceId) {
+			spaceIds = spaceIds.filter(
+				(spaceId) => spaceId !== mostPointsSpace.spaceId,
+			);
+			if (currentPage === 1) {
+				spaceIds.unshift(mostPointsSpace.spaceId);
+			}
+		}
 
 		const spaces = await this.prisma.space.findMany({
 			where: {
 				category,
+				id: {
+					in: spaceIds,
+				},
 			},
 			select: {
 				id: true,
@@ -184,16 +273,18 @@ export class SpaceService {
 					take: 1,
 				},
 			},
-			take: Number(SPACE_LIST_PAGE_SIZE),
-			skip: Number(SPACE_LIST_PAGE_SIZE) * (currentPage - 1),
 		});
+
+		const sortedSpaces = spaces.sort((spaceA, spaceB) =>
+			spaceIds.indexOf(spaceA.id) > spaceIds.indexOf(spaceB.id) ? 1 : -1,
+		);
 
 		const hidingUsers =
 			await this.userLocationService.getNumberOfUsersHidingInSpaces(
-				spaces.map((space) => space.id),
+				sortedSpaces.map((space) => space.id),
 			);
 
-		return spaces.map(({ SpaceBenefit, ...rest }) => ({
+		return sortedSpaces.map(({ SpaceBenefit, ...rest }) => ({
 			...rest,
 			benefitDescription: SpaceBenefit[0]?.description,
 			image: this.mediaService.getUrl(rest.image),
@@ -285,11 +376,24 @@ export class SpaceService {
 			throw new InternalServerErrorException(ErrorCodes.UNHANDLED_ERROR);
 		}
 
+		const singleUseBenefitIds = new Set<string>();
+
 		const benefits = results.map((benefit) => benefit.benefits).flat(1);
+		const filteredBenefits = benefits.filter((benefit) => {
+			if (singleUseBenefitIds.has(benefit.id)) {
+				return false;
+			}
+
+			if (benefit.singleUse) {
+				singleUseBenefitIds.add(benefit.id);
+			}
+
+			return true;
+		});
 
 		return {
-			benefits,
-			benefitCount: benefits.length,
+			benefits: filteredBenefits,
+			benefitCount: filteredBenefits.length,
 		};
 	}
 

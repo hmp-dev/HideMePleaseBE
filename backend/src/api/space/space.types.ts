@@ -7,3 +7,9 @@ export interface DecodedBenefitToken {
 	validTill: Date;
 	generatedBy: string;
 }
+
+export interface SpaceWithLocation {
+	spaceId: string;
+	latitude: number;
+	longitude: number;
+}
