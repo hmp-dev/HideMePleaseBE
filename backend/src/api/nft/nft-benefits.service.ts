@@ -10,7 +10,7 @@ import {
 	NFT_MEMBERS_PAGE_SIZE,
 	TOP_NFT_PAGE_SIZE,
 } from '@/api/nft/nft.constants';
-import { BenefitUsageType } from '@/api/nft/nft.types';
+import { BenefitState, BenefitUsageType } from '@/api/nft/nft.types';
 import { getAllEligibleLevels } from '@/api/nft/nft.utils';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
@@ -53,62 +53,93 @@ export class NftBenefitsService {
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevels = getAllEligibleLevels(collectionPoints);
 
-		const [spaceBenefits, benefitCount] = await Promise.all([
-			this.prisma.spaceBenefit.findMany({
-				where: {
-					level: {
-						in: benefitLevels,
+		const [spaceBenefits, benefitCount, nftCollection, termsUrls] =
+			await Promise.all([
+				this.prisma.spaceBenefit.findMany({
+					where: {
+						level: {
+							in: benefitLevels,
+						},
+						active: true,
+						spaceId,
 					},
-					active: true,
-					spaceId,
-				},
-				select: {
-					id: true,
-					description: true,
-					singleUse: true,
-					space: {
-						select: {
-							id: true,
-							name: true,
-							image: true,
+					select: {
+						id: true,
+						description: true,
+						singleUse: true,
+						space: {
+							select: {
+								id: true,
+								name: true,
+								image: true,
+							},
+						},
+						SpaceBenefitUsage: {
+							select: {
+								createdAt: true,
+								tokenAddress: true,
+							},
+							where: {
+								userId: authContext.userId,
+							},
+							orderBy: {
+								createdAt: 'desc',
+							},
 						},
 					},
-					SpaceBenefitUsage: {
-						select: { createdAt: true, tokenAddress: true },
-						where: {
-							userId: authContext.userId,
+					take: Number(pageSize),
+					skip: Number(pageSize) * (currentPage - 1),
+				}),
+				this.prisma.spaceBenefit.count({
+					where: {
+						level: {
+							in: benefitLevels,
 						},
-						orderBy: {
-							createdAt: 'desc',
-						},
+						active: true,
+						spaceId,
 					},
-				},
-				take: Number(pageSize),
-				skip: Number(pageSize) * (currentPage - 1),
-			}),
-			this.prisma.spaceBenefit.count({
-				where: {
-					level: {
-						in: benefitLevels,
+				}),
+				this.prisma.nftCollection.findFirst({
+					where: {
+						tokenAddress,
 					},
-					active: true,
-					spaceId,
-				},
-			}),
-		]);
+					select: {
+						name: true,
+					},
+				}),
+				this.getNftTermsUrls(),
+			]);
 
 		return {
 			benefits: spaceBenefits.map(
 				({ space, SpaceBenefitUsage, ...rest }) => {
 					let used = false;
+					let state = BenefitState.AVAILABLE;
 					if (SpaceBenefitUsage.length) {
-						used = rest.singleUse
-							? true
-							: SpaceBenefitUsage.some(
-									(benefitUsage) =>
-										benefitUsage.tokenAddress ===
-										tokenAddress,
-								);
+						// used = rest.singleUse
+						// 	? true
+						// 	: SpaceBenefitUsage.some(
+						// 			(benefitUsage) =>
+						// 				benefitUsage.tokenAddress ===
+						// 				tokenAddress,
+						// 		);
+						if (rest.singleUse) {
+							used = true;
+							state = SpaceBenefitUsage.find(
+								(benefitUsage) =>
+									benefitUsage.tokenAddress === tokenAddress,
+							)
+								? BenefitState.USED
+								: BenefitState.UNAVAILABLE;
+						} else {
+							used = SpaceBenefitUsage.some(
+								(benefitUsage) =>
+									benefitUsage.tokenAddress === tokenAddress,
+							);
+							if (used) {
+								state = BenefitState.USED;
+							}
+						}
 					}
 
 					return {
@@ -117,7 +148,10 @@ export class NftBenefitsService {
 						spaceName: space.name,
 						spaceImage: this.mediaService.getUrl(space.image),
 						used,
+						state,
 						tokenAddress,
+						nftCollectionName: nftCollection?.name || '',
+						termsUrl: termsUrls[tokenAddress],
 					};
 				},
 			),
@@ -467,5 +501,41 @@ export class NftBenefitsService {
 			...nftCollection,
 			ownedCollection: userCommunityAddresses.has(rest.tokenAddress),
 		}));
+	}
+
+	async getNftTermsUrls() {
+		const cacheKey = 'NFT_TERMS_URLS';
+
+		const cachedData =
+			await this.cacheManager.get<Record<string, string>>(cacheKey);
+		if (cachedData) {
+			return cachedData;
+		}
+
+		const systemNftsWithTerms =
+			await this.prisma.systemNftCollection.findMany({
+				where: {
+					termsUrl: {
+						not: null,
+					},
+				},
+				select: {
+					tokenAddress: true,
+					termsUrl: true,
+				},
+			});
+
+		const urlMap: Record<string, string> = {};
+		for (const nft of systemNftsWithTerms) {
+			urlMap[nft.tokenAddress] = nft.termsUrl!;
+		}
+
+		await this.cacheManager.set(
+			cacheKey,
+			urlMap,
+			CACHE_TTL.FIVE_MIN_IN_MILLISECONDS,
+		);
+
+		return urlMap;
 	}
 }

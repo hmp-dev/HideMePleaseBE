@@ -39,3 +39,9 @@ export enum NftCommunitySortOrder {
 	POINTS = 'points',
 	MEMBERS = 'members',
 }
+
+export enum BenefitState {
+	AVAILABLE = 'available',
+	UNAVAILABLE = 'unavailable',
+	USED = 'used',
+}

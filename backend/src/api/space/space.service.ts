@@ -376,24 +376,11 @@ export class SpaceService {
 			throw new InternalServerErrorException(ErrorCodes.UNHANDLED_ERROR);
 		}
 
-		const singleUseBenefitIds = new Set<string>();
-
 		const benefits = results.map((benefit) => benefit.benefits).flat(1);
-		const filteredBenefits = benefits.filter((benefit) => {
-			if (singleUseBenefitIds.has(benefit.id)) {
-				return false;
-			}
-
-			if (benefit.singleUse) {
-				singleUseBenefitIds.add(benefit.id);
-			}
-
-			return true;
-		});
 
 		return {
-			benefits: filteredBenefits,
-			benefitCount: filteredBenefits.length,
+			benefits: benefits,
+			benefitCount: benefits.length,
 		};
 	}
 
