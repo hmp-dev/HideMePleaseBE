@@ -123,8 +123,9 @@ export class UnifiedNftService {
 
 	isSolanaAddress(walletAddress: string) {
 		try {
-			const address = new PublicKey(walletAddress);
-			return PublicKey.isOnCurve(address);
+			new PublicKey(walletAddress);
+			// return PublicKey.isOnCurve(address);
+			return true;
 		} catch (e) {
 			return false;
 		}
