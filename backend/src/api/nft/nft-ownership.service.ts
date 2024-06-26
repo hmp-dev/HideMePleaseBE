@@ -91,7 +91,7 @@ export class NftOwnershipService {
 			for (const token of collection.tokens) {
 				tokens.push({
 					name: token.name || '',
-					tokenId: token.tokenId.toString(),
+					tokenId: token.tokenId?.toString() || '',
 					imageUrl: token.imageUrl || '',
 					tokenAddress: collection.tokenAddress,
 					tokenUpdatedAt: null,
