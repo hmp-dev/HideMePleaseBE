@@ -9,6 +9,7 @@ import { PAGE_SIZES } from '@/constants';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
+import { isSolanaAddress } from '@/modules/web3/web3.utils';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 
@@ -362,7 +363,7 @@ export class UserNftService {
 		next: string | null;
 	}> {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-		const userWallets = await this.prisma.wallet.findMany({
+		let userWallets = await this.prisma.wallet.findMany({
 			where: {
 				userId: authContext.userId,
 			},
@@ -371,6 +372,12 @@ export class UserNftService {
 			},
 		});
 
+		if (chain && chain !== SupportedChains.SOLANA) {
+			// remove solana based wallets
+			userWallets = userWallets.filter(
+				(userWallet) => !isSolanaAddress(userWallet.publicAddress),
+			);
+		}
 		if (!userWallets.length) {
 			return {
 				collections: [],

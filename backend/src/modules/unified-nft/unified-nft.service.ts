@@ -1,6 +1,5 @@
 import { Injectable, NotImplementedException } from '@nestjs/common';
 import { SupportedChains } from '@prisma/client';
-import { PublicKey } from '@solana/web3.js';
 
 import { PAGE_SIZES } from '@/constants';
 import { CovalentService } from '@/modules/covalent/covalent.service';
@@ -9,6 +8,8 @@ import { UnifiedNftNext } from '@/modules/unified-nft/unified-nft.types';
 import { UnmarshalService } from '@/modules/unmarshal/unmarshal.service';
 import { SupportedChainsList } from '@/modules/web3/web3.constants';
 import { ErrorCodes } from '@/utils/errorCodes';
+
+import { isSolanaAddress } from '../web3/web3.utils';
 
 @Injectable()
 export class UnifiedNftService {
@@ -40,7 +41,7 @@ export class UnifiedNftService {
 			? chains.slice(chains.indexOf(nextChain))
 			: chains;
 
-		if (this.isSolanaAddress(walletAddress)) {
+		if (isSolanaAddress(walletAddress)) {
 			chainsAfterSkip = [SupportedChains.SOLANA];
 		} else {
 			chainsAfterSkip = chainsAfterSkip.filter(
@@ -119,15 +120,5 @@ export class UnifiedNftService {
 		}
 
 		throw new NotImplementedException(ErrorCodes.MISSING_IMPLEMENTATION);
-	}
-
-	isSolanaAddress(walletAddress: string) {
-		try {
-			new PublicKey(walletAddress);
-			// return PublicKey.isOnCurve(address);
-			return true;
-		} catch (e) {
-			return false;
-		}
 	}
 }

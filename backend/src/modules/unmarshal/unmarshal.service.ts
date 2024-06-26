@@ -4,7 +4,9 @@ import { SupportedChains } from '@prisma/client';
 import axios from 'axios';
 
 import { getCompositeTokenId } from '@/api/nft/nft.utils';
+import { MediaService } from '@/modules/media/media.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
+import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UnmarshalSupportedChainMapping } from '@/modules/unmarshal/unmarshal.constants';
 import { UnmarshalNftForAddressResponse } from '@/modules/unmarshal/unmarshal.types';
 import { PickKey } from '@/types';
@@ -23,7 +25,57 @@ export class UnmarshalService {
 
 	constructor(
 		private configService: ConfigService<EnvironmentVariables, true>,
+		private prisma: PrismaService,
+		private mediaService: MediaService,
 	) {}
+
+	async getKlaytnSystemNftsForAddress(
+		walletAddress: string,
+		selectedNftIds: Set<string>,
+	): Promise<NftCollectionWithTokens[]> {
+		const systemNftCollections =
+			await this.prisma.systemNftCollection.findMany({
+				where: {
+					SystemNft: {
+						some: {
+							recipientAddress: walletAddress,
+						},
+					},
+				},
+				include: {
+					SystemNft: {
+						where: {
+							recipientAddress: walletAddress,
+						},
+					},
+					image: true,
+				},
+			});
+
+		return systemNftCollections.map((systemNftCollection) => {
+			return {
+				symbol: systemNftCollection.symbol,
+				chainSymbol: SupportedChains.KLAYTN,
+				chain: SupportedChains.KLAYTN,
+				name: systemNftCollection.name,
+				tokenAddress: systemNftCollection.tokenAddress,
+				walletAddress: walletAddress,
+				collectionLogo: this.mediaService.getUrl(
+					systemNftCollection.image,
+				),
+				tokens: systemNftCollection.SystemNft.map((systemNft) => ({
+					id: systemNft.id,
+					tokenId: systemNft.tokenId.toString(),
+					name: systemNft.name,
+					imageUrl: this.mediaService.getUrl(
+						systemNftCollection.image,
+					),
+					selected: selectedNftIds.has(systemNft.id),
+					ownerWalletAddress: walletAddress,
+				})),
+			};
+		});
+	}
 
 	async getNftsForAddress({
 		chain,
@@ -39,6 +91,18 @@ export class UnmarshalService {
 		nftCollections: NftCollectionWithTokens[];
 		next?: string;
 	}> {
+		const nftCollections: NftCollectionWithTokens[] = [];
+
+		if (!nextPage && chain === SupportedChains.KLAYTN) {
+			const systemCollections = await this.getKlaytnSystemNftsForAddress(
+				walletAddress,
+				selectedNftIds,
+			);
+			for (const systemNft of systemCollections) {
+				nftCollections.push(systemNft);
+			}
+		}
+
 		const response = await this.client.get<UnmarshalNftForAddressResponse>(
 			`v3/${UnmarshalSupportedChainMapping[chain]}/address/${walletAddress}/nft-assets?auth_key=${this.configService.get('UNMARSHAL_API_KEY')}&offset=${nextPage ? parseInt(nextPage) : undefined}`,
 		);
@@ -51,7 +115,7 @@ export class UnmarshalService {
 
 		if (!response.data.nft_assets) {
 			return {
-				nftCollections: [],
+				nftCollections,
 			};
 		}
 
@@ -81,8 +145,11 @@ export class UnmarshalService {
 				ownerWalletAddress: walletAddress,
 			});
 		}
+		for (const collection of Object.values(collectionsMap)) {
+			nftCollections.push(collection);
+		}
 
-		return { nftCollections: Object.values(collectionsMap), next };
+		return { nftCollections, next };
 	}
 
 	extractTokenIdFromName(name: string) {
