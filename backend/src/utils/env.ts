@@ -81,6 +81,10 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsNumber()
 	KLAYTN_CHAIN_ID!: number;
+
+	@IsNotEmpty()
+	@IsString()
+	SENDBIRD_APP_ID!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

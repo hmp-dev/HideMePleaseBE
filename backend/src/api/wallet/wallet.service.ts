@@ -72,12 +72,21 @@ export class WalletService {
 			return;
 		}
 
+		await this.deleteWalletByPublicAddress(wallet.publicAddress);
+	}
+
+	async deleteWalletByPublicAddress(publicAddress: string) {
+		await this.prisma.nft.deleteMany({
+			where: {
+				ownedWalletAddress: publicAddress,
+			},
+		});
 		await this.prisma.wallet.update({
 			where: {
 				publicAddress,
 			},
 			data: {
-				publicAddress: getWalletDeleteName(wallet.publicAddress),
+				publicAddress: getWalletDeleteName(publicAddress),
 				deleted: true,
 			},
 		});

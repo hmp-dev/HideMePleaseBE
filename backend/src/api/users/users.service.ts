@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-import { getWalletDeleteName } from '@/api/wallet/wallet.utils';
+import { WalletService } from '@/api/wallet/wallet.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -9,7 +9,10 @@ import { UpdateUserProfileDTO } from './users.dto';
 
 @Injectable()
 export class UsersService {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private walletService: WalletService,
+	) {}
 
 	async getUserProfile({ request }: { request: Request }) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
@@ -103,17 +106,9 @@ export class UsersService {
 
 		await Promise.all(
 			user.Wallets.map((wallet) =>
-				this.prisma.wallet.update({
-					where: {
-						publicAddress: wallet.publicAddress,
-					},
-					data: {
-						deleted: true,
-						publicAddress: getWalletDeleteName(
-							wallet.publicAddress,
-						),
-					},
-				}),
+				this.walletService.deleteWalletByPublicAddress(
+					wallet.publicAddress,
+				),
 			),
 		);
 
