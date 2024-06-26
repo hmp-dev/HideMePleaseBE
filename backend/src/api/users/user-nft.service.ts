@@ -8,6 +8,7 @@ import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/users/users.dto';
 import { PAGE_SIZES } from '@/constants';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SendbirdService } from '@/modules/sendbird/sendbird.service';
 import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
 import { isSolanaAddress } from '@/modules/web3/web3.utils';
 import { AuthContext } from '@/types';
@@ -20,6 +21,7 @@ export class UserNftService {
 		private nftOwnershipService: NftOwnershipService,
 		private jwtService: JwtService,
 		private unifiedNftService: UnifiedNftService,
+		private sendbirdService: SendbirdService,
 	) {}
 
 	async getSelectedNfts({ request }: { request: Request }) {
@@ -155,9 +157,14 @@ export class UserNftService {
 			},
 			select: {
 				tokenAddress: true,
+				imageUrl: true,
+				name: true,
 				nftCollection: {
 					select: {
 						chain: true,
+						name: true,
+						collectionLogo: true,
+						chatChannelCreated: true,
 					},
 				},
 			},
@@ -191,6 +198,31 @@ export class UserNftService {
 				},
 			}),
 		]);
+
+		if (selected && !nft.nftCollection.chatChannelCreated) {
+			await this.sendbirdService.createGroupChannel({
+				channelUrl: nft.tokenAddress,
+				channelImageURl:
+					nft.nftCollection.collectionLogo || nft.imageUrl,
+				name: nft.nftCollection.name || nft.name,
+				userIds: [authContext.userId],
+			});
+			await this.prisma.nftCollection.update({
+				where: {
+					tokenAddress: nft.tokenAddress,
+				},
+				data: {
+					chatChannelCreated: true,
+				},
+			});
+		}
+
+		if (selected) {
+			await this.sendbirdService.addUserToGroupChannel({
+				userId: authContext.userId,
+				channelUrl: nft.tokenAddress,
+			});
+		}
 
 		await this.checkUserPfpCriteria(authContext.userId);
 

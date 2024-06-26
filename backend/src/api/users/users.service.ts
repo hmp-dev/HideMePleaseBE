@@ -1,8 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { WalletService } from '@/api/wallet/wallet.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SendbirdService } from '@/modules/sendbird/sendbird.service';
 import { AuthContext } from '@/types';
+import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 import { UpdateUserProfileDTO } from './users.dto';
@@ -12,6 +15,8 @@ export class UsersService {
 	constructor(
 		private prisma: PrismaService,
 		private walletService: WalletService,
+		private sendbirdService: SendbirdService,
+		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
 
 	async getUserProfile({ request }: { request: Request }) {
@@ -20,11 +25,13 @@ export class UsersService {
 		const userProfile = await this.prisma.user.findFirst({
 			where: { id: authContext.userId },
 			select: {
+				id: true,
 				nickName: true,
 				introduction: true,
 				locationPublic: true,
 				notificationsEnabled: true,
 				freeNftClaimed: true,
+				chatAccessToken: true,
 				pfpNft: {
 					select: {
 						id: true,
@@ -38,9 +45,31 @@ export class UsersService {
 			throw new BadRequestException(ErrorCodes.USER_DOES_NOT_EXIST);
 		}
 
+		if (!userProfile.chatAccessToken) {
+			const chatAccessToken = await this.sendbirdService.createUser({
+				userId: authContext.userId,
+				nickname: userProfile.nickName || 'user',
+			});
+
+			await this.prisma.user.update({
+				where: {
+					id: authContext.userId,
+				},
+				data: {
+					chatAccessToken,
+				},
+			});
+			userProfile.chatAccessToken = chatAccessToken;
+		}
+
 		const { pfpNft, ...rest } = userProfile;
 
-		return { ...rest, pfpNftId: pfpNft?.id, pfpImageUrl: pfpNft?.imageUrl };
+		return {
+			...rest,
+			pfpNftId: pfpNft?.id,
+			pfpImageUrl: pfpNft?.imageUrl,
+			chatAppId: this.configService.get<string>('SENDBIRD_APP_ID'),
+		};
 	}
 
 	async updateUserProfile({
@@ -72,6 +101,29 @@ export class UsersService {
 				fcmToken,
 			},
 		});
+
+		if (nickName) {
+			await this.sendbirdService.updateUser({
+				userId: authContext.userId,
+				nickname: nickName,
+			});
+		}
+		if (pfpNftId) {
+			const nft = await this.prisma.nft.findFirst({
+				where: {
+					id: pfpNftId,
+				},
+				select: {
+					imageUrl: true,
+				},
+			});
+			if (nft?.imageUrl) {
+				await this.sendbirdService.updateUser({
+					userId: authContext.userId,
+					profileImageUrl: nft.imageUrl,
+				});
+			}
+		}
 
 		return this.getUserProfile({ request });
 	}

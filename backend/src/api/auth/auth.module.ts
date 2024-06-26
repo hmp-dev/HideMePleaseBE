@@ -10,6 +10,7 @@ import { AuthService } from '@/api/auth/auth.service';
 import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { CACHE_TTL } from '@/constants';
 import { FirebaseModule } from '@/modules/firebase/firebase.module';
+import { SendbirdModule } from '@/modules/sendbird/sendbird.module';
 
 @Module({
 	imports: [
@@ -21,6 +22,7 @@ import { FirebaseModule } from '@/modules/firebase/firebase.module';
 			signOptions: { expiresIn: CACHE_TTL.ONE_MONTH_IN_SECONDS },
 		}),
 		FirebaseModule,
+		SendbirdModule,
 	],
 	controllers: [AuthController],
 	providers: [

@@ -85,6 +85,10 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	SENDBIRD_APP_ID!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	SENDBIRD_TOKEN!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

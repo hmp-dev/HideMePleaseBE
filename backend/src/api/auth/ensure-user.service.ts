@@ -2,11 +2,15 @@ import { Injectable } from '@nestjs/common';
 
 import { getLoginType } from '@/api/auth/auth.utils';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SendbirdService } from '@/modules/sendbird/sendbird.service';
 import { AuthContext } from '@/types';
 
 @Injectable()
 export class EnsureUserService {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private sendbirdService: SendbirdService,
+	) {}
 
 	async getOrCreateUser({
 		authContext,
@@ -51,7 +55,7 @@ export class EnsureUserService {
 		authContext: Partial<AuthContext>,
 		{ name, email }: { name?: string; email?: string },
 	) {
-		return await this.prisma.user.create({
+		const user = await this.prisma.user.create({
 			data: {
 				firebaseId: authContext.firebaseId,
 				wldNullifierHash: authContext.nullifierHash,
@@ -65,5 +69,21 @@ export class EnsureUserService {
 				firebaseId: true,
 			},
 		});
+
+		const chatAccessToken = await this.sendbirdService.createUser({
+			userId: user.id,
+			nickname: name || 'user',
+		});
+
+		await this.prisma.user.update({
+			where: {
+				id: user.id,
+			},
+			data: {
+				chatAccessToken,
+			},
+		});
+
+		return user;
 	}
 }

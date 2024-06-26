@@ -9,6 +9,7 @@ import { UsersService } from '@/api/users/users.service';
 import { WalletModule } from '@/api/wallet/wallet.module';
 import { CovalentModule } from '@/modules/covalent/covalent.module';
 import { MoralisModule } from '@/modules/moralis/moralis.module';
+import { SendbirdModule } from '@/modules/sendbird/sendbird.module';
 import { SystemConfigModule } from '@/modules/system-config/system-config.module';
 import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 import { WorldcoinModule } from '@/modules/worldcoin/worldcoin.module';
@@ -25,6 +26,7 @@ import { UserController } from './user.controller';
 		UnifiedNftModule,
 		SystemConfigModule,
 		WalletModule,
+		SendbirdModule,
 	],
 	controllers: [UsersController, UserController],
 	providers: [UsersService, UserLocationService, UserNftService],

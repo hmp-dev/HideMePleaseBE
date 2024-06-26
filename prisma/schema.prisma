@@ -22,6 +22,7 @@ model User {
   fcmToken                  String?
   loginType                 LoginType
   email                     String?
+  chatAccessToken           String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
@@ -52,6 +53,7 @@ model NftCollection {
   tokenAddress              String                      @id
   contractType              String
   collectionLogo            String?
+  chatChannelCreated        Boolean                     @default(false)
   chain                     SupportedChains
   Nft                       Nft[]
   NftCollectionMemberPoints NftCollectionMemberPoints[]
