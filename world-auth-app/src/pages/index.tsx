@@ -1,3 +1,4 @@
+'use client';
 import { VerificationLevel, IDKitWidget, useIDKit } from '@worldcoin/idkit';
 import type { ISuccessResult } from '@worldcoin/idkit';
 import { useEffect } from 'react';
@@ -11,44 +12,48 @@ export default function Home() {
 	}
 
 	const idKit = useIDKit();
-	const onSuccess = (result: ISuccessResult) => {
-		window.alert(
-			'Successfully verified with World ID! Your nullifier hash is: ' +
-				result.nullifier_hash,
-		);
-	};
 
 	useEffect(() => {
 		idKit.setOpen(true);
 	}, []);
 
 	const handleProof = async (result: ISuccessResult) => {
-		console.log('Proof received from IDKit:\n', JSON.stringify(result)); // Log the proof from IDKit to the console for visibility
 		const reqBody = {
-			merkle_root: result.merkle_root,
-			nullifier_hash: result.nullifier_hash,
+			merkleRoot: result.merkle_root,
+			nullifierHash: result.nullifier_hash,
 			proof: result.proof,
-			verification_level: result.verification_level,
-			action: process.env.NEXT_PUBLIC_WLD_ACTION,
-			signal: '',
+			verificationLevel: result.verification_level,
+			action: process.env.NEXT_PUBLIC_WLD_ACTION!,
 		};
-		console.log(reqBody);
+		const response = await fetch(
+			`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/v1/auth/wld/login`,
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(reqBody),
+			},
+		);
+
+		const token = await response.text();
+		console.log(token);
+
+		window.close();
 	};
 
 	return (
-		<div>
-			<div className="flex flex-col items-center justify-center align-middle h-screen">
-				<IDKitWidget
-					autoClose={true}
-					action={process.env.NEXT_PUBLIC_WLD_ACTION!}
-					app_id={
-						process.env.NEXT_PUBLIC_WLD_APP_ID as `app_${string}`
-					}
-					onSuccess={onSuccess}
-					handleVerify={handleProof}
-					verification_level={VerificationLevel.Device}
-				></IDKitWidget>
-			</div>
+		<div className="flex flex-col items-center justify-center align-middle h-screen">
+			<IDKitWidget
+				autoClose={true}
+				action={process.env.NEXT_PUBLIC_WLD_ACTION!}
+				app_id={process.env.NEXT_PUBLIC_WLD_APP_ID as `app_${string}`}
+				onSuccess={() => {}}
+				handleVerify={handleProof}
+				verification_level={VerificationLevel.Device}
+				onError={() => window.close()}
+			></IDKitWidget>
+			<button onClick={() => window.close()}>Close</button>
 		</div>
 	);
 }
