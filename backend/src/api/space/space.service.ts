@@ -14,6 +14,7 @@ import { isSameDay, subDays } from 'date-fns';
 import { GeoPosition } from 'geo-position.ts';
 import { validate as isValidUUID } from 'uuid';
 
+import { BenefitState } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftPointService } from '@/api/nft/nft-point.service';
 import {
@@ -355,7 +356,38 @@ export class SpaceService {
 			},
 		});
 		if (!userNfts.length) {
-			return [];
+			const allSpaceBenefits = await this.prisma.spaceBenefit.findMany({
+				where: {
+					spaceId,
+					active: true,
+				},
+				select: {
+					id: true,
+					description: true,
+					singleUse: true,
+					space: {
+						select: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+			});
+
+			return {
+				benefits: allSpaceBenefits.map(({ space, ...benefit }) => ({
+					...benefit,
+					spaceId,
+					spaceName: space.name,
+					spaceImage: this.mediaService.getUrl(space.image),
+					used: true,
+					state: BenefitState.UNAVAILABLE,
+					tokenAddress: null,
+					nftCollectionName: space.name, // no nfts linked here
+				})),
+				benefitCount: allSpaceBenefits.length,
+			};
 		}
 
 		const nftAddresses = userNfts.map((nft) => nft.tokenAddress);
