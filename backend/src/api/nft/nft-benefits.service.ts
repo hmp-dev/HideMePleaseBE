@@ -105,6 +105,7 @@ export class NftBenefitsService {
 					},
 					select: {
 						name: true,
+						collectionLogo: true,
 					},
 				}),
 				this.getNftTermsUrls(),
@@ -151,6 +152,7 @@ export class NftBenefitsService {
 						state,
 						tokenAddress,
 						nftCollectionName: nftCollection?.name || '',
+						nftCollectionImage: nftCollection?.collectionLogo || '',
 						termsUrl: termsUrls[tokenAddress],
 					};
 				},

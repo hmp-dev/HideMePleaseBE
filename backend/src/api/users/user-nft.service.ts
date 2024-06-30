@@ -418,7 +418,7 @@ export class UserNftService {
 			};
 		}
 
-		const parsedNextCursor: NftCollectionCursor = nextCursor
+		let parsedNextCursor: NftCollectionCursor = nextCursor
 			? this.jwtService.decode(nextCursor)
 			: (null as NftCollectionCursor);
 
@@ -487,8 +487,11 @@ export class UserNftService {
 				};
 			} else if (nextWallet) {
 				next = { nextWalletAddress: nextWallet, liveData: true };
+				// this should become null
+				parsedNextCursor = null;
 			} else {
 				next = null;
+				parsedNextCursor = null;
 			}
 
 			walletNftCollections.push(
