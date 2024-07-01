@@ -304,6 +304,7 @@ export class SpaceService {
 				id: spaceId,
 			},
 			select: {
+				id: true,
 				name: true,
 				latitude: true,
 				longitude: true,
