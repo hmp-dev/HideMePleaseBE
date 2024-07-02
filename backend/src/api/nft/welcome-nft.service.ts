@@ -4,13 +4,15 @@ import {
 	InternalServerErrorException,
 	Logger,
 } from '@nestjs/common';
-import { WalletProvider } from '@prisma/client';
+import { SupportedChains, WalletProvider } from '@prisma/client';
 import { GeoPosition } from 'geo-position.ts';
 
 import { getCompositeTokenId } from '@/api/nft/nft.utils';
+import { MAX_SELECTED_NFTS } from '@/constants';
 import { KlaytnNftService } from '@/modules/klaytn/klaytn-nft.service';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SendbirdService } from '@/modules/sendbird/sendbird.service';
 import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -24,6 +26,7 @@ export class WelcomeNftService {
 		private mediaService: MediaService,
 		private klaytnNftService: KlaytnNftService,
 		private systemConfig: SystemConfigService,
+		private sendbirdService: SendbirdService,
 	) {}
 
 	async getAppropriateSystemNft({
@@ -195,6 +198,8 @@ export class WelcomeNftService {
 				maxMintedTokens: true,
 				image: true,
 				description: true,
+				symbol: true,
+				contractType: true,
 			},
 		});
 		if (!systemNft) {
@@ -230,37 +235,131 @@ export class WelcomeNftService {
 
 		this.logger.log(`Result of mint token: ${JSON.stringify(mintRes)}`);
 
-		await this.prisma.systemNft.create({
+		await Promise.all([
+			this.prisma.systemNft.create({
+				data: {
+					id: getCompositeTokenId(tokenAddress, tokenId),
+					tokenAddress,
+					tokenId,
+					name: tokenName,
+					tokenUri: this.mediaService.getUrl(uploadedMetadata)!,
+					tokenFileId: uploadedMetadata.id,
+					imageUrl: this.mediaService.getUrl(systemNft.image)!,
+					recipientAddress: klipWallet.publicAddress,
+				},
+			}),
+			this.prisma.systemNftCollection.update({
+				where: {
+					tokenAddress,
+				},
+				data: {
+					lastMintedTokenId: tokenId,
+				},
+			}),
+			this.prisma.user.update({
+				where: {
+					id: authContext.userId,
+				},
+				data: {
+					freeNftClaimed: true,
+				},
+			}),
+		]);
+
+		try {
+			await this.prisma.nftCollection.create({
+				data: {
+					name: systemNft.name,
+					symbol: systemNft.symbol,
+					tokenAddress: systemNft.tokenAddress,
+					contractType: systemNft.contractType,
+					collectionLogo: this.mediaService.getUrl(systemNft.image),
+					chain: SupportedChains.KLAYTN,
+				},
+			});
+			await this.sendbirdService.createGroupChannel({
+				channelUrl: systemNft.tokenAddress,
+				channelImageURl: this.mediaService.getUrl(systemNft.image)!,
+				name: systemNft.name,
+				userIds: [authContext.userId],
+			});
+			await this.prisma.nftCollection.update({
+				where: {
+					tokenAddress: systemNft.tokenAddress,
+				},
+				data: {
+					chatChannelCreated: true,
+				},
+			});
+		} catch (e) {
+			this.logger.log(
+				`nftCollection already created : ${systemNft.tokenAddress}`,
+			);
+		}
+
+		await this.sendbirdService.addUserToGroupChannel({
+			userId: authContext.userId,
+			channelUrl: systemNft.tokenAddress,
+		});
+		await this.makeSpaceForFreeNftToken(authContext.userId);
+		await this.prisma.nft.create({
 			data: {
 				id: getCompositeTokenId(tokenAddress, tokenId),
-				tokenAddress,
-				tokenId,
 				name: tokenName,
-				tokenUri: this.mediaService.getUrl(uploadedMetadata)!,
-				tokenFileId: uploadedMetadata.id,
-				imageUrl: this.mediaService.getUrl(systemNft.image)!,
-				recipientAddress: klipWallet.publicAddress,
-			},
-		});
-
-		await this.prisma.systemNftCollection.update({
-			where: {
+				tokenId: tokenId.toString(),
 				tokenAddress,
-			},
-			data: {
-				lastMintedTokenId: tokenId,
-			},
-		});
-
-		await this.prisma.user.update({
-			where: {
-				id: authContext.userId,
-			},
-			data: {
-				freeNftClaimed: true,
+				imageUrl: this.mediaService.getUrl(systemNft.image)!,
+				ownedWalletAddress: klipWallet.publicAddress,
+				lastOwnershipCheck: new Date(),
+				tokenUpdatedAt: new Date(),
+				selected: true,
+				order: 0,
 			},
 		});
 
 		return mintRes;
+	}
+
+	async makeSpaceForFreeNftToken(userId: string) {
+		const selectedNfts = await this.prisma.nft.findMany({
+			where: {
+				selected: true,
+				ownedWallet: {
+					userId,
+				},
+			},
+			select: {
+				id: true,
+				order: true,
+			},
+			orderBy: {
+				createdAt: 'asc',
+			},
+		});
+
+		if (selectedNfts.length === MAX_SELECTED_NFTS) {
+			const [firstNft] = selectedNfts;
+
+			await this.prisma.nft.update({
+				data: {
+					selected: false,
+				},
+				where: {
+					id: firstNft.id,
+				},
+			});
+		}
+		await Promise.all(
+			selectedNfts.map((nft) =>
+				this.prisma.nft.update({
+					data: {
+						order: nft.order + 1,
+					},
+					where: {
+						id: nft.id,
+					},
+				}),
+			),
+		);
 	}
 }

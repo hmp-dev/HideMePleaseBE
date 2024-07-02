@@ -31,3 +31,5 @@ export const PAGE_SIZES = {
 	NFT_COLLECTIONS: 6,
 	NOTIFICATION: 10,
 };
+
+export const MAX_SELECTED_NFTS = 3;
