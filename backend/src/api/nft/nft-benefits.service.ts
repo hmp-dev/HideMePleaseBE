@@ -23,6 +23,7 @@ import {
 } from '@/modules/web3/web3.constants';
 import { AuthContext, SortOrder } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
+import { benefitUsageResetTime } from '@/utils/time';
 
 @Injectable()
 export class NftBenefitsService {
@@ -118,13 +119,6 @@ export class NftBenefitsService {
 					let used = false;
 					let state = BenefitState.AVAILABLE;
 					if (SpaceBenefitUsage.length) {
-						// used = rest.singleUse
-						// 	? true
-						// 	: SpaceBenefitUsage.some(
-						// 			(benefitUsage) =>
-						// 				benefitUsage.tokenAddress ===
-						// 				tokenAddress,
-						// 		);
 						if (rest.singleUse) {
 							used = true;
 							state = SpaceBenefitUsage.find(
@@ -136,7 +130,10 @@ export class NftBenefitsService {
 						} else {
 							used = SpaceBenefitUsage.some(
 								(benefitUsage) =>
-									benefitUsage.tokenAddress === tokenAddress,
+									benefitUsage.tokenAddress ===
+										tokenAddress &&
+									benefitUsage.createdAt >
+										benefitUsageResetTime(),
 							);
 							if (used) {
 								state = BenefitState.USED;

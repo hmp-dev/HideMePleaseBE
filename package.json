@@ -8,6 +8,7 @@
 		"format": "prettier --write \"**/*.{yml,yaml,json,md,ts,html,svg,xml}\"",
 		"lint": "eslint --fix \"**/*.{ts,tsx}\" --max-warnings 0",
 		"dev": "pnpm run prisma:migrate:dev && cd backend && pnpm run start:dev",
+		"start": "cd backend && pnpm run start:dev",
 		"postinstall": "husky install",
 		"prepare": "husky install",
 		"prisma:format": "prisma format",

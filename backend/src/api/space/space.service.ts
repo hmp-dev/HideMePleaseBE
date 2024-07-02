@@ -10,7 +10,7 @@ import {
 import { SpaceCategory } from '@prisma/client';
 import { PromisePool } from '@supercharge/promise-pool';
 import type { Cache } from 'cache-manager';
-import { isSameDay, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 import { GeoPosition } from 'geo-position.ts';
 import { validate as isValidUUID } from 'uuid';
 
@@ -31,6 +31,7 @@ import { PrismaService } from '@/modules/prisma/prisma.service';
 import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
+import { benefitUsageResetTime } from '@/utils/time';
 
 @Injectable()
 export class SpaceService {
@@ -125,7 +126,7 @@ export class SpaceService {
 
 			if (
 				lastUsedBenefit &&
-				isSameDay(lastUsedBenefit.createdAt, new Date())
+				lastUsedBenefit.createdAt > benefitUsageResetTime()
 			) {
 				throw new BadRequestException(
 					ErrorCodes.BENEFIT_ALREADY_USED_TODAY,
