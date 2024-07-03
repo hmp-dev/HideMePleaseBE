@@ -222,9 +222,9 @@ export class UserNftService {
 				userId: authContext.userId,
 				channelUrl: nft.tokenAddress,
 			});
+		} else {
+			await this.setRandomPfpImage(authContext.userId, nftId);
 		}
-
-		await this.checkUserPfpCriteria(authContext.userId);
 
 		const selectedNftCount = await this.prisma.nft.count({
 			where: {
@@ -240,7 +240,7 @@ export class UserNftService {
 		};
 	}
 
-	private async checkUserPfpCriteria(userId: string) {
+	async setRandomPfpImage(userId: string, nftId: string) {
 		const user = await this.prisma.user.findFirst({
 			where: {
 				id: userId,
@@ -249,36 +249,44 @@ export class UserNftService {
 				pfpNftId: true,
 			},
 		});
-		if (user?.pfpNftId) {
+		if (user?.pfpNftId && user?.pfpNftId !== nftId) {
 			return;
 		}
 
-		const userRecentNft = await this.prisma.nft.findFirst({
+		const firstSelectedNft = await this.prisma.nft.findFirst({
 			where: {
+				selected: true,
 				ownedWallet: {
 					userId: userId,
+				},
+				NOT: {
+					imageUrl: undefined,
 				},
 			},
 			select: {
 				id: true,
 			},
-			orderBy: {
-				tokenUpdatedAt: 'asc',
-			},
 		});
 
-		if (!userRecentNft) {
-			return;
+		if (firstSelectedNft) {
+			await this.prisma.user.update({
+				where: {
+					id: userId,
+				},
+				data: {
+					pfpNftId: firstSelectedNft.id,
+				},
+			});
+		} else {
+			await this.prisma.user.update({
+				where: {
+					id: userId,
+				},
+				data: {
+					pfpNftId: null,
+				},
+			});
 		}
-
-		await this.prisma.user.update({
-			where: {
-				id: userId,
-			},
-			data: {
-				pfpNftId: userRecentNft.id,
-			},
-		});
 	}
 
 	private async getSelectedNftCollections(
