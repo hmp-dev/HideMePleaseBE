@@ -1,4 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import { WalletProvider } from '@prisma/client';
 
 import { CreateWalletDTO } from '@/api/wallet/wallet.dto';
 import { getWalletDeleteName } from '@/api/wallet/wallet.utils';
@@ -23,7 +24,10 @@ export class WalletService {
 			const wallet = await this.prisma.wallet.create({
 				data: {
 					userId: authContext.userId,
-					publicAddress: publicAddress.toLowerCase(),
+					publicAddress:
+						provider === WalletProvider.PHANTOM
+							? publicAddress
+							: publicAddress.toLowerCase(),
 					provider,
 				},
 			});
