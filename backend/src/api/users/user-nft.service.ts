@@ -354,7 +354,8 @@ export class UserNftService {
 		);
 
 		return {
-			collections: transformedCollections,
+			collections:
+				transformedCollections as unknown as NftCollectionWithTokens[],
 			selectedNftCount: selectedNfts.length,
 			next: this.jwtService.sign({ liveData: true }),
 		};
@@ -383,10 +384,20 @@ export class UserNftService {
 		}
 
 		return {
-			collections,
+			collections: this.normaliseCollectionName(collections),
 			selectedNftCount: response.selectedNftCount,
 			next: response.next,
 		};
+	}
+
+	private normaliseCollectionName(collections: NftCollectionWithTokens[]) {
+		return collections.map((collection) => ({
+			...collection,
+			name:
+				collection.tokens.length === 1
+					? collection.tokens[0].name || collection.name
+					: collection.name,
+		}));
 	}
 
 	async getNftCollections({
@@ -398,7 +409,7 @@ export class UserNftService {
 		chain: SupportedChains;
 		nextCursor?: string;
 	}): Promise<{
-		collections: any[];
+		collections: NftCollectionWithTokens[];
 		selectedNftCount: number;
 		next: string | null;
 	}> {
