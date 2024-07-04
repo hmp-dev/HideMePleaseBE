@@ -54,7 +54,7 @@ export class NftBenefitsService {
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevels = getAllEligibleLevels(collectionPoints);
 
-		const [spaceBenefits, benefitCount, nftCollection, termsUrls] =
+		const [spaceBenefits, benefitCount, nftInstance, termsUrls] =
 			await Promise.all([
 				this.prisma.spaceBenefit.findMany({
 					where: {
@@ -100,14 +100,24 @@ export class NftBenefitsService {
 						spaceId,
 					},
 				}),
-				this.prisma.nftCollection.findFirst({
+				this.prisma.nft.findFirst({
 					where: {
 						tokenAddress,
+						selected: true,
+						ownedWallet: {
+							userId: authContext.userId,
+						},
 					},
 					select: {
 						name: true,
-						collectionLogo: true,
-						chain: true,
+						imageUrl: true,
+						nftCollection: {
+							select: {
+								name: true,
+								collectionLogo: true,
+								chain: true,
+							},
+						},
 					},
 				}),
 				this.getNftTermsUrls(),
@@ -149,9 +159,15 @@ export class NftBenefitsService {
 						used,
 						state,
 						tokenAddress,
-						nftCollectionName: nftCollection?.name || '',
-						nftCollectionImage: nftCollection?.collectionLogo || '',
-						nftCollectionChain: nftCollection?.chain,
+						nftCollectionName:
+							nftInstance?.name ||
+							nftInstance?.nftCollection?.name ||
+							'',
+						nftCollectionImage:
+							nftInstance?.imageUrl ||
+							nftInstance?.nftCollection.collectionLogo ||
+							'',
+						nftCollectionChain: nftInstance?.nftCollection.chain,
 						termsUrl: termsUrls[tokenAddress],
 					};
 				},
