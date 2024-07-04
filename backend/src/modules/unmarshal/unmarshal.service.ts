@@ -124,7 +124,9 @@ export class UnmarshalService {
 				collectionsMap[item.asset_contract] = {
 					tokens: [],
 					chainSymbol: chain,
-					name: item.asset_contract_name || item.description,
+					name:
+						item.asset_contract_name ||
+						item.issuer_specific_data?.name,
 					tokenAddress: item.asset_contract,
 					walletAddress: walletAddress,
 					collectionLogo: item.issuer_specific_data?.image_url,
