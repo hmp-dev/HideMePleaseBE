@@ -449,7 +449,7 @@ export class NftBenefitsService {
 				...nftMember,
 				user: undefined,
 				userId: nftMember.user.id,
-				name: nftMember.user.nickName,
+				name: nftMember.user.nickName || '',
 				introduction: nftMember.user.introduction,
 				pfpImage: nftMember.user.pfpNft?.imageUrl,
 			})),
