@@ -55,11 +55,26 @@ export class EnsureUserService {
 		authContext: Partial<AuthContext>,
 		{ name, email }: { name?: string; email?: string },
 	) {
+		let nickName = name;
+		if (name) {
+			const nicknameUser = await this.prisma.user.findFirst({
+				where: {
+					nickName: name,
+				},
+				select: {
+					id: true,
+				},
+			});
+			if (nicknameUser) {
+				nickName = name + '_';
+			}
+		}
+
 		const user = await this.prisma.user.create({
 			data: {
 				firebaseId: authContext.firebaseId,
 				wldNullifierHash: authContext.nullifierHash,
-				nickName: name,
+				nickName,
 				email,
 				loginType: getLoginType(authContext),
 			},
@@ -72,7 +87,7 @@ export class EnsureUserService {
 
 		const chatAccessToken = await this.sendbirdService.createUser({
 			userId: user.id,
-			nickname: name || 'user',
+			nickname: nickName || 'user',
 		});
 
 		await this.prisma.user.update({
