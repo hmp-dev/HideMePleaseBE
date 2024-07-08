@@ -291,11 +291,11 @@ export class NftBenefitsService {
 			tokenData.chain === SupportedChains.KLAYTN ||
 			tokenData.chain === SupportedChains.SOLANA
 		) {
-			// TODO: implement this lmao
+			// TODO: implement this
 			return {
 				network: tokenData.chain,
-				holderCount: 5652,
-				floorPrice: 0.004,
+				holderCount: '0',
+				floorPrice: '0.00',
 				symbol: ChainToSymbolMapping[tokenData.chain],
 			};
 		}
@@ -314,7 +314,7 @@ export class NftBenefitsService {
 		const res = {
 			network: tokenData.chain,
 			holderCount: collectionStats.result.owners.current,
-			floorPrice: lowestPrice?.result.price.ether || 0,
+			floorPrice: lowestPrice?.result.price.ether || '0',
 			symbol: ChainToSymbolMapping[tokenData.chain],
 		};
 		await this.cacheManager.set(
