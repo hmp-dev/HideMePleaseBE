@@ -180,6 +180,9 @@ export class UserNftService {
 					nftCollection: {
 						chain: nft.nftCollection.chain,
 					},
+					ownedWallet: {
+						userId: authContext.userId,
+					},
 					id: {
 						not: nftId,
 					},
