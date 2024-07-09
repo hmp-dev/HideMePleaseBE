@@ -27,7 +27,7 @@ model User {
   Notification              Notification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceUser                 SpaceUser[]
-  pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id])
+  pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id], onDelete: SetNull)
   UserLastKnownSpace        UserLastKnownSpace[]
   Wallets                   Wallet[]
   freeNftClaimed            Boolean                     @default(false)
@@ -87,7 +87,7 @@ model SystemNft {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @default(now()) @updatedAt
   tokenAddress     String
-  nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
   name             String
   tokenId          Int
   tokenUri         String
@@ -106,7 +106,7 @@ model NftCollectionPoints {
   totalMembers     Int
   pointFluctuation Int           @default(0)
   tokenAddress     String        @unique
-  nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
+  nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
 }
 
 model NftCollectionMemberPoints {
@@ -118,8 +118,8 @@ model NftCollectionMemberPoints {
   pointFluctuation Int           @default(0)
   tokenAddress     String
   userId           String        @db.Uuid
-  nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress])
-  user             User          @relation(fields: [userId], references: [id])
+  nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Nft {
@@ -137,7 +137,7 @@ model Nft {
   order              Int           @default(0)
   lastOwnershipCheck DateTime      @default(now())
   ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])
-  nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: SetNull, onUpdate: NoAction)
+  nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
   User               User[]
 
   @@unique([tokenAddress, tokenId])
@@ -151,7 +151,7 @@ model Wallet {
   publicAddress String         @id @unique
   provider      WalletProvider
   Nft           Nft[]
-  user          User           @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model MediaFile {
@@ -198,7 +198,7 @@ model SpaceUser {
   userId    String        @db.Uuid
   role      SpaceUserRole @default(SPACE_ADMIN)
   space     Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user      User          @relation(fields: [userId], references: [id])
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, userId])
 }
@@ -235,8 +235,8 @@ model UserLastKnownSpace {
   deleted   Boolean  @default(false)
   spaceId   String   @db.Uuid
   userId    String   @db.Uuid
-  space     Space    @relation(fields: [spaceId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SpaceBenefitUsage {
@@ -248,9 +248,9 @@ model SpaceBenefitUsage {
   userId        String        @db.Uuid
   pointsEarned  Int           @default(1)
   tokenAddress  String
-  benefit       SpaceBenefit  @relation(fields: [benefitId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: SetNull, onUpdate: NoAction)
-  user          User          @relation("user", fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  benefit       SpaceBenefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
+  user          User          @relation("user", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model SystemConfig {
@@ -273,7 +273,7 @@ model Notification {
   params    Json?
   sent      Boolean  @default(false)
   userId    String   @db.Uuid
-  User      User     @relation(fields: [userId], references: [id])
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ScheduleNotification {
@@ -285,7 +285,7 @@ model ScheduleNotification {
   sent         Boolean  @default(false)
   scheduleTime DateTime @default(now())
   userId       String?  @db.Uuid
-  User         User?    @relation(fields: [userId], references: [id])
+  User         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model directus_activity {
