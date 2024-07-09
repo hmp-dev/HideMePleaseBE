@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Nft, NftCollection, SupportedChains } from '@prisma/client';
+import { Nft, NftCollection } from '@prisma/client';
 import { PromisePool } from '@supercharge/promise-pool';
 
 import {
-	CHAIN_CHECK_CONCURRENCY,
 	OWNERSHIP_CHECK_CONCURRENCY,
 	PAGINATION_DEPTH_FOR_NFTS,
 } from '@/api/nft/nft.constants';
@@ -13,7 +12,6 @@ import { KlaytnNftService } from '@/modules/klaytn/klaytn-nft.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
-import { SupportedChainsList } from '@/modules/web3/web3.constants';
 
 @Injectable()
 export class NftOwnershipService {
@@ -146,18 +144,15 @@ export class NftOwnershipService {
 	private async upsertWalletNfts({
 		walletAddress,
 		nfts,
-		chain,
 	}: {
 		walletAddress: string;
 		nfts: NftCreateWithCollection[];
-		chain: SupportedChains;
 	}) {
 		const existingCollections = await this.prisma.nftCollection.findMany({
 			where: {
 				tokenAddress: {
 					in: [...new Set(nfts.map((nft) => nft.tokenAddress))],
 				},
-				chain,
 			},
 			select: {
 				tokenAddress: true,
@@ -185,7 +180,7 @@ export class NftOwnershipService {
 			collectionsToCreate.push({
 				tokenAddress: nft.tokenAddress,
 				contractType: nft.contractType || '',
-				chain,
+				chain: nft.chain,
 				name: nft.name,
 				symbol: nft.symbol || '',
 				collectionLogo: nft.imageUrl,
@@ -201,9 +196,6 @@ export class NftOwnershipService {
 		const existingNfts = await this.prisma.nft.findMany({
 			where: {
 				ownedWalletAddress: walletAddress,
-				nftCollection: {
-					chain,
-				},
 			},
 			select: {
 				id: true,
@@ -229,6 +221,7 @@ export class NftOwnershipService {
 					...nft,
 					symbol: undefined,
 					contractType: undefined,
+					ownerWalletAddress: undefined,
 				})),
 			}),
 		]);
@@ -255,93 +248,57 @@ export class NftOwnershipService {
 		this.logger.log(
 			`Starting ownership check for wallet with ${walletAddress}`,
 		);
+		let res = await this.unifiedNftService.getNftsForAddress({
+			walletAddress,
+			selectedNftIds: new Set(),
+		});
 
-		const { errors } = await PromisePool.withConcurrency(
-			CHAIN_CHECK_CONCURRENCY,
-		)
-			.for(SupportedChainsList)
-			.process(async (supportedChain) => {
-				// const systemNfts = await this.prisma.nft.findMany({
-				// 	where: {
-				// 		ownedWalletAddress: walletAddress,
-				// 		nftCollection: {
-				// 			chain: supportedChain,
-				// 		},
-				// 		selected: true,
-				// 	},
-				// 	select: {
-				// 		tokenAddress: true,
-				// 	},
-				// });
+		const nftData: NftCreateWithCollection[] = [];
 
-				let res = await this.unifiedNftService.getNftsForAddress({
-					walletAddress,
-					selectedNftIds: new Set(),
-				});
-
-				// let res = await this.moralisApiService.getWalletNFTs({
-				// 	address: walletAddress,
-				// 	chain: SupportedChainMapping[supportedChain].hex,
-				// 	mediaItems: true,
-				// 	normalizeMetadata: true,
-				// 	tokenAddresses: systemNfts.map((nft) => nft.tokenAddress),
-				// });
-
-				const nftData: NftCreateWithCollection[] = [];
-
-				res.nftCollections.forEach((nftCollection) => {
-					nftCollection.tokens.forEach((token) => {
-						nftData.push({
-							...token,
-							imageUrl: token.imageUrl || '',
-							name: token.name || '',
-							tokenId: token.tokenId?.toString() || '',
-							tokenAddress: nftCollection.tokenAddress,
-							ownedWalletAddress: nftCollection.walletAddress,
-						});
-					});
-				});
-
-				let currentDepth = 0;
-				while (res.next && currentDepth < PAGINATION_DEPTH_FOR_NFTS) {
-					currentDepth++;
-					res = await this.unifiedNftService.getNftsForAddress({
-						walletAddress,
-						selectedNftIds: new Set(),
-						nextPage: res.next?.nextPage,
-						nextChain: res.next?.nextChain,
-					});
-
-					res.nftCollections.forEach((nftCollection) => {
-						nftCollection.tokens.forEach((token) => {
-							nftData.push({
-								...token,
-								imageUrl: token.imageUrl || '',
-								name: token.name || '',
-								tokenId: token.tokenId?.toString() || '',
-								tokenAddress: nftCollection.tokenAddress,
-								ownedWalletAddress: nftCollection.walletAddress,
-							});
-						});
-					});
-				}
-
-				// now we have all the nfts for this wallet
-				await this.upsertWalletNfts({
-					nfts: nftData,
-					walletAddress,
-					chain: supportedChain,
+		res.nftCollections.forEach((nftCollection) => {
+			nftCollection.tokens.forEach((token) => {
+				nftData.push({
+					...token,
+					imageUrl: token.imageUrl || '',
+					name: token.name || '',
+					tokenId: token.tokenId?.toString() || '',
+					tokenAddress: nftCollection.tokenAddress,
+					ownedWalletAddress: nftCollection.walletAddress,
+					chain: nftCollection.chainSymbol,
 				});
 			});
+		});
 
-		this.logger.log(
-			`Finished ownership check for wallet ${walletAddress} with ${errors.length} errors`,
-		);
-		if (errors) {
-			this.logger.log(
-				`Wallet ownership errors: ${JSON.stringify(errors)}`,
-			);
+		let currentDepth = 0;
+		while (res.next && currentDepth < PAGINATION_DEPTH_FOR_NFTS) {
+			currentDepth++;
+			res = await this.unifiedNftService.getNftsForAddress({
+				walletAddress,
+				selectedNftIds: new Set(),
+				nextPage: res.next?.nextPage,
+				nextChain: res.next?.nextChain,
+			});
+
+			res.nftCollections.forEach((nftCollection) => {
+				nftCollection.tokens.forEach((token) => {
+					nftData.push({
+						...token,
+						imageUrl: token.imageUrl || '',
+						name: token.name || '',
+						tokenId: token.tokenId?.toString() || '',
+						tokenAddress: nftCollection.tokenAddress,
+						ownedWalletAddress: nftCollection.walletAddress,
+						chain: nftCollection.chainSymbol,
+					});
+				});
+			});
 		}
+
+		// now we have all the nfts for this wallet
+		await this.upsertWalletNfts({
+			nfts: nftData,
+			walletAddress,
+		});
 	}
 
 	async checkUserNftOwnership(userId: string) {

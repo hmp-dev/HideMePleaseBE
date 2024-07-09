@@ -21,6 +21,7 @@ export interface NftCreateWithCollection extends NftCreateDTO {
 	symbol?: string;
 	lastOwnershipCheck?: Date;
 	tokenUpdatedAt?: Date;
+	chain: SupportedChains;
 }
 
 export type NftCollectionCursor = {
