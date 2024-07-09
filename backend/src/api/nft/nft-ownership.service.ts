@@ -222,6 +222,7 @@ export class NftOwnershipService {
 					symbol: undefined,
 					contractType: undefined,
 					ownerWalletAddress: undefined,
+					chain: undefined,
 				})),
 			}),
 		]);
