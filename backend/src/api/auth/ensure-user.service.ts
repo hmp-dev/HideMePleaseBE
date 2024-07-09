@@ -68,6 +68,8 @@ export class EnsureUserService {
 			if (nicknameUser) {
 				nickName = name + '_';
 			}
+		} else {
+			nickName = await this.generateNickName();
 		}
 
 		const user = await this.prisma.user.create({
@@ -100,5 +102,24 @@ export class EnsureUserService {
 		});
 
 		return user;
+	}
+
+	private async generateNickName() {
+		let digits = 3;
+		const found = false;
+		while (!found) {
+			const newName = `HMP${100 + Math.floor(Math.random() * digits)}`;
+			const existingUser = await this.prisma.user.findFirst({
+				where: {
+					nickName: newName,
+				},
+				select: { id: true },
+			});
+
+			if (!existingUser) {
+				return newName;
+			}
+			digits++;
+		}
 	}
 }
