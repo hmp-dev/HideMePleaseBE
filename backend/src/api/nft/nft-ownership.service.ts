@@ -205,6 +205,14 @@ export class NftOwnershipService {
 		const existingNftIds = new Set(existingNfts.map(({ id }) => id));
 		const nftsToCreate = nfts.filter((nft) => !existingNftIds.has(nft.id));
 
+		await this.prisma.nft.deleteMany({
+			where: {
+				id: {
+					in: nftsToCreate.map((nft) => nft.id),
+				},
+			},
+		});
+
 		await Promise.all([
 			this.prisma.nft.updateMany({
 				where: {
