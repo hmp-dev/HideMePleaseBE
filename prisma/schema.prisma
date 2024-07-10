@@ -80,6 +80,7 @@ model SystemNftCollection {
   image             directus_files @relation(fields: [imageId], references: [id])
   SystemNft         SystemNft[]
   termsUrl          String?
+  redeemTermsUrl    String?
 }
 
 model SystemNft {

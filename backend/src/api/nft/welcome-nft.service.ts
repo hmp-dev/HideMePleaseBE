@@ -130,6 +130,7 @@ export class WelcomeNftService {
 			select: {
 				name: true,
 				tokenAddress: true,
+				redeemTermsUrl: true,
 				lastMintedTokenId: true,
 				maxMintedTokens: true,
 				image: true,
