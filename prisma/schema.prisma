@@ -22,16 +22,16 @@ model User {
   fcmToken                  String?
   loginType                 LoginType
   email                     String?
+  freeNftClaimed            Boolean                     @default(false)
   chatAccessToken           String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
+  ScheduleNotification      ScheduleNotification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceUser                 SpaceUser[]
-  pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id], onDelete: SetNull)
+  pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id])
   UserLastKnownSpace        UserLastKnownSpace[]
   Wallets                   Wallet[]
-  freeNftClaimed            Boolean                     @default(false)
-  ScheduleNotification      ScheduleNotification[]
 }
 
 model Announcements {
@@ -53,8 +53,8 @@ model NftCollection {
   tokenAddress              String                      @id
   contractType              String
   collectionLogo            String?
-  chatChannelCreated        Boolean                     @default(false)
   chain                     SupportedChains
+  chatChannelCreated        Boolean                     @default(false)
   Nft                       Nft[]
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   NftCollectionPoints       NftCollectionPoints?
@@ -62,25 +62,26 @@ model NftCollection {
 }
 
 model SystemNftCollection {
-  tokenAddress      String         @id @default(cuid())
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @default(now()) @updatedAt
-  name              String         @unique
-  symbol            String         @unique
-  alias             String         @unique
-  contractType      String         @default("KIP-17")
-  description       String?
-  lastMintedTokenId Int            @default(0)
-  maxMintedTokens   Int            @default(200)
-  addressUpdated    Boolean        @default(false)
-  contractSubmitted Boolean        @default(false)
-  spaceId           String?        @db.Uuid
-  space             Space?         @relation(fields: [spaceId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  imageId           String         @db.Uuid
-  image             directus_files @relation(fields: [imageId], references: [id])
-  SystemNft         SystemNft[]
-  termsUrl          String?
-  redeemTermsUrl    String?
+  tokenAddress             String                     @id @default(cuid())
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @default(now()) @updatedAt
+  name                     String                     @unique
+  symbol                   String                     @unique
+  alias                    String                     @unique
+  contractType             String                     @default("KIP-17")
+  description              String?
+  lastMintedTokenId        Int                        @default(0)
+  maxMintedTokens          Int                        @default(200)
+  addressUpdated           Boolean                    @default(false)
+  spaceId                  String?                    @db.Uuid
+  imageId                  String                     @db.Uuid
+  contractSubmitted        Boolean                    @default(false)
+  termsUrl                 String?
+  redeemTermsUrl           String?
+  SystemNft                SystemNft[]
+  image                    directus_files             @relation(fields: [imageId], references: [id])
+  space                    Space?                     @relation(fields: [spaceId], references: [id], onUpdate: NoAction)
+  SystemNftCollectionSpace SystemNftCollectionSpace[]
 }
 
 model SystemNft {
@@ -88,14 +89,14 @@ model SystemNft {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @default(now()) @updatedAt
   tokenAddress     String
-  nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
-  name             String
   tokenId          Int
   tokenUri         String
-  tokenFileId      Int
-  tokenFile        MediaFile           @relation(fields: [tokenFileId], references: [id])
   imageUrl         String
   recipientAddress String
+  tokenFileId      Int
+  name             String
+  nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
+  tokenFile        MediaFile           @relation(fields: [tokenFileId], references: [id])
 }
 
 model NftCollectionPoints {
@@ -167,27 +168,28 @@ model MediaFile {
 }
 
 model Space {
-  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @default(now()) @updatedAt
-  deleted             Boolean               @default(false)
-  name                String
-  latitude            Float
-  longitude           Float
-  address             String
-  webLink             String
-  businessHoursEnd    String
-  businessHoursStart  String
-  category            SpaceCategory
-  introduction        String                @default("")
-  locationDescription String                @default("")
-  imageId             String                @db.Uuid
-  image               directus_files        @relation(fields: [imageId], references: [id])
-  SpaceBenefit        SpaceBenefit[]
-  SpaceUser           SpaceUser[]
-  SpaceUserInvites    SpaceUserInvites[]
-  UserLastKnownSpace  UserLastKnownSpace[]
-  SystemNftCollection SystemNftCollection[]
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @default(now()) @updatedAt
+  deleted                  Boolean                    @default(false)
+  name                     String
+  latitude                 Float
+  longitude                Float
+  address                  String
+  webLink                  String
+  businessHoursEnd         String
+  businessHoursStart       String
+  category                 SpaceCategory
+  introduction             String                     @default("")
+  locationDescription      String                     @default("")
+  imageId                  String                     @db.Uuid
+  image                    directus_files             @relation(fields: [imageId], references: [id])
+  SpaceBenefit             SpaceBenefit[]
+  SpaceUser                SpaceUser[]
+  SpaceUserInvites         SpaceUserInvites[]
+  SystemNftCollection      SystemNftCollection[]
+  SystemNftCollectionSpace SystemNftCollectionSpace[]
+  UserLastKnownSpace       UserLastKnownSpace[]
 }
 
 model SpaceUser {
@@ -397,6 +399,7 @@ model directus_files {
   focal_point_x                                                         Int?
   focal_point_y                                                         Int?
   Space                                                                 Space[]
+  SystemNftCollection                                                   SystemNftCollection[]
   directus_folders                                                      directus_folders?     @relation(fields: [folder], references: [id], onUpdate: NoAction, map: "directus_files_folder_foreign")
   directus_users_directus_files_modified_byTodirectus_users             directus_users?       @relation("directus_files_modified_byTodirectus_users", fields: [modified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_modified_by_foreign")
   directus_users_directus_files_uploaded_byTodirectus_users             directus_users?       @relation("directus_files_uploaded_byTodirectus_users", fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_uploaded_by_foreign")
@@ -404,7 +407,6 @@ model directus_files {
   directus_settings_directus_settings_public_backgroundTodirectus_files directus_settings[]   @relation("directus_settings_public_backgroundTodirectus_files")
   directus_settings_directus_settings_public_faviconTodirectus_files    directus_settings[]   @relation("directus_settings_public_faviconTodirectus_files")
   directus_settings_directus_settings_public_foregroundTodirectus_files directus_settings[]   @relation("directus_settings_public_foregroundTodirectus_files")
-  SystemNftCollection                                                   SystemNftCollection[]
 }
 
 model directus_flows {
@@ -718,6 +720,14 @@ model directus_webhooks {
   was_active_before_deprecation Boolean         @default(false)
   migrated_flow                 String?         @db.Uuid
   directus_flows                directus_flows? @relation(fields: [migrated_flow], references: [id], onUpdate: NoAction, map: "directus_webhooks_migrated_flow_foreign")
+}
+
+model SystemNftCollectionSpace {
+  id                              Int                  @id @default(autoincrement())
+  SystemNftCollectionTokenAddress String?
+  SpaceId                         String?              @db.Uuid
+  Space                           Space?               @relation(fields: [SpaceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "systemnftcollectionspace_spaceid_foreign")
+  SystemNftCollection             SystemNftCollection? @relation(fields: [SystemNftCollectionTokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction, map: "systemnftcollectionspace_systemnftcollectio__7fdec97_foreign")
 }
 
 enum LoginType {

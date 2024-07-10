@@ -54,7 +54,7 @@ export class NftBenefitsService {
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevels = getAllEligibleLevels(collectionPoints);
 
-		const [spaceBenefits, benefitCount, nftInstance, termsUrls] =
+		const [spaceBenefits, benefitCount, nftInstance, termsUrlMap] =
 			await Promise.all([
 				this.prisma.spaceBenefit.findMany({
 					where: {
@@ -168,7 +168,11 @@ export class NftBenefitsService {
 							nftInstance?.nftCollection.collectionLogo ||
 							'',
 						nftCollectionChain: nftInstance?.nftCollection.chain,
-						termsUrl: termsUrls[tokenAddress],
+						termsUrl: termsUrlMap[tokenAddress]?.spaceIds?.includes(
+							space.id,
+						)
+							? termsUrlMap[tokenAddress].termsUrl
+							: null,
 					};
 				},
 			),
@@ -524,8 +528,10 @@ export class NftBenefitsService {
 		const cacheKey = 'NFT_TERMS_URLS';
 
 		const cachedData =
-			await this.cacheManager.get<Record<string, string>>(cacheKey);
-		if (cachedData) {
+			await this.cacheManager.get<
+				Record<string, { termsUrl: string; spaceIds: string[] }>
+			>(cacheKey);
+		if (cachedData && Object.keys(cachedData).length) {
 			return cachedData;
 		}
 
@@ -539,12 +545,25 @@ export class NftBenefitsService {
 				select: {
 					tokenAddress: true,
 					termsUrl: true,
+					spaceId: true,
+					SystemNftCollectionSpace: {
+						select: {
+							SpaceId: true,
+						},
+					},
 				},
 			});
 
-		const urlMap: Record<string, string> = {};
+		const urlMap: Record<string, { termsUrl: string; spaceIds: string[] }> =
+			{};
 		for (const nft of systemNftsWithTerms) {
-			urlMap[nft.tokenAddress] = nft.termsUrl!;
+			const spaceIds = nft.SystemNftCollectionSpace.map(
+				(space) => space.SpaceId!,
+			);
+			if (nft.spaceId && !spaceIds.includes(nft.spaceId)) {
+				spaceIds.push(nft.spaceId);
+			}
+			urlMap[nft.tokenAddress] = { termsUrl: nft.termsUrl!, spaceIds };
 		}
 
 		await this.cacheManager.set(
