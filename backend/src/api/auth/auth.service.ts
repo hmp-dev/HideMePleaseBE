@@ -1,12 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginType } from '@prisma/client';
+import type { Cache } from 'cache-manager';
 
 import { FirebaseLoginDTO, WorldcoinLoginDTO } from '@/api/auth/auth.dto';
+import { worldAuthTokenCacheKey } from '@/api/auth/auth.utils';
 import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { FirebaseService } from '@/modules/firebase/firebase.service';
 import { WorldcoinService } from '@/modules/worldcoin/worldcoin.service';
 import { AuthContext } from '@/types';
+import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +19,7 @@ export class AuthService {
 		private jwtService: JwtService,
 		private worldcoinService: WorldcoinService,
 		private ensureUserService: EnsureUserService,
+		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
 
 	async firebaseLogin({
@@ -68,6 +73,22 @@ export class AuthService {
 			userId: user.id,
 		};
 
-		return this.jwtService.signAsync(authContext);
+		const signedJwt = await this.jwtService.signAsync(authContext);
+		await this.cacheManager.set(
+			worldAuthTokenCacheKey(worldcoinLoginDTO.appVerifierId),
+			signedJwt,
+		);
+	}
+
+	async exchangeWorldToken({ appVerifierId }: { appVerifierId: string }) {
+		const token = await this.cacheManager.get(
+			worldAuthTokenCacheKey(appVerifierId),
+		);
+		if (token) {
+			await this.cacheManager.del(worldAuthTokenCacheKey(appVerifierId));
+			return token;
+		}
+
+		throw new BadRequestException(ErrorCodes.VERIFIER_DOES_NOT_EXIST);
 	}
 }

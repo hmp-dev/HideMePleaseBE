@@ -2,6 +2,7 @@
 import { VerificationLevel, IDKitWidget, useIDKit } from '@worldcoin/idkit';
 import type { ISuccessResult } from '@worldcoin/idkit';
 import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
 	if (!process.env.NEXT_PUBLIC_WLD_APP_ID) {
@@ -10,6 +11,8 @@ export default function Home() {
 	if (!process.env.NEXT_PUBLIC_WLD_ACTION) {
 		throw new Error('app_id is not set in environment variables!');
 	}
+	const searchParams = useSearchParams();
+	const appVerifierId = searchParams.get('appVerifierId');
 
 	const idKit = useIDKit();
 
@@ -24,8 +27,9 @@ export default function Home() {
 			proof: result.proof,
 			verificationLevel: result.verification_level,
 			action: process.env.NEXT_PUBLIC_WLD_ACTION!,
+			appVerifierId,
 		};
-		const response = await fetch(
+		await fetch(
 			`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/v1/auth/wld/login`,
 			{
 				method: 'POST',
@@ -35,9 +39,7 @@ export default function Home() {
 				body: JSON.stringify(reqBody),
 			},
 		);
-
-		const token = await response.text();
-		console.log(token);
+		console.log('closing window');
 
 		window.close();
 	};
@@ -53,7 +55,12 @@ export default function Home() {
 				verification_level={VerificationLevel.Device}
 				onError={() => window.close()}
 			></IDKitWidget>
-			<button onClick={() => window.close()}>Close</button>
+			<button
+				className="text-2xl font-medium"
+				onClick={() => window.close()}
+			>
+				Close
+			</button>
 		</div>
 	);
 }

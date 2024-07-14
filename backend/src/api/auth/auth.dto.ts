@@ -27,4 +27,8 @@ export class WorldcoinLoginDTO {
 	@ApiProperty()
 	@IsString()
 	action!: string;
+
+	@ApiProperty()
+	@IsString()
+	appVerifierId!: string;
 }

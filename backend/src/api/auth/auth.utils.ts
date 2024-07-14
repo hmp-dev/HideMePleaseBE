@@ -21,3 +21,7 @@ export function getLoginType(authContext: Partial<AuthContext>): LoginType {
 	}
 	return LoginType.WORLD_ID;
 }
+
+export function worldAuthTokenCacheKey(appVerifierId: string) {
+	return `APP_VERIFIER_${appVerifierId}`;
+}
