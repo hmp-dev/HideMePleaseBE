@@ -114,14 +114,34 @@ export class WelcomeNftService {
 	async getWelcomeNft({
 		latitude,
 		longitude,
+		request,
 	}: {
 		latitude?: number;
 		longitude?: number;
+		request: Request;
 	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const userClaimedNfts = (
+			await this.prisma.systemNft.findMany({
+				where: {
+					userId: authContext.userId,
+				},
+				select: {
+					tokenAddress: true,
+				},
+			})
+		).map((nft) => nft.tokenAddress);
+
 		const systemNftAddress = await this.getAppropriateSystemNft({
 			latitude,
 			longitude,
 		});
+		if (userClaimedNfts.includes(systemNftAddress)) {
+			return {
+				freeNftAvailable: false,
+			};
+		}
 
 		const systemNft = await this.prisma.systemNftCollection.findFirst({
 			where: {
@@ -149,6 +169,7 @@ export class WelcomeNftService {
 			totalCount: maxMintedTokens,
 			usedCount: lastMintedTokenId,
 			image: this.mediaService.getUrl(systemNft.image),
+			freeNftAvailable: true,
 		};
 	}
 
@@ -160,17 +181,18 @@ export class WelcomeNftService {
 		tokenAddress: string;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const userClaimedNfts = (
+			await this.prisma.systemNft.findMany({
+				where: {
+					userId: authContext.userId,
+				},
+				select: {
+					tokenAddress: true,
+				},
+			})
+		).map((nft) => nft.tokenAddress);
 
-		const user = await this.prisma.user.findFirst({
-			where: {
-				id: authContext.userId,
-			},
-			select: {
-				freeNftClaimed: true,
-			},
-		});
-
-		if (user?.freeNftClaimed) {
+		if (userClaimedNfts.includes(tokenAddress)) {
 			throw new BadRequestException(ErrorCodes.FREE_NFT_ALREADY_CLAIMED);
 		}
 
@@ -247,6 +269,7 @@ export class WelcomeNftService {
 					tokenFileId: uploadedMetadata.id,
 					imageUrl: this.mediaService.getUrl(systemNft.image)!,
 					recipientAddress: klipWallet.publicAddress,
+					userId: authContext.userId,
 				},
 			}),
 			this.prisma.systemNftCollection.update({
@@ -255,14 +278,6 @@ export class WelcomeNftService {
 				},
 				data: {
 					lastMintedTokenId: tokenId,
-				},
-			}),
-			this.prisma.user.update({
-				where: {
-					id: authContext.userId,
-				},
-				data: {
-					freeNftClaimed: true,
 				},
 			}),
 		]);

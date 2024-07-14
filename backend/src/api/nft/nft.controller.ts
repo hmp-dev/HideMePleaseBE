@@ -48,12 +48,14 @@ export class NftController {
 	@UseGuards(AuthGuard)
 	@Get('/welcome')
 	getWelcomeNft(
+		@Req() request: Request,
 		@Query('latitude') latitude: number,
 		@Query('longitude') longitude: number,
 	) {
 		return this.nftService.getWelcomeNft({
 			latitude,
 			longitude,
+			request,
 		});
 	}
 

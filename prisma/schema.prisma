@@ -22,7 +22,6 @@ model User {
   fcmToken                  String?
   loginType                 LoginType
   email                     String?
-  freeNftClaimed            Boolean                     @default(false)
   chatAccessToken           String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
@@ -32,6 +31,7 @@ model User {
   pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id])
   UserLastKnownSpace        UserLastKnownSpace[]
   Wallets                   Wallet[]
+  SystemNft                 SystemNft[]
 }
 
 model Announcements {
@@ -97,6 +97,8 @@ model SystemNft {
   name             String
   nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
   tokenFile        MediaFile           @relation(fields: [tokenFileId], references: [id])
+  userId           String              @db.Uuid
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model NftCollectionPoints {

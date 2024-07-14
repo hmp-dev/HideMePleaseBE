@@ -30,7 +30,6 @@ export class UsersService {
 				introduction: true,
 				locationPublic: true,
 				notificationsEnabled: true,
-				freeNftClaimed: true,
 				chatAccessToken: true,
 				pfpNft: {
 					select: {
