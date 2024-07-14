@@ -266,10 +266,26 @@ export class SpaceService {
 				spaceId,
 			]);
 
+		const spaceOpenTime = new Date();
+		spaceOpenTime.setHours(Number(space.businessHoursStart.split(':')[0]));
+		spaceOpenTime.setMinutes(
+			Number(space.businessHoursStart.split(':')[1]),
+		);
+		spaceOpenTime.setSeconds(0);
+
+		const spaceCloseTime = new Date();
+		spaceCloseTime.setHours(Number(space.businessHoursEnd.split(':')[0]));
+		spaceCloseTime.setMinutes(Number(space.businessHoursEnd.split(':')[1]));
+		spaceCloseTime.setSeconds(0);
+
+		const now = new Date();
+		const spaceOpen = now > spaceOpenTime && now < spaceCloseTime;
+
 		return {
 			...space,
 			hidingCount: hidingUsers[spaceId],
 			image: this.mediaService.getUrl(space.image),
+			spaceOpen,
 		};
 	}
 
