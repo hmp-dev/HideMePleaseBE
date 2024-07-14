@@ -328,7 +328,6 @@ export class WelcomeNftService {
 				ownedWalletAddress: klipWallet.publicAddress,
 				lastOwnershipCheck: new Date(),
 				tokenUpdatedAt: new Date(),
-				selected: true,
 				order: 0,
 			},
 		});
@@ -339,7 +338,6 @@ export class WelcomeNftService {
 	async makeSpaceForFreeNftToken(userId: string) {
 		const selectedNfts = await this.prisma.nft.findMany({
 			where: {
-				selected: true,
 				ownedWallet: {
 					userId,
 				},
@@ -356,10 +354,7 @@ export class WelcomeNftService {
 		if (selectedNfts.length === MAX_SELECTED_NFTS) {
 			const [firstNft] = selectedNfts;
 
-			await this.prisma.nft.update({
-				data: {
-					selected: false,
-				},
+			await this.prisma.nft.delete({
 				where: {
 					id: firstNft.id,
 				},

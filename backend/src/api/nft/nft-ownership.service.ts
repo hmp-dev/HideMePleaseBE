@@ -1,13 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Nft, NftCollection } from '@prisma/client';
 import { PromisePool } from '@supercharge/promise-pool';
+import { type Cache } from 'cache-manager';
 
-import {
-	OWNERSHIP_CHECK_CONCURRENCY,
-	PAGINATION_DEPTH_FOR_NFTS,
-} from '@/api/nft/nft.constants';
-import { NftCreateWithCollection } from '@/api/nft/nft.types';
+import { NftCreateDTO } from '@/api/nft/nft.types';
+import { getNftKey } from '@/api/nft/nft.utils';
+import { CACHE_TTL } from '@/constants';
 import { KlaytnNftService } from '@/modules/klaytn/klaytn-nft.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -21,9 +20,10 @@ export class NftOwnershipService {
 		private prisma: PrismaService,
 		private unifiedNftService: UnifiedNftService,
 		private klaytnNftService: KlaytnNftService,
+		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
 
-	async syncWalletNftCollections(
+	async saveNftCollectionsToDatabase(
 		walletNftCollections: NftCollectionWithTokens[],
 	) {
 		const alreadyCreatedCollections =
@@ -73,17 +73,8 @@ export class NftOwnershipService {
 		});
 	}
 
-	async syncWalletNftTokens(nftCollections: NftCollectionWithTokens[]) {
-		const tokens: Pick<
-			Nft,
-			| 'name'
-			| 'tokenId'
-			| 'imageUrl'
-			| 'tokenAddress'
-			| 'id'
-			| 'tokenUpdatedAt'
-			| 'ownedWalletAddress'
-		>[] = [];
+	async saveNftsToCache(nftCollections: NftCollectionWithTokens[]) {
+		const tokens: NftCreateDTO[] = [];
 
 		for (const collection of nftCollections) {
 			for (const token of collection.tokens) {
@@ -92,271 +83,70 @@ export class NftOwnershipService {
 					tokenId: token.tokenId?.toString() || '',
 					imageUrl: token.imageUrl || '',
 					tokenAddress: collection.tokenAddress,
-					tokenUpdatedAt: null,
 					id: token.id,
 					ownedWalletAddress: token.ownerWalletAddress,
 				});
 			}
 		}
-		const alreadyCreatedTokens = await this.prisma.nft.findMany({
-			where: {
-				id: {
-					in: tokens.map((token) => token.id),
-				},
-			},
-			select: {
-				id: true,
-			},
-		});
 
-		const excludedIds = new Set(
-			alreadyCreatedTokens.map((token) => token.id),
-		);
-		const finalTokens = tokens.filter(
-			(token) => !excludedIds.has(token.id),
-		);
-
-		await this.prisma.nft.createMany({
-			data: finalTokens.map(
-				({
-					name,
-					tokenId,
-					imageUrl,
-					tokenAddress,
-					id,
-					tokenUpdatedAt,
-					ownedWalletAddress,
-				}) => ({
-					name,
-					tokenId,
-					tokenAddress,
-					imageUrl,
-					tokenUpdatedAt,
-					id,
-					ownedWalletAddress,
-					lastOwnershipCheck: new Date(),
-				}),
-			),
-			skipDuplicates: true,
-		});
-	}
-
-	private async upsertWalletNfts({
-		walletAddress,
-		nfts,
-	}: {
-		walletAddress: string;
-		nfts: NftCreateWithCollection[];
-	}) {
-		const existingCollections = await this.prisma.nftCollection.findMany({
-			where: {
-				tokenAddress: {
-					in: [...new Set(nfts.map((nft) => nft.tokenAddress))],
-				},
-			},
-			select: {
-				tokenAddress: true,
-			},
-		});
-		const existingCollectionAddresses = new Set(
-			existingCollections.map((collection) => collection.tokenAddress),
-		);
-
-		const collectionsToCreate: Pick<
-			NftCollection,
-			| 'tokenAddress'
-			| 'contractType'
-			| 'chain'
-			| 'name'
-			| 'symbol'
-			| 'collectionLogo'
-		>[] = [];
-
-		nfts.forEach((nft) => {
-			if (existingCollectionAddresses.has(nft.tokenAddress)) {
-				return;
-			}
-
-			collectionsToCreate.push({
-				tokenAddress: nft.tokenAddress,
-				contractType: nft.contractType || '',
-				chain: nft.chain,
-				name: nft.name,
-				symbol: nft.symbol || '',
-				collectionLogo: nft.imageUrl,
+		await PromisePool.withConcurrency(20)
+			.for(tokens)
+			.process(async (token) => {
+				await this.cacheManager.set(
+					getNftKey(token.id),
+					token,
+					CACHE_TTL.FIVE_MIN_IN_MILLISECONDS,
+				);
 			});
-			// so this does not get added again
-			existingCollectionAddresses.add(nft.tokenAddress);
-		});
-
-		await this.prisma.nftCollection.createMany({
-			data: collectionsToCreate,
-		});
-
-		const existingNfts = await this.prisma.nft.findMany({
-			where: {
-				ownedWalletAddress: walletAddress,
-			},
-			select: {
-				id: true,
-			},
-		});
-
-		const existingNftIds = new Set(existingNfts.map(({ id }) => id));
-		const nftsToCreate = nfts.filter((nft) => !existingNftIds.has(nft.id));
-
-		await this.prisma.nft.deleteMany({
-			where: {
-				id: {
-					in: nftsToCreate.map((nft) => nft.id),
-				},
-			},
-		});
-
-		await Promise.all([
-			this.prisma.nft.updateMany({
-				where: {
-					id: {
-						in: existingNfts.map(({ id }) => id),
-					},
-				},
-				data: {
-					lastOwnershipCheck: new Date(),
-				},
-			}),
-			this.prisma.nft.createMany({
-				data: nftsToCreate.map((nft) => ({
-					...nft,
-					symbol: undefined,
-					contractType: undefined,
-					ownerWalletAddress: undefined,
-					chain: undefined,
-				})),
-			}),
-		]);
-
-		const newNftIds = new Set(nfts.map(({ id }) => id));
-		const nftsToDelete = existingNfts
-			.filter((nft) => !newNftIds.has(nft.id))
-			.map(({ id }) => id);
-
-		if (nftsToDelete.length) {
-			this.logger.log(`Unlinking nfts from user ${nftsToDelete}`);
-
-			await this.prisma.nft.deleteMany({
-				where: {
-					id: {
-						in: nftsToDelete,
-					},
-				},
-			});
-		}
-	}
-
-	private async checkWalletNftOwnership(walletAddress: string) {
-		this.logger.log(
-			`Starting ownership check for wallet with ${walletAddress}`,
-		);
-		let res = await this.unifiedNftService.getNftsForAddress({
-			walletAddress,
-			selectedNftIds: new Set(),
-		});
-
-		const nftData: NftCreateWithCollection[] = [];
-
-		res.nftCollections.forEach((nftCollection) => {
-			nftCollection.tokens.forEach((token) => {
-				nftData.push({
-					...token,
-					imageUrl: token.imageUrl || '',
-					name: token.name || '',
-					tokenId: token.tokenId?.toString() || '',
-					tokenAddress: nftCollection.tokenAddress,
-					ownedWalletAddress: nftCollection.walletAddress,
-					chain: nftCollection.chainSymbol,
-				});
-			});
-		});
-
-		let currentDepth = 0;
-		while (res.next && currentDepth < PAGINATION_DEPTH_FOR_NFTS) {
-			currentDepth++;
-			res = await this.unifiedNftService.getNftsForAddress({
-				walletAddress,
-				selectedNftIds: new Set(),
-				nextPage: res.next?.nextPage,
-				nextChain: res.next?.nextChain,
-			});
-
-			res.nftCollections.forEach((nftCollection) => {
-				nftCollection.tokens.forEach((token) => {
-					nftData.push({
-						...token,
-						imageUrl: token.imageUrl || '',
-						name: token.name || '',
-						tokenId: token.tokenId?.toString() || '',
-						tokenAddress: nftCollection.tokenAddress,
-						ownedWalletAddress: nftCollection.walletAddress,
-						chain: nftCollection.chainSymbol,
-					});
-				});
-			});
-		}
-
-		// now we have all the nfts for this wallet
-		await this.upsertWalletNfts({
-			nfts: nftData,
-			walletAddress,
-		});
-	}
-
-	async checkUserNftOwnership(userId: string) {
-		this.logger.log(`Starting ownership check for user with ${userId}`);
-		const userWallets = await this.prisma.wallet.findMany({
-			where: {
-				userId,
-			},
-			select: {
-				publicAddress: true,
-			},
-		});
-		if (!userWallets.length) {
-			return;
-		}
-
-		this.logger.log(
-			`Starting ownership check for user with ${userId} with ${userWallets.length} wallets`,
-		);
-		const addresses = userWallets.map(({ publicAddress }) => publicAddress);
-
-		const { errors } = await PromisePool.withConcurrency(
-			OWNERSHIP_CHECK_CONCURRENCY,
-		)
-			.for(addresses)
-			.process((walletAddress) =>
-				this.checkWalletNftOwnership(walletAddress),
-			);
-
-		this.logger.log(
-			`Finished ownership check for user ${userId} with ${errors.length} errors`,
-		);
-		if (errors) {
-			this.logger.log(`User ownership errors: ${JSON.stringify(errors)}`);
-		}
 	}
 
 	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-	async checkOwnershipForAllUsers() {
-		this.logger.log(`Starting ownership check for all users`);
+	async syncAllNftOwnership() {
+		this.logger.log(`Starting ownership check for all nfts`);
 
-		const users = await this.prisma.user.findMany({
+		const allNfts = await this.prisma.nft.findMany({
 			select: {
+				tokenAddress: true,
 				id: true,
+				tokenId: true,
+				ownedWalletAddress: true,
+				nftCollection: {
+					select: {
+						chain: true,
+					},
+				},
 			},
 		});
 
-		for (const user of users) {
-			await this.checkUserNftOwnership(user.id);
+		const { errors } = await PromisePool.for(allNfts)
+			.withConcurrency(5)
+			.process(async (nft) => {
+				const isOwner = await this.unifiedNftService.checkNftOwner({
+					tokenAddress: nft.tokenAddress,
+					tokenId: nft.tokenId,
+					chain: nft.nftCollection.chain,
+					walletAddress: nft.ownedWalletAddress,
+				});
+				if (!isOwner) {
+					this.logger.log(
+						`Ownership of ${nft.tokenAddress} ${nft.tokenId} no longer belongs to ${nft.ownedWalletAddress}. Deleting record`,
+					);
+					await this.prisma.nft.delete({
+						where: {
+							id: nft.id,
+						},
+					});
+				} else {
+					this.logger.log(
+						`Ownership of ${nft.tokenAddress} ${nft.tokenId} verified to ${nft.ownedWalletAddress}`,
+					);
+				}
+			});
+		this.logger.log(
+			`Nft ownership check completed with ${errors.length} errors`,
+		);
+		if (errors.length) {
+			this.logger.log(`Errors: ${JSON.stringify(errors)}`);
 		}
 	}
 

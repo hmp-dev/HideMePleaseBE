@@ -121,4 +121,40 @@ export class UnifiedNftService {
 
 		throw new NotImplementedException(ErrorCodes.MISSING_IMPLEMENTATION);
 	}
+
+	async checkNftOwner({
+		tokenAddress,
+		tokenId,
+		chain,
+		walletAddress,
+	}: {
+		tokenAddress: string;
+		chain: SupportedChains;
+		tokenId: string;
+		walletAddress: string;
+	}): Promise<boolean> {
+		if (
+			chain === SupportedChains.ETHEREUM ||
+			chain === SupportedChains.POLYGON
+		) {
+			return this.covalentService.checkNftOwner({
+				chain,
+				tokenAddress,
+				tokenId,
+				walletAddress,
+			});
+		} else if (
+			chain === SupportedChains.SOLANA ||
+			chain === SupportedChains.KLAYTN
+		) {
+			return this.unmarshalService.checkNftOwner({
+				chain,
+				tokenAddress,
+				tokenId,
+				walletAddress,
+			});
+		}
+
+		throw new NotImplementedException(ErrorCodes.MISSING_IMPLEMENTATION);
+	}
 }

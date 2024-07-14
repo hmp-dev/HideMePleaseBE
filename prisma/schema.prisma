@@ -137,7 +137,6 @@ model Nft {
   tokenId            String
   tokenUpdatedAt     DateTime?
   ownedWalletAddress String
-  selected           Boolean       @default(false)
   order              Int           @default(0)
   lastOwnershipCheck DateTime      @default(now())
   ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])

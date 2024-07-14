@@ -55,6 +55,10 @@ export function getCompositeTokenId(
 	return `${tokenAddress}_${tokenId}`;
 }
 
+export function getNftKey(nftId: string) {
+	return `NFT_TOKEN_${nftId}`;
+}
+
 // export function evmNftToNft(token: EvmNft): NftCreateWithCollection {
 // 	return {
 // 		id: getCompositeTokenId(token.tokenAddress.toJSON(), token.tokenId),

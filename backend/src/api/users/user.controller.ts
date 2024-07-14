@@ -23,7 +23,6 @@ import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { BenefitUsageType } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftCommunityService } from '@/api/nft/nft-community.service';
-import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { UserLocationService } from '@/api/users/user-location.service';
 import { UserNftService } from '@/api/users/user-nft.service';
 import {
@@ -45,7 +44,6 @@ export class UserController {
 		private usersService: UsersService,
 		private userLocationService: UserLocationService,
 		private userNftService: UserNftService,
-		private nftOwnershipService: NftOwnershipService,
 		private nftCommunityService: NftCommunityService,
 		private nftBenefitsService: NftBenefitsService,
 	) {}
@@ -221,18 +219,6 @@ export class UserController {
 			chain,
 			nextCursor: next,
 		});
-	}
-
-	@ApiOperation({
-		summary: 'Trigger manual ownership check',
-	})
-	@UseGuards(AuthGuard)
-	@Post('/nft/ownership-check')
-	async triggerOwnershipCheck(@Req() request: Request) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-		return this.nftOwnershipService.checkUserNftOwnership(
-			authContext.userId,
-		);
 	}
 
 	@ApiOperation({

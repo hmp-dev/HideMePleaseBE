@@ -1,6 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import * as redisStore from 'cache-manager-redis-store';
 import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import { LoggerModule } from 'nestjs-pino';
 import path from 'path';
@@ -21,7 +22,12 @@ const DEFAULT_MODULES = [
 		ignoreEnvFile: true,
 		cache: true,
 	}),
-	CacheModule.register({ isGlobal: true }),
+	CacheModule.register({
+		isGlobal: true,
+		store: redisStore,
+		host: process.env.REDIS_HOST,
+		port: Number(process.env.REDIS_PORT),
+	}),
 
 	PrismaModule,
 

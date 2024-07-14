@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotImplementedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupportedChains } from '@prisma/client';
 import axios from 'axios';
@@ -11,6 +11,7 @@ import { UnmarshalSupportedChainMapping } from '@/modules/unmarshal/unmarshal.co
 import { UnmarshalNftForAddressResponse } from '@/modules/unmarshal/unmarshal.types';
 import { PickKey } from '@/types';
 import { EnvironmentVariables } from '@/utils/env';
+import { ErrorCodes } from '@/utils/errorCodes';
 
 type UnmarshalSupportedTypes = PickKey<
 	typeof SupportedChains,
@@ -156,5 +157,47 @@ export class UnmarshalService {
 
 	extractTokenIdFromName(name: string) {
 		return name.split('#')[1];
+	}
+
+	async checkNftOwner({
+		chain,
+		tokenId,
+		tokenAddress,
+		walletAddress,
+	}: {
+		tokenAddress: string;
+		chain: UnmarshalSupportedTypes;
+		tokenId: string;
+		walletAddress: string;
+	}) {
+		if (chain === SupportedChains.KLAYTN) {
+			const response = await this.client.get<string[]>(
+				`v1/${UnmarshalSupportedChainMapping[chain]}/address/${tokenAddress}/nftholders?tokenId=${tokenId}&auth_key=${this.configService.get('UNMARSHAL_API_KEY')}`,
+			);
+			if (!response.data.length) {
+				return false;
+			}
+
+			const owners = response.data;
+
+			return owners[owners.length - 1] === walletAddress;
+		} else if (chain === SupportedChains.SOLANA) {
+			// Currently this was the only way to check ownership in solana
+			const allNftsInWallet = await this.getNftsForAddress({
+				chain,
+				walletAddress,
+				selectedNftIds: new Set(),
+			});
+
+			for (const nftCollection of allNftsInWallet.nftCollections) {
+				if (nftCollection.tokenAddress === tokenAddress) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		throw new NotImplementedException(ErrorCodes.MISSING_IMPLEMENTATION);
 	}
 }

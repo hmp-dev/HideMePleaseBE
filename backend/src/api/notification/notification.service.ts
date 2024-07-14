@@ -94,7 +94,6 @@ export class NotificationService {
 			this.prisma.nft.findMany({
 				where: {
 					tokenAddress,
-					selected: true,
 				},
 				select: {
 					name: true,

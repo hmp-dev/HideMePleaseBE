@@ -89,6 +89,14 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	SENDBIRD_TOKEN!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	REDIS_HOST!: string;
+
+	@IsNotEmpty()
+	@IsNumber()
+	REDIS_PORT!: number;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

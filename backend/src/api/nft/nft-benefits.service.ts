@@ -126,7 +126,6 @@ export class NftBenefitsService {
 				this.prisma.nft.findFirst({
 					where: {
 						tokenAddress,
-						selected: true,
 						ownedWallet: {
 							userId: authContext.userId,
 						},

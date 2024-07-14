@@ -126,4 +126,25 @@ export class CovalentService implements OnModuleInit {
 	//
 	// 	return { nftCollections, next };
 	// }
+
+	async checkNftOwner({
+		tokenAddress,
+		chain,
+		tokenId,
+		walletAddress,
+	}: {
+		tokenAddress: string;
+		chain: CovalentSupportedTypes;
+		tokenId: string;
+		walletAddress: string;
+	}) {
+		const res =
+			await this.client.NftService.checkOwnershipInNftForSpecificTokenId(
+				SupportedChainCovalentMapping[chain],
+				walletAddress,
+				tokenAddress,
+				tokenId,
+			);
+		return !!res.data?.items?.length;
+	}
 }

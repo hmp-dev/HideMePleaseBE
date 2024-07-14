@@ -1,8 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SupportedChains } from '@prisma/client';
+import type { Cache } from 'cache-manager';
 
-import { NftCollectionCursor } from '@/api/nft/nft.types';
+import { NftCollectionCursor, NftCreateDTO } from '@/api/nft/nft.types';
+import { getNftKey } from '@/api/nft/nft.utils';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/users/users.dto';
 import { PAGE_SIZES } from '@/constants';
@@ -22,6 +25,7 @@ export class UserNftService {
 		private jwtService: JwtService,
 		private unifiedNftService: UnifiedNftService,
 		private sendbirdService: SendbirdService,
+		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
 
 	async getSelectedNfts({ request }: { request: Request }) {
@@ -29,7 +33,6 @@ export class UserNftService {
 
 		const selectedNfts = await this.prisma.nft.findMany({
 			where: {
-				selected: true,
 				ownedWallet: {
 					userId: authContext.userId,
 				},
@@ -80,7 +83,6 @@ export class UserNftService {
 		const [selectedNfts, nftPoints] = await Promise.all([
 			this.prisma.nft.findMany({
 				where: {
-					selected: true,
 					ownedWallet: {
 						userId: authContext.userId,
 					},
@@ -151,63 +153,61 @@ export class UserNftService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const nft = await this.prisma.nft.findFirst({
+		const nft = !selected
+			? await this.prisma.nft.findFirst({
+					where: {
+						id: nftId,
+					},
+				})
+			: ((await this.cacheManager.get(
+					getNftKey(nftId),
+				)) as NftCreateDTO | null);
+
+		if (!nft) {
+			throw new BadRequestException(ErrorCodes.NFT_NOT_FOUND);
+		}
+
+		const collectionData = await this.prisma.nftCollection.findFirst({
 			where: {
-				id: nftId,
+				tokenAddress: nft.tokenAddress,
 			},
 			select: {
-				tokenAddress: true,
-				imageUrl: true,
+				chain: true,
 				name: true,
+				collectionLogo: true,
+				chatChannelCreated: true,
+			},
+		});
+		if (!collectionData) {
+			throw new BadRequestException(ErrorCodes.NFT_COLLECTION_NOT_FOUND);
+		}
+
+		await this.prisma.nft.deleteMany({
+			where: {
+				tokenAddress: nft.tokenAddress,
 				nftCollection: {
-					select: {
-						chain: true,
-						name: true,
-						collectionLogo: true,
-						chatChannelCreated: true,
-					},
+					chain: collectionData.chain,
+				},
+				ownedWallet: {
+					userId: authContext.userId,
 				},
 			},
 		});
-		if (!nft) {
-			throw new BadRequestException(ErrorCodes.ENTITY_NOT_FOUND);
-		}
 
-		await Promise.all([
-			this.prisma.nft.updateMany({
-				where: {
-					tokenAddress: nft.tokenAddress,
-					nftCollection: {
-						chain: nft.nftCollection.chain,
-					},
-					ownedWallet: {
-						userId: authContext.userId,
-					},
-					id: {
-						not: nftId,
-					},
-				},
+		if (selected) {
+			await this.prisma.nft.create({
 				data: {
-					selected: false,
-				},
-			}),
-			this.prisma.nft.update({
-				where: {
-					id: nftId,
-				},
-				data: {
-					selected,
+					...nft,
 					order,
 				},
-			}),
-		]);
+			});
+		}
 
-		if (selected && !nft.nftCollection.chatChannelCreated) {
+		if (selected && !collectionData.chatChannelCreated) {
 			await this.sendbirdService.createGroupChannel({
 				channelUrl: nft.tokenAddress,
-				channelImageURl:
-					nft.nftCollection.collectionLogo || nft.imageUrl,
-				name: nft.nftCollection.name || nft.name,
+				channelImageURl: collectionData.collectionLogo || nft.imageUrl,
+				name: collectionData.name || nft.name,
 				userIds: [authContext.userId],
 			});
 			await this.prisma.nftCollection.update({
@@ -231,7 +231,6 @@ export class UserNftService {
 
 		const selectedNftCount = await this.prisma.nft.count({
 			where: {
-				selected: true,
 				ownedWallet: {
 					userId: authContext.userId,
 				},
@@ -258,7 +257,6 @@ export class UserNftService {
 
 		const firstSelectedNft = await this.prisma.nft.findFirst({
 			where: {
-				selected: true,
 				ownedWallet: {
 					userId: userId,
 				},
@@ -298,7 +296,6 @@ export class UserNftService {
 	) {
 		const selectedNfts = await this.prisma.nft.findMany({
 			where: {
-				selected: true,
 				ownedWallet: {
 					userId: authContext.userId,
 				},
@@ -324,7 +321,6 @@ export class UserNftService {
 								lastOwnershipCheck: true,
 								name: true,
 								imageUrl: true,
-								selected: true,
 							},
 							where: {
 								ownedWallet: {
@@ -332,7 +328,7 @@ export class UserNftService {
 								},
 							},
 							orderBy: {
-								selected: 'desc',
+								order: 'desc',
 							},
 						},
 					},
@@ -350,6 +346,8 @@ export class UserNftService {
 				Nft: undefined,
 				tokens: nftCollection.Nft.map((nft) => ({
 					...nft,
+					// frontend compatibility
+					selected: true,
 					lastOwnershipCheck: undefined,
 					updatedAt: nft.lastOwnershipCheck,
 				})),
@@ -464,7 +462,6 @@ export class UserNftService {
 		const [selectedNfts, selectedNftCount] = await Promise.all([
 			this.prisma.nft.findMany({
 				where: {
-					selected: true,
 					ownedWallet: {
 						userId: authContext.userId,
 					},
@@ -476,7 +473,6 @@ export class UserNftService {
 			}),
 			this.prisma.nft.count({
 				where: {
-					selected: true,
 					ownedWallet: {
 						userId: authContext.userId,
 					},
@@ -528,12 +524,10 @@ export class UserNftService {
 			}
 		}
 
-		await this.nftOwnershipService.syncWalletNftCollections(
+		await this.nftOwnershipService.saveNftCollectionsToDatabase(
 			walletNftCollections,
 		);
-		await this.nftOwnershipService.syncWalletNftTokens(
-			walletNftCollections,
-		);
+		await this.nftOwnershipService.saveNftsToCache(walletNftCollections);
 
 		return {
 			collections: walletNftCollections,

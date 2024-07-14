@@ -16,14 +16,6 @@ export type NftCreateDTO = Pick<
 	| 'ownedWalletAddress'
 >;
 
-export interface NftCreateWithCollection extends NftCreateDTO {
-	contractType?: string;
-	symbol?: string;
-	lastOwnershipCheck?: Date;
-	tokenUpdatedAt?: Date;
-	chain: SupportedChains;
-}
-
 export type NftCollectionCursor = {
 	nextChain?: SupportedChains;
 	nextWalletAddress?: string;
