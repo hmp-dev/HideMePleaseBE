@@ -88,6 +88,16 @@ export class NftController {
 		type: 'string',
 		required: false,
 	})
+	@ApiQuery({
+		name: 'latitude',
+		type: 'number',
+		required: false,
+	})
+	@ApiQuery({
+		name: 'longitude',
+		type: 'number',
+		required: false,
+	})
 	@Get('/collection/:tokenAddress/benefits')
 	getNftBenefits(
 		@Req() request: Request,
@@ -95,6 +105,8 @@ export class NftController {
 		@Query() { page }: { page: number },
 		@Query() { pageSize }: { pageSize?: number },
 		@Query() { spaceId }: { spaceId?: string },
+		@Query() { latitude }: { latitude?: number },
+		@Query() { longitude }: { longitude?: number },
 	) {
 		return this.nftBenefitsService.getCollectionBenefits({
 			request,
@@ -102,6 +114,8 @@ export class NftController {
 			page,
 			pageSize,
 			spaceId,
+			latitude,
+			longitude,
 		});
 	}
 

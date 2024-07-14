@@ -12,6 +12,7 @@ import {
 } from '@/api/nft/nft.constants';
 import { BenefitState, BenefitUsageType } from '@/api/nft/nft.types';
 import { getAllEligibleLevels } from '@/api/nft/nft.utils';
+import { SpaceLocationService } from '@/api/space/space-location.service';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
 import { MoralisApiService } from '@/modules/moralis/moralis-api.service';
@@ -33,6 +34,7 @@ export class NftBenefitsService {
 		private moralisApiService: MoralisApiService,
 		private systemConfig: SystemConfigService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
+		private spaceLocationService: SpaceLocationService,
 	) {}
 
 	async getCollectionBenefits({
@@ -41,18 +43,37 @@ export class NftBenefitsService {
 		page,
 		pageSize = BENEFIT_PAGE_SIZE,
 		spaceId,
+		latitude,
+		longitude,
 	}: {
 		request: Request;
 		tokenAddress: string;
 		page: number;
 		pageSize?: number;
 		spaceId?: string;
+		latitude?: number;
+		longitude?: number;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		const currentPage = isNaN(page) || !page ? 1 : page;
 
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
 		const benefitLevels = getAllEligibleLevels(collectionPoints);
+
+		const spaceIds = spaceId ? [spaceId] : [];
+
+		if (latitude && longitude) {
+			const sortedSpaceIds =
+				await this.spaceLocationService.getSpacesSortedByLocation({
+					latitude,
+					longitude,
+				});
+
+			const skip = pageSize * (currentPage - 1);
+			sortedSpaceIds
+				.slice(skip, pageSize + skip)
+				.forEach((spaceId) => spaceIds.push(spaceId));
+		}
 
 		const [spaceBenefits, benefitCount, nftInstance, termsUrlMap] =
 			await Promise.all([
@@ -62,7 +83,11 @@ export class NftBenefitsService {
 							in: benefitLevels,
 						},
 						active: true,
-						spaceId,
+						...(spaceIds.length && {
+							spaceId: {
+								in: spaceIds,
+							},
+						}),
 					},
 					select: {
 						id: true,
@@ -88,8 +113,6 @@ export class NftBenefitsService {
 							},
 						},
 					},
-					take: Number(pageSize),
-					skip: Number(pageSize) * (currentPage - 1),
 				}),
 				this.prisma.spaceBenefit.count({
 					where: {
@@ -123,8 +146,18 @@ export class NftBenefitsService {
 				this.getNftTermsUrls(),
 			]);
 
+		const sortedSpaceBenefits =
+			spaceIds.length > 1
+				? spaceBenefits.sort((benefitA, benefitB) =>
+						spaceIds.indexOf(benefitA.space.id) >
+						spaceIds.indexOf(benefitB.space.id)
+							? 1
+							: -1,
+					)
+				: spaceBenefits;
+
 		return {
-			benefits: spaceBenefits.map(
+			benefits: sortedSpaceBenefits.map(
 				({ space, SpaceBenefitUsage, ...rest }) => {
 					let used = false;
 					let state = BenefitState.AVAILABLE;

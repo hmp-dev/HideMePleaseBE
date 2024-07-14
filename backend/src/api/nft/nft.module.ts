@@ -8,6 +8,7 @@ import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { NftPointService } from '@/api/nft/nft-point.service';
 import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
 import { NotificationModule } from '@/api/notification/notification.module';
+import { SpaceLocationModuleModule } from '@/api/space/space-location.module';
 import { KlaytnModule } from '@/modules/klaytn/klaytn.module';
 import { MoralisModule } from '@/modules/moralis/moralis.module';
 import { SendbirdModule } from '@/modules/sendbird/sendbird.module';
@@ -23,6 +24,7 @@ import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 		KlaytnModule,
 		SystemConfigModule,
 		SendbirdModule,
+		SpaceLocationModuleModule,
 	],
 	controllers: [NftController],
 	providers: [

@@ -10,7 +10,7 @@ import {
 import { SpaceCategory } from '@prisma/client';
 import { PromisePool } from '@supercharge/promise-pool';
 import type { Cache } from 'cache-manager';
-import { subDays } from 'date-fns';
+import { startOfDay, subDays } from 'date-fns';
 import { GeoPosition } from 'geo-position.ts';
 import { validate as isValidUUID } from 'uuid';
 
@@ -23,7 +23,7 @@ import {
 	SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS,
 } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
-import { SpaceWithLocation } from '@/api/space/space.types';
+import { SpaceLocationService } from '@/api/space/space-location.service';
 import { UserLocationService } from '@/api/users/user-location.service';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
@@ -45,6 +45,7 @@ export class SpaceService {
 		private userLocationService: UserLocationService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 		private systemConfig: SystemConfigService,
+		private spaceLocationService: SpaceLocationService,
 	) {}
 
 	async redeemBenefit({
@@ -156,68 +157,6 @@ export class SpaceService {
 			);
 	}
 
-	private async getSpacesWithLocation() {
-		const cacheKey = 'SPACE_WITH_LOCATIONS';
-		const cachedSpaces =
-			await this.cacheManager.get<SpaceWithLocation[]>(cacheKey);
-		if (cachedSpaces) {
-			return cachedSpaces;
-		}
-
-		const spaces = await this.prisma.space.findMany({
-			select: {
-				id: true,
-				latitude: true,
-				longitude: true,
-			},
-		});
-
-		const formattedSpaces: SpaceWithLocation[] = spaces.map((space) => ({
-			spaceId: space.id,
-			longitude: space.longitude,
-			latitude: space.latitude,
-		}));
-
-		await this.cacheManager.set(
-			cacheKey,
-			formattedSpaces,
-			CACHE_TTL.TEN_MIN_IN_MILLISECONDS,
-		);
-
-		return formattedSpaces;
-	}
-
-	private async getSpacesSortedByLocation({
-		latitude,
-		longitude,
-	}: {
-		latitude: number;
-		longitude: number;
-	}) {
-		const spaces = await this.getSpacesWithLocation();
-		const userPosition = new GeoPosition(latitude, longitude);
-
-		const spacesWithDistance = spaces.map((space) => {
-			const spacePosition = new GeoPosition(
-				space.latitude,
-				space.longitude,
-			);
-
-			return {
-				...space,
-				distance: Number(
-					userPosition.Distance(spacePosition).toFixed(0),
-				),
-			};
-		});
-
-		return spacesWithDistance
-			.sort((spaceA, spaceB) =>
-				spaceA.distance > spaceB.distance ? 1 : -1,
-			)
-			.map((space) => space.spaceId);
-	}
-
 	async getSpaceList({
 		category,
 		page,
@@ -234,10 +173,11 @@ export class SpaceService {
 
 		const mostPointsSpace = await this.getSpaceWithMostPointsInLastWeek();
 
-		const sortedSpaceIds = await this.getSpacesSortedByLocation({
-			latitude,
-			longitude,
-		});
+		const sortedSpaceIds =
+			await this.spaceLocationService.getSpacesSortedByLocation({
+				latitude,
+				longitude,
+			});
 
 		const skip = SPACE_LIST_PAGE_SIZE * (currentPage - 1);
 
@@ -426,11 +366,11 @@ export class SpaceService {
 		}
 
 		const benefitUsages = await this.prisma.spaceBenefitUsage.findMany({
-			// where: {
-			// 	createdAt: {
-			// 		gt: startOfDay(new Date()),
-			// 	},
-			// },
+			where: {
+				createdAt: {
+					gt: startOfDay(new Date()),
+				},
+			},
 			select: {
 				userId: true,
 				pointsEarned: true,
