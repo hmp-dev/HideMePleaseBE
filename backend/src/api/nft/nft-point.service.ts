@@ -223,14 +223,13 @@ export class NftPointService {
 	async computePointFluctuation() {
 		await this.recalculateNftCollectionPoints(true);
 
-		const systemNfts = await this.prisma.nftCollection.findMany({
-			select: {
-				tokenAddress: true,
-			},
+		const selectedNfts = await this.prisma.nft.groupBy({
+			by: 'tokenAddress',
 		});
-		for (const systemNft of systemNfts) {
+
+		for (const nft of selectedNfts) {
 			await this.recalculateNftCollectionUserPoints(
-				systemNft.tokenAddress,
+				nft.tokenAddress,
 				true,
 			);
 		}
