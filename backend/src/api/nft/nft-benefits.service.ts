@@ -120,6 +120,26 @@ export class NftBenefitsService {
 			}
 
 			const skip = pageSize * (currentPage - 1);
+			if (skip >= sortedSpaceIds.length) {
+				return {
+					benefits: [],
+					benefitCount: await this.prisma.spaceBenefit.count({
+						where: {
+							level: {
+								in: benefitLevels,
+							},
+							active: true,
+							spaceId,
+							...(nftInstance?.nftCollection.category && {
+								space: {
+									category:
+										nftInstance.nftCollection.category,
+								},
+							}),
+						},
+					}),
+				};
+			}
 			sortedSpaceIds
 				.slice(skip, pageSize + skip)
 				.forEach((spaceId) => spaceIds.push(spaceId));
