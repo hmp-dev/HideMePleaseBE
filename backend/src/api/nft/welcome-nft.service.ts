@@ -137,11 +137,6 @@ export class WelcomeNftService {
 			latitude,
 			longitude,
 		});
-		if (userClaimedNfts.includes(systemNftAddress)) {
-			return {
-				freeNftAvailable: false,
-			};
-		}
 
 		const systemNft = await this.prisma.systemNftCollection.findFirst({
 			where: {
@@ -169,7 +164,7 @@ export class WelcomeNftService {
 			totalCount: maxMintedTokens,
 			usedCount: lastMintedTokenId,
 			image: this.mediaService.getUrl(systemNft.image),
-			freeNftAvailable: true,
+			freeNftAvailable: !userClaimedNfts.includes(systemNftAddress),
 		};
 	}
 
