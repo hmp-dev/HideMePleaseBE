@@ -7,6 +7,7 @@ import type { Cache } from 'cache-manager';
 import { NftCollectionCursor, NftCreateDTO } from '@/api/nft/nft.types';
 import { getNftKey } from '@/api/nft/nft.utils';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
+import { NftPointService } from '@/api/nft/nft-point.service';
 import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/users/users.dto';
 import { PAGE_SIZES } from '@/constants';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
@@ -25,6 +26,7 @@ export class UserNftService {
 		private jwtService: JwtService,
 		private unifiedNftService: UnifiedNftService,
 		private sendbirdService: SendbirdService,
+		private nftPointService: NftPointService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
 
@@ -201,12 +203,31 @@ export class UserNftService {
 					order,
 				},
 			});
+
+			const collectionPoints =
+				await this.prisma.nftCollectionPoints.findFirst({
+					where: {
+						tokenAddress: nft.tokenAddress,
+					},
+					select: {
+						id: true,
+					},
+				});
+			if (!collectionPoints) {
+				void this.nftPointService.recalculateNftCollectionPoints();
+			}
+
+			void this.nftPointService.recalculateNftCollectionUserPoints(
+				nft.tokenAddress,
+			);
 		}
 
 		if (selected && !collectionData.chatChannelCreated) {
+			const imageUrl = collectionData.collectionLogo || nft.imageUrl;
+
 			await this.sendbirdService.createGroupChannel({
 				channelUrl: nft.tokenAddress,
-				channelImageURl: collectionData.collectionLogo || nft.imageUrl,
+				channelImageURl: imageUrl?.includes('data:') ? '' : imageUrl,
 				name: collectionData.name || nft.name,
 				userIds: [authContext.userId],
 			});
