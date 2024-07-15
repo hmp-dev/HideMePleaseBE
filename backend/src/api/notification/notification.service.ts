@@ -19,6 +19,7 @@ import { getNumberWithOrdinal } from '@/utils/number';
 @Injectable()
 export class NotificationService {
 	private readonly logger = new Logger(NotificationService.name);
+	private NOTIFICATIONS_ENABLED = false;
 
 	constructor(
 		private i18n: I18nService,
@@ -58,6 +59,9 @@ export class NotificationService {
 	}
 
 	async sendNotification(notification: UnifiedNotification) {
+		if (!this.NOTIFICATIONS_ENABLED) {
+			return;
+		}
 		this.logger.log(`Sending ${notification.type} notification`);
 
 		try {
@@ -90,6 +94,9 @@ export class NotificationService {
 		newRank,
 		type,
 	}: UserCommunityRankChangeNotification) {
+		if (!this.NOTIFICATIONS_ENABLED) {
+			return;
+		}
 		const [allUsersInCommunity, user] = await Promise.all([
 			this.prisma.nft.findMany({
 				where: {
@@ -174,6 +181,9 @@ export class NotificationService {
 		oldRank,
 		type,
 	}: UserCommunityRankFallenNotification) {
+		if (!this.NOTIFICATIONS_ENABLED) {
+			return;
+		}
 		const user = await this.prisma.user.findFirst({
 			where: {
 				id: userId,
@@ -234,6 +244,9 @@ export class NotificationService {
 		title,
 		body,
 	}: AdminNotification) {
+		if (!this.NOTIFICATIONS_ENABLED) {
+			return;
+		}
 		const fcmUsers: { id: string; fcmToken: string }[] = [];
 
 		if (userId) {
@@ -299,6 +312,9 @@ export class NotificationService {
 
 	@Cron(CronExpression.EVERY_MINUTE)
 	async sendPendingNotifications() {
+		if (!this.NOTIFICATIONS_ENABLED) {
+			return;
+		}
 		const notifications = await this.prisma.scheduleNotification.findMany({
 			where: {
 				sent: false,
