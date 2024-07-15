@@ -14,7 +14,6 @@ export class NftCommunityService {
 	constructor(private prisma: PrismaService) {}
 
 	async getNftCommunities({
-		request,
 		page,
 		order,
 	}: {
@@ -22,78 +21,66 @@ export class NftCommunityService {
 		page: number;
 		order: NftCommunitySortOrder;
 	}) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		const currentPage = isNaN(page) || !page ? 1 : page;
 
-		const [userCommunityList, allNftCommunities, communityCount] =
-			await Promise.all([
-				this.prisma.nftCollection.findMany({
-					where: {
-						Nft: {
-							some: {
-								ownedWallet: {
-									userId: authContext.userId,
-								},
-							},
+		const [allNftCommunities, communityCount] = await Promise.all([
+			// this.prisma.nftCollection.findMany({
+			// 	where: {
+			// 		Nft: {
+			// 			some: {
+			// 				ownedWallet: {
+			// 					userId: authContext.userId,
+			// 				},
+			// 			},
+			// 		},
+			// 	},
+			// 	select: {
+			// 		tokenAddress: true,
+			// 	},
+			// }),
+			this.prisma.nftCollectionPoints.findMany({
+				take: NFT_COMMUNITY_PAGE_SIZE,
+				skip: NFT_COMMUNITY_PAGE_SIZE * (currentPage - 1),
+				orderBy: {
+					...(order === NftCommunitySortOrder.MEMBERS && {
+						totalMembers: 'desc',
+					}),
+					...(order === NftCommunitySortOrder.POINTS && {
+						totalPoints: 'desc',
+					}),
+				},
+				select: {
+					communityRank: true,
+					totalMembers: true,
+					nftCollection: {
+						select: {
+							tokenAddress: true,
+							name: true,
+							collectionLogo: true,
+							chain: true,
 						},
 					},
-					select: {
-						tokenAddress: true,
-					},
-				}),
-				this.prisma.nftCollectionPoints.findMany({
-					take: NFT_COMMUNITY_PAGE_SIZE,
-					skip: NFT_COMMUNITY_PAGE_SIZE * (currentPage - 1),
-					orderBy: {
-						...(order === NftCommunitySortOrder.MEMBERS && {
-							totalMembers: 'desc',
-						}),
-						...(order === NftCommunitySortOrder.POINTS && {
-							totalPoints: 'desc',
-						}),
-					},
-					select: {
-						communityRank: true,
-						totalMembers: true,
-						nftCollection: {
-							select: {
-								tokenAddress: true,
-								name: true,
-								collectionLogo: true,
-								chain: true,
-							},
-						},
-					},
-				}),
-				this.prisma.nft.groupBy({
-					by: 'tokenAddress',
-				}),
-			]);
+				},
+			}),
+			this.prisma.nft.groupBy({
+				by: 'tokenAddress',
+			}),
+		]);
 
-		const userCommunityAddresses = new Set<string>();
-		for (const community of userCommunityList) {
-			userCommunityAddresses.add(community.tokenAddress);
-		}
-
-		const allCommunities = allNftCommunities
-			.filter(
-				(community) =>
-					!userCommunityAddresses.has(
-						community.nftCollection.tokenAddress,
-					),
-			)
-			.map(({ nftCollection, ...rest }) => ({
+		const allCommunities = allNftCommunities.map(
+			({ nftCollection, ...rest }) => ({
 				...rest,
 				...nftCollection,
 				lastConversation: subMinutes(
 					new Date(),
 					1 + Math.floor(Math.random() * 100),
 				),
-			}));
+			}),
+		);
 
 		return {
 			communityCount: communityCount.length,
-			itemCount: communityCount.length - userCommunityList.length,
+			itemCount: communityCount.length,
 			allCommunities,
 		};
 	}
