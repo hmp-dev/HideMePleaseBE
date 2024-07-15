@@ -352,6 +352,7 @@ export class SpaceService {
 		const { errors, results } = await PromisePool.withConcurrency(4)
 			.for(nftAddresses)
 			.process(async (tokenAddress) => {
+				// This api will auto filter category based nfts too
 				return await this.nftBenefitsService.getCollectionBenefits({
 					tokenAddress,
 					request,

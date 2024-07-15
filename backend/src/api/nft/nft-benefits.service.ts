@@ -62,12 +62,62 @@ export class NftBenefitsService {
 
 		const spaceIds = spaceId ? [spaceId] : [];
 
+		const nftInstance = await this.prisma.nft.findFirst({
+			where: {
+				tokenAddress,
+				ownedWallet: {
+					userId: authContext.userId,
+				},
+			},
+			select: {
+				name: true,
+				imageUrl: true,
+				nftCollection: {
+					select: {
+						name: true,
+						collectionLogo: true,
+						chain: true,
+						category: true,
+					},
+				},
+			},
+		});
+
+		if (nftInstance?.nftCollection.category && spaceId) {
+			const space = await this.prisma.space.findFirst({
+				where: {
+					id: spaceId,
+				},
+				select: {
+					category: true,
+				},
+			});
+			if (!space) {
+				throw new BadRequestException(ErrorCodes.ENTITY_NOT_FOUND);
+			}
+			if (space.category !== nftInstance.nftCollection.category) {
+				return {
+					benefits: [],
+					benefitCount: 0,
+				};
+			}
+		}
+
 		if (latitude && longitude) {
-			const sortedSpaceIds =
+			let sortedSpaceIds =
 				await this.spaceLocationService.getSpacesSortedByLocation({
 					latitude,
 					longitude,
 				});
+			if (nftInstance?.nftCollection.category) {
+				const spacesWithCategory =
+					await this.spaceLocationService.getSpacesForCategory(
+						nftInstance.nftCollection.category,
+					);
+				sortedSpaceIds = sortedSpaceIds.filter((spaceId) =>
+					spacesWithCategory.has(spaceId),
+				);
+			}
 
 			const skip = pageSize * (currentPage - 1);
 			sortedSpaceIds
@@ -75,75 +125,65 @@ export class NftBenefitsService {
 				.forEach((spaceId) => spaceIds.push(spaceId));
 		}
 
-		const [spaceBenefits, benefitCount, nftInstance, termsUrlMap] =
-			await Promise.all([
-				this.prisma.spaceBenefit.findMany({
-					where: {
-						level: {
-							in: benefitLevels,
-						},
-						active: true,
-						...(spaceIds.length && {
-							spaceId: {
-								in: spaceIds,
-							},
-						}),
+		const [spaceBenefits, benefitCount, termsUrlMap] = await Promise.all([
+			this.prisma.spaceBenefit.findMany({
+				where: {
+					level: {
+						in: benefitLevels,
 					},
-					select: {
-						id: true,
-						description: true,
-						singleUse: true,
+					active: true,
+					...(spaceIds.length && {
+						spaceId: {
+							in: spaceIds,
+						},
+					}),
+					...(nftInstance?.nftCollection.category && {
 						space: {
-							select: {
-								id: true,
-								name: true,
-								image: true,
-							},
+							category: nftInstance.nftCollection.category,
 						},
-						SpaceBenefitUsage: {
-							select: {
-								createdAt: true,
-								tokenAddress: true,
-							},
-							where: {
-								userId: authContext.userId,
-							},
-							orderBy: {
-								createdAt: 'desc',
-							},
+					}),
+				},
+				select: {
+					id: true,
+					description: true,
+					singleUse: true,
+					space: {
+						select: {
+							id: true,
+							name: true,
+							image: true,
 						},
 					},
-				}),
-				this.prisma.spaceBenefit.count({
-					where: {
-						level: {
-							in: benefitLevels,
+					SpaceBenefitUsage: {
+						select: {
+							createdAt: true,
+							tokenAddress: true,
 						},
-						active: true,
-						spaceId,
-					},
-				}),
-				this.prisma.nft.findFirst({
-					where: {
-						tokenAddress,
-						ownedWallet: {
+						where: {
 							userId: authContext.userId,
 						},
-					},
-					select: {
-						name: true,
-						imageUrl: true,
-						nftCollection: {
-							select: {
-								name: true,
-								collectionLogo: true,
-								chain: true,
-							},
+						orderBy: {
+							createdAt: 'desc',
 						},
 					},
-				}),
-				this.getNftTermsUrls(),
-			]);
+				},
+			}),
+			this.prisma.spaceBenefit.count({
+				where: {
+					level: {
+						in: benefitLevels,
+					},
+					active: true,
+					spaceId,
+					...(nftInstance?.nftCollection.category && {
+						space: {
+							category: nftInstance.nftCollection.category,
+						},
+					}),
+				},
+			}),
+			this.getNftTermsUrls(),
+		]);
 
 		const sortedSpaceBenefits =
 			spaceIds.length > 1

@@ -56,6 +56,7 @@ model NftCollection {
   chain                     SupportedChains
   chatChannelCreated        Boolean                     @default(false)
   Nft                       Nft[]
+  category                  SpaceCategory?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   NftCollectionPoints       NftCollectionPoints?
   SpaceBenefitUsage         SpaceBenefitUsage[]
@@ -78,6 +79,7 @@ model SystemNftCollection {
   contractSubmitted        Boolean                    @default(false)
   termsUrl                 String?
   redeemTermsUrl           String?
+  category                 SpaceCategory?
   SystemNft                SystemNft[]
   image                    directus_files             @relation(fields: [imageId], references: [id])
   space                    Space?                     @relation(fields: [spaceId], references: [id], onUpdate: NoAction)

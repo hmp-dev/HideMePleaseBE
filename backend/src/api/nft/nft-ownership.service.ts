@@ -61,6 +61,7 @@ export class NftOwnershipService {
 					contractType,
 					collectionLogo,
 					chainSymbol,
+					category,
 				}) => ({
 					name: name || '',
 					symbol: symbol || name || '',
@@ -68,6 +69,7 @@ export class NftOwnershipService {
 					contractType: contractType || '',
 					collectionLogo,
 					chain: chainSymbol,
+					category,
 				}),
 			),
 		});

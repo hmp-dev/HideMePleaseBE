@@ -1,5 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
+import { SpaceCategory } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { GeoPosition } from 'geo-position.ts';
 
@@ -74,5 +75,23 @@ export class SpaceLocationService {
 				spaceA.distance > spaceB.distance ? 1 : -1,
 			)
 			.map((space) => space.spaceId);
+	}
+
+	async getSpacesForCategory(category: SpaceCategory) {
+		const spacesWithCategory = await this.prisma.space.findMany({
+			where: {
+				category,
+			},
+			select: {
+				id: true,
+			},
+		});
+
+		const spaceIds = new Set<string>();
+		for (const space of spacesWithCategory) {
+			spaceIds.add(space.id);
+		}
+
+		return spaceIds;
 	}
 }

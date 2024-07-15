@@ -1,4 +1,4 @@
-import { SupportedChains } from '@prisma/client';
+import { SpaceCategory, SupportedChains } from '@prisma/client';
 
 import { CACHE_TTL } from '@/constants';
 
@@ -30,6 +30,7 @@ export interface NftCollectionWithTokens {
 	walletAddress: string;
 	collectionLogo?: string;
 	tokens: NftToken[];
+	category?: SpaceCategory;
 }
 
 export interface NftToken {

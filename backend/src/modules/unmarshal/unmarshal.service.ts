@@ -64,6 +64,9 @@ export class UnmarshalService {
 				collectionLogo: this.mediaService.getUrl(
 					systemNftCollection.image,
 				),
+				category: systemNftCollection.category
+					? systemNftCollection.category
+					: undefined,
 				tokens: systemNftCollection.SystemNft.map((systemNft) => ({
 					id: systemNft.id,
 					tokenId: systemNft.tokenId.toString(),

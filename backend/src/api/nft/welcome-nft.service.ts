@@ -218,6 +218,7 @@ export class WelcomeNftService {
 				description: true,
 				symbol: true,
 				contractType: true,
+				category: true,
 			},
 		});
 		if (!systemNft) {
@@ -286,6 +287,7 @@ export class WelcomeNftService {
 					contractType: systemNft.contractType,
 					collectionLogo: this.mediaService.getUrl(systemNft.image),
 					chain: SupportedChains.KLAYTN,
+					category: systemNft.category,
 				},
 			});
 			await this.sendbirdService.createGroupChannel({
@@ -331,7 +333,7 @@ export class WelcomeNftService {
 	}
 
 	async makeSpaceForFreeNftToken(userId: string) {
-		const selectedNfts = await this.prisma.nft.findMany({
+		let selectedNfts = await this.prisma.nft.findMany({
 			where: {
 				ownedWallet: {
 					userId,
@@ -354,7 +356,9 @@ export class WelcomeNftService {
 					id: firstNft.id,
 				},
 			});
+			selectedNfts = selectedNfts.filter((nft) => nft.id !== firstNft.id);
 		}
+
 		await Promise.all(
 			selectedNfts.map((nft) =>
 				this.prisma.nft.update({
