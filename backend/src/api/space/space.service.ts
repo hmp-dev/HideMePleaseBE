@@ -181,7 +181,7 @@ export class SpaceService {
 
 		const skip = SPACE_LIST_PAGE_SIZE * (currentPage - 1);
 
-		let spaceIds = sortedSpaceIds.slice(skip, SPACE_LIST_PAGE_SIZE + skip);
+		let spaceIds = sortedSpaceIds;
 
 		// Hottest space should be at top
 		if (mostPointsSpace?.spaceId) {
@@ -200,6 +200,8 @@ export class SpaceService {
 					in: spaceIds,
 				},
 			},
+			skip: skip,
+			take: SPACE_LIST_PAGE_SIZE,
 			select: {
 				id: true,
 				name: true,
