@@ -1,6 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { SupportedChains } from '@prisma/client';
+import { SpaceCategory, SupportedChains } from '@prisma/client';
 import { type Cache } from 'cache-manager';
 import { GeoPosition } from 'geo-position.ts';
 
@@ -117,6 +117,14 @@ export class NftBenefitsService {
 				sortedSpaceIds = sortedSpaceIds.filter((spaceId) =>
 					spacesWithCategory.has(spaceId),
 				);
+			} else {
+				const spacesWithCategory =
+					await this.spaceLocationService.getSpacesForCategory(
+						SpaceCategory.WALKERHILL,
+					);
+				sortedSpaceIds = sortedSpaceIds.filter(
+					(spaceId) => !spacesWithCategory.has(spaceId),
+				);
 			}
 
 			const skip = pageSize * (currentPage - 1);
@@ -172,6 +180,7 @@ export class NftBenefitsService {
 							id: true,
 							name: true,
 							image: true,
+							category: true,
 						},
 					},
 					SpaceBenefitUsage: {
@@ -247,6 +256,7 @@ export class NftBenefitsService {
 						...rest,
 						spaceId: space.id,
 						spaceName: space.name,
+						category: space.category,
 						spaceImage: this.mediaService.getUrl(space.image),
 						used,
 						state,
