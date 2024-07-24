@@ -209,6 +209,13 @@ export class NftBenefitsService {
 							category: nftInstance.nftCollection.category,
 						},
 					}),
+					...(!nftInstance?.nftCollection.category && {
+						space: {
+							category: {
+								not: SpaceCategory.WALKERHILL,
+							},
+						},
+					}),
 				},
 			}),
 			this.getNftTermsUrls(),
