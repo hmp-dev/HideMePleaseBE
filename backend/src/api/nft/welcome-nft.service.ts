@@ -290,12 +290,16 @@ export class WelcomeNftService {
 					category: systemNft.category,
 				},
 			});
-			await this.sendbirdService.createGroupChannel({
-				channelUrl: systemNft.tokenAddress,
-				channelImageURl: this.mediaService.getUrl(systemNft.image)!,
-				name: systemNft.name,
-				userIds: [authContext.userId],
-			});
+			try {
+				await this.sendbirdService.createGroupChannel({
+					channelUrl: systemNft.tokenAddress,
+					channelImageURl: this.mediaService.getUrl(systemNft.image)!,
+					name: systemNft.name,
+					userIds: [authContext.userId],
+				});
+			} catch (e) {
+				this.logger.error(e);
+			}
 			await this.prisma.nftCollection.update({
 				where: {
 					tokenAddress: systemNft.tokenAddress,
@@ -310,10 +314,14 @@ export class WelcomeNftService {
 			);
 		}
 
-		await this.sendbirdService.addUserToGroupChannel({
-			userId: authContext.userId,
-			channelUrl: systemNft.tokenAddress,
-		});
+		try {
+			await this.sendbirdService.addUserToGroupChannel({
+				userId: authContext.userId,
+				channelUrl: systemNft.tokenAddress,
+			});
+		} catch (e) {
+			this.logger.error(e);
+		}
 		await this.makeSpaceForFreeNftToken(authContext.userId);
 		await this.prisma.nft.create({
 			data: {

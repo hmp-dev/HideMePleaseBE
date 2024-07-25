@@ -225,12 +225,18 @@ export class UserNftService {
 		if (selected && !collectionData.chatChannelCreated) {
 			const imageUrl = collectionData.collectionLogo || nft.imageUrl;
 
-			await this.sendbirdService.createGroupChannel({
-				channelUrl: nft.tokenAddress,
-				channelImageURl: imageUrl?.includes('data:') ? '' : imageUrl,
-				name: collectionData.name || nft.name,
-				userIds: [authContext.userId],
-			});
+			try {
+				await this.sendbirdService.createGroupChannel({
+					channelUrl: nft.tokenAddress,
+					channelImageURl: imageUrl?.includes('data:')
+						? ''
+						: imageUrl,
+					name: collectionData.name || nft.name,
+					userIds: [authContext.userId],
+				});
+			} catch (e) {
+				console.error(e);
+			}
 			await this.prisma.nftCollection.update({
 				where: {
 					tokenAddress: nft.tokenAddress,
