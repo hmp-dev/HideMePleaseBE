@@ -81,6 +81,7 @@ model SystemNftCollection {
   redeemTermsUrl           String?
   category                 SpaceCategory?
   SystemNft                SystemNft[]
+  maxDistanceFromSpace     Int?
   image                    directus_files             @relation(fields: [imageId], references: [id])
   space                    Space?                     @relation(fields: [spaceId], references: [id], onUpdate: NoAction)
   SystemNftCollectionSpace SystemNftCollectionSpace[]

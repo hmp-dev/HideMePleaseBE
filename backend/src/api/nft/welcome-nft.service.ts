@@ -46,6 +46,7 @@ export class WelcomeNftService {
 						addressUpdated: true,
 					},
 					select: {
+						maxDistanceFromSpace: true,
 						tokenAddress: true,
 						space: {
 							select: {
@@ -89,7 +90,9 @@ export class WelcomeNftService {
 			);
 
 			const [nearestSpace] = sortedSpaces.filter(
-				(space) => space.distance <= maxDistance,
+				(space) =>
+					space.distance <=
+					(space.maxDistanceFromSpace ?? maxDistance),
 			);
 			if (nearestSpace) {
 				return nearestSpace.tokenAddress;
