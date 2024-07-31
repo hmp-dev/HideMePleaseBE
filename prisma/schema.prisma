@@ -765,6 +765,7 @@ enum SpaceCategory {
   MUSIC
   MEAL
   WALKERHILL
+  ETC
 }
 
 enum BenefitLevel {
