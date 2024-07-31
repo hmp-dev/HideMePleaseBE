@@ -1,5 +1,10 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+	BadRequestException,
+	Inject,
+	Injectable,
+	Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SupportedChains } from '@prisma/client';
 import type { Cache } from 'cache-manager';
@@ -20,6 +25,8 @@ import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class UserNftService {
+	private readonly logger = new Logger(UserNftService.name);
+
 	constructor(
 		private prisma: PrismaService,
 		private nftOwnershipService: NftOwnershipService,
@@ -64,6 +71,33 @@ export class UserNftService {
 				order: 'asc',
 			},
 		});
+
+		await Promise.all([
+			selectedNfts.map(async (selectedNft) => {
+				try {
+					await this.sendbirdService.updateGroupChannelToSuper({
+						channelUrl: selectedNft.tokenAddress,
+					});
+
+					const membershipCheck =
+						await this.sendbirdService.checkUserAddedToGroupChannel(
+							{
+								userId: authContext.userId,
+								channelUrl: selectedNft.tokenAddress,
+							},
+						);
+
+					if (!membershipCheck.is_member) {
+						await this.sendbirdService.addUserToGroupChannel({
+							userId: authContext.userId,
+							channelUrl: selectedNft.tokenAddress,
+						});
+					}
+				} catch (e) {
+					this.logger.error(e);
+				}
+			}),
+		]);
 
 		return selectedNfts.map((selectedNft) => ({
 			...selectedNft,
@@ -235,7 +269,7 @@ export class UserNftService {
 					userIds: [authContext.userId],
 				});
 			} catch (e) {
-				console.error(e);
+				this.logger.error(e);
 			}
 			await this.prisma.nftCollection.update({
 				where: {

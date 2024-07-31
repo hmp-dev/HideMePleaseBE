@@ -70,8 +70,23 @@ export class SendbirdService {
 			user_ids: userIds,
 			cover_url: channelImageURl,
 			is_public: true,
-			// is_super: true,
+			is_super: true,
 		});
+	}
+
+	async updateGroupChannelToSuper({ channelUrl }: { channelUrl: string }) {
+		const channelData = await this.getGroupChannel({
+			channelUrl: channelUrl,
+		});
+
+		if (
+			channelData.channels.length > 0 &&
+			!channelData.channels[0].is_super
+		) {
+			await this.client.put(`group_channels/${channelUrl}`, {
+				is_super: true,
+			});
+		}
 	}
 
 	async addUserToGroupChannel({
@@ -84,5 +99,45 @@ export class SendbirdService {
 		await this.client.post(`group_channels/${channelUrl}/invite`, {
 			user_ids: [userId],
 		});
+	}
+
+	async checkUserAddedToGroupChannel({
+		userId,
+		channelUrl,
+	}: {
+		userId: string;
+		channelUrl: string;
+	}): Promise<{
+		is_member: boolean;
+	}> {
+		const response = await this.client.get(
+			`group_channels/${channelUrl}/members/${userId}`,
+		);
+		return response.data as { is_member: boolean };
+	}
+
+	async getGroupChannel({ channelUrl }: { channelUrl: string }): Promise<{
+		channels: any[];
+	}> {
+		const response = await this.client.get(
+			`group_channels?channel_urls=${channelUrl}`,
+		);
+		return response.data as { channels: any[] };
+	}
+
+	async getGroupChannelMembers({
+		channelUrl,
+		limit = 10,
+	}: {
+		channelUrl: string;
+		limit?: number;
+	}): Promise<{
+		members: any[];
+		next: string;
+	}> {
+		const response = await this.client.get(
+			`group_channels/${channelUrl}/members?limit=${limit}`,
+		);
+		return response.data as { members: any[]; next: string };
 	}
 }
