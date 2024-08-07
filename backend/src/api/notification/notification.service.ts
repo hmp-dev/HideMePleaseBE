@@ -19,7 +19,8 @@ import { getNumberWithOrdinal } from '@/utils/number';
 @Injectable()
 export class NotificationService {
 	private readonly logger = new Logger(NotificationService.name);
-	private NOTIFICATIONS_ENABLED = false;
+	private NOTIFICATIONS_ENABLED = true;
+	private COMMUNITY_RANK_NOTIFICATIONS_ENABLED = false;
 
 	constructor(
 		private i18n: I18nService,
@@ -94,7 +95,7 @@ export class NotificationService {
 		newRank,
 		type,
 	}: UserCommunityRankChangeNotification) {
-		if (!this.NOTIFICATIONS_ENABLED) {
+		if (!this.COMMUNITY_RANK_NOTIFICATIONS_ENABLED) {
 			return;
 		}
 		const [allUsersInCommunity, user] = await Promise.all([
@@ -181,7 +182,7 @@ export class NotificationService {
 		oldRank,
 		type,
 	}: UserCommunityRankFallenNotification) {
-		if (!this.NOTIFICATIONS_ENABLED) {
+		if (!this.COMMUNITY_RANK_NOTIFICATIONS_ENABLED) {
 			return;
 		}
 		const user = await this.prisma.user.findFirst({
