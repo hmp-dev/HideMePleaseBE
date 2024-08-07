@@ -57,10 +57,13 @@ export class CmsService {
 	}
 
 	async getModalBanner() {
-		const { modalBannerImage, modalBannerStartDate, modalBannerEndDate } =
-			await this.systemConfig.get();
+		const {
+			modalBannerImageUrl,
+			modalBannerStartDate,
+			modalBannerEndDate,
+		} = await this.systemConfig.get();
 		return {
-			image: this.mediaService.getUrl(modalBannerImage),
+			image: modalBannerImageUrl,
 			startDate: modalBannerStartDate,
 			endDate: modalBannerEndDate,
 		};

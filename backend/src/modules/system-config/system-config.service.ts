@@ -4,18 +4,19 @@ import {
 	Injectable,
 	InternalServerErrorException,
 } from '@nestjs/common';
-import { directus_files } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 
 import { CACHE_TTL } from '@/constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { ErrorCodes } from '@/utils/errorCodes';
 
+import { MediaService } from '../media/media.service';
+
 interface SystemConfigRes {
 	settingsBannerLink: string | null;
 	settingsBannerHeading: string | null;
 	settingsBannerDescription: string | null;
-	modalBannerImage: directus_files | null;
+	modalBannerImageUrl: string | undefined;
 	modalBannerStartDate: Date | null;
 	modalBannerEndDate: Date | null;
 	maxDistanceFromSpace: number;
@@ -24,6 +25,7 @@ interface SystemConfigRes {
 @Injectable()
 export class SystemConfigService {
 	constructor(
+		private mediaService: MediaService,
 		private prisma: PrismaService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
@@ -58,12 +60,18 @@ export class SystemConfigService {
 			);
 		}
 
+		const modalBannerImageUrl = this.mediaService.getUrl(
+			systemConfig.modalBannerImage,
+		);
+		const { modalBannerImage: _, ...rest } = systemConfig;
+		const systemConfigResolved = { modalBannerImageUrl, ...rest };
+
 		await this.cacheManager.set(
 			cacheKey,
-			systemConfig,
+			systemConfigResolved,
 			CACHE_TTL.FIVE_MIN_IN_MILLISECONDS,
 		);
 
-		return systemConfig;
+		return systemConfigResolved;
 	}
 }
