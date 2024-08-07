@@ -4,6 +4,7 @@ import {
 	Injectable,
 	InternalServerErrorException,
 } from '@nestjs/common';
+import { directus_files } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 
 import { CACHE_TTL } from '@/constants';
@@ -14,6 +15,9 @@ interface SystemConfigRes {
 	settingsBannerLink: string | null;
 	settingsBannerHeading: string | null;
 	settingsBannerDescription: string | null;
+	modalBannerImage: directus_files | null;
+	modalBannerStartDate: Date | null;
+	modalBannerEndDate: Date | null;
 	maxDistanceFromSpace: number;
 }
 
@@ -41,6 +45,9 @@ export class SystemConfigService {
 				settingsBannerLink: true,
 				settingsBannerHeading: true,
 				settingsBannerDescription: true,
+				modalBannerImage: true,
+				modalBannerStartDate: true,
+				modalBannerEndDate: true,
 				maxDistanceFromSpace: true,
 			},
 		});

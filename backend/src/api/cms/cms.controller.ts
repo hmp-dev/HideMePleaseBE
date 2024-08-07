@@ -73,4 +73,13 @@ export class CmsController {
 	getSettingsBanner() {
 		return this.cmsService.getSettingsBanner();
 	}
+
+	@ApiOperation({
+		summary: 'Get Modal banner',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/modal/banner')
+	getModalBanner() {
+		return this.cmsService.getModalBanner();
+	}
 }

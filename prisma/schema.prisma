@@ -267,6 +267,10 @@ model SystemConfig {
   settingsBannerLink        String?
   settingsBannerHeading     String?
   settingsBannerDescription String?
+  modalBannerImageId        String?                   @db.Uuid @unique
+  modalBannerImage          directus_files?           @relation(fields: [modalBannerImageId], references: [id])
+  modalBannerStartDate      DateTime?
+  modalBannerEndDate        DateTime?
   maxDistanceFromSpace      Int      @default(100)
 }
 
@@ -403,6 +407,7 @@ model directus_files {
   focal_point_x                                                         Int?
   focal_point_y                                                         Int?
   Space                                                                 Space[]
+  SystemConfig                                                          SystemConfig?
   SystemNftCollection                                                   SystemNftCollection[]
   directus_folders                                                      directus_folders?     @relation(fields: [folder], references: [id], onUpdate: NoAction, map: "directus_files_folder_foreign")
   directus_users_directus_files_modified_byTodirectus_users             directus_users?       @relation("directus_files_modified_byTodirectus_users", fields: [modified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "directus_files_modified_by_foreign")

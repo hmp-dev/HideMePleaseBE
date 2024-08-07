@@ -55,4 +55,14 @@ export class CmsService {
 			settingsBannerHeading,
 		};
 	}
+
+	async getModalBanner() {
+		const { modalBannerImage, modalBannerStartDate, modalBannerEndDate } =
+			await this.systemConfig.get();
+		return {
+			image: this.mediaService.getUrl(modalBannerImage),
+			startDate: modalBannerStartDate,
+			endDate: modalBannerEndDate,
+		};
+	}
 }
