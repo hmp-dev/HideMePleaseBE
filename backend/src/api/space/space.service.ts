@@ -33,6 +33,9 @@ import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 import { benefitUsageResetTime } from '@/utils/time';
 
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/notification.types';
+
 @Injectable()
 export class SpaceService {
 	private logger = new Logger(SpaceService.name);
@@ -46,6 +49,7 @@ export class SpaceService {
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 		private systemConfig: SystemConfigService,
 		private spaceLocationService: SpaceLocationService,
+		private notificationService: NotificationService,
 	) {}
 
 	async redeemBenefit({
@@ -143,6 +147,15 @@ export class SpaceService {
 				pointsEarned: DEFAULT_POINTS.VISIT_SPACE,
 			},
 		});
+
+		if (benefit.space.category === SpaceCategory.WALKERHILL) {
+			void this.notificationService.sendNotification({
+				type: NotificationType.Admin,
+				userId: authContext.userId,
+				title: '워커힐 혜택 사용알림',
+				body: '비밀 열쇠 1개를 획득하였습니다.',
+			});
+		}
 
 		void this.nftPointService
 			.recalculateNftCollectionPoints()

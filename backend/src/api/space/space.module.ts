@@ -8,6 +8,8 @@ import { SpaceLocationModuleModule } from '@/api/space/space-location.module';
 import { UsersModule } from '@/api/users/users.module';
 import { SystemConfigModule } from '@/modules/system-config/system-config.module';
 
+import { NotificationModule } from '../notification/notification.module';
+
 @Module({
 	imports: [
 		AuthModule,
@@ -15,6 +17,7 @@ import { SystemConfigModule } from '@/modules/system-config/system-config.module
 		UsersModule,
 		SystemConfigModule,
 		SpaceLocationModuleModule,
+		NotificationModule,
 	],
 	controllers: [SpaceController],
 	providers: [SpaceService],
