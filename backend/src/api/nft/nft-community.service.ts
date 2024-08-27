@@ -134,13 +134,12 @@ export class NftCommunityService {
 
 		const topNfts = nftCounts
 			.sort((nftA, nftB) => (nftA._count < nftB._count ? 1 : -1))
-			.slice(0, 3)
-			.map((nft) => nft.tokenAddress);
+			.slice(0, 3);
 
 		const hottestCommunities = await this.prisma.nftCollection.findMany({
 			where: {
 				tokenAddress: {
-					in: topNfts,
+					in: topNfts.map((nft) => nft.tokenAddress),
 				},
 			},
 			select: {
@@ -151,12 +150,12 @@ export class NftCommunityService {
 			},
 		});
 
-		return hottestCommunities.sort((communityA, communityB) =>
-			topNfts.indexOf(communityA.tokenAddress) >
-			topNfts.indexOf(communityB.tokenAddress)
-				? 1
-				: -1,
-		);
+		return topNfts.map(({ tokenAddress, _count }) => ({
+			count: _count,
+			...hottestCommunities.find(
+				(community) => community.tokenAddress === tokenAddress,
+			),
+		}));
 	}
 
 	async getNftCollectionInfo({
