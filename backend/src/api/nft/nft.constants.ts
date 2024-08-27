@@ -14,4 +14,4 @@ export const TOP_NFT_PAGE_SIZE = 3;
 export const NFT_MEMBERS_PAGE_SIZE = 10;
 
 export const NFT_COMMUNITY_PAGE_SIZE = 16;
-export const NFT_MAX_HOTTEST_COMMUNITIES = 8;
+export const NFT_MAX_HOTTEST_COMMUNITIES = 3;
