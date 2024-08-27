@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { subMinutes } from 'date-fns';
+import { subDays, subMinutes } from 'date-fns';
 
-import {
-	NFT_COMMUNITY_PAGE_SIZE,
-	NFT_MAX_HOTTEST_COMMUNITIES,
-} from '@/api/nft/nft.constants';
+import { HOT_NFT_DAYS, NFT_COMMUNITY_PAGE_SIZE } from '@/api/nft/nft.constants';
 import { NftCommunitySortOrder } from '@/api/nft/nft.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
@@ -118,39 +115,34 @@ export class NftCommunityService {
 	}
 
 	async getHottestNftCommunities() {
-		// const authContext = Reflect.get(request, 'authContext') as AuthContext;
-		// TODO: implement logic to find communities with highest events
-		// const userCommunityList = await this.prisma.nftCollection.findMany({
-		// 	where: {
-		// 		Nft: {
-		// 			some: {
-		// 				ownedWallet: {
-		// 					userId: authContext.userId,
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// 	select: {
-		// 		tokenAddress: true,
-		// 	},
-		// });
-		//
-		// if (userCommunityList.length === 0) {
-		// 	return [];
-		// }
-		// this should be userCommunities.length === 1
+		const nftCounts = await this.prisma.nft.groupBy({
+			by: 'tokenAddress',
+			where: {
+				createdAt: {
+					gte: subDays(new Date(), HOT_NFT_DAYS),
+				},
+			},
+			_count: true,
+			having: {
+				tokenAddress: {
+					_count: {
+						gt: 1,
+					},
+				},
+			},
+		});
+
+		const topNfts = nftCounts
+			.sort((nftA, nftB) => (nftA._count < nftB._count ? 1 : -1))
+			.slice(0, 3)
+			.map((nft) => nft.tokenAddress);
 
 		const hottestCommunities = await this.prisma.nftCollection.findMany({
-			// where: {
-			// NOT: {
-			// 	tokenAddress: {
-			// 		in: userCommunityList.map(
-			// 			({ tokenAddress }) => tokenAddress,
-			// 		),
-			// 	},
-			// },
-			// },
-			take: NFT_MAX_HOTTEST_COMMUNITIES,
+			where: {
+				tokenAddress: {
+					in: topNfts,
+				},
+			},
 			select: {
 				tokenAddress: true,
 				name: true,
@@ -159,10 +151,12 @@ export class NftCommunityService {
 			},
 		});
 
-		return hottestCommunities.map((community) => ({
-			...community,
-			// eventCount: 1 + Math.floor(Math.random() * 100),
-		}));
+		return hottestCommunities.sort((communityA, communityB) =>
+			topNfts.indexOf(communityA.tokenAddress) >
+			topNfts.indexOf(communityB.tokenAddress)
+				? 1
+				: -1,
+		);
 	}
 
 	async getNftCollectionInfo({
