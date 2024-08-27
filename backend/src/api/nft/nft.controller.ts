@@ -258,9 +258,7 @@ export class NftController {
 	})
 	@UseGuards(AuthGuard)
 	@Get('/collections/communities/hot')
-	getHottestNftCommunities(@Req() request: Request) {
-		return this.nftCommunityService.getHottestNftCommunities({
-			request,
-		});
+	getHottestNftCommunities() {
+		return this.nftCommunityService.getHottestNftCommunities();
 	}
 }

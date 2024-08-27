@@ -117,39 +117,39 @@ export class NftCommunityService {
 		}));
 	}
 
-	async getHottestNftCommunities({ request }: { request: Request }) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+	async getHottestNftCommunities() {
+		// const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		// TODO: implement logic to find communities with highest events
-		const userCommunityList = await this.prisma.nftCollection.findMany({
-			where: {
-				Nft: {
-					some: {
-						ownedWallet: {
-							userId: authContext.userId,
-						},
-					},
-				},
-			},
-			select: {
-				tokenAddress: true,
-			},
-		});
-
-		if (userCommunityList.length === 0) {
-			return [];
-		}
+		// const userCommunityList = await this.prisma.nftCollection.findMany({
+		// 	where: {
+		// 		Nft: {
+		// 			some: {
+		// 				ownedWallet: {
+		// 					userId: authContext.userId,
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// 	select: {
+		// 		tokenAddress: true,
+		// 	},
+		// });
+		//
+		// if (userCommunityList.length === 0) {
+		// 	return [];
+		// }
 		// this should be userCommunities.length === 1
 
 		const hottestCommunities = await this.prisma.nftCollection.findMany({
-			where: {
-				NOT: {
-					tokenAddress: {
-						in: userCommunityList.map(
-							({ tokenAddress }) => tokenAddress,
-						),
-					},
-				},
-			},
+			// where: {
+			// NOT: {
+			// 	tokenAddress: {
+			// 		in: userCommunityList.map(
+			// 			({ tokenAddress }) => tokenAddress,
+			// 		),
+			// 	},
+			// },
+			// },
 			take: NFT_MAX_HOTTEST_COMMUNITIES,
 			select: {
 				tokenAddress: true,
@@ -161,7 +161,7 @@ export class NftCommunityService {
 
 		return hottestCommunities.map((community) => ({
 			...community,
-			eventCount: 1 + Math.floor(Math.random() * 100),
+			// eventCount: 1 + Math.floor(Math.random() * 100),
 		}));
 	}
 
