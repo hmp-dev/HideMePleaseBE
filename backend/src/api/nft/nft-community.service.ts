@@ -151,7 +151,7 @@ export class NftCommunityService {
 		});
 
 		return topNfts.map(({ tokenAddress, _count }) => ({
-			count: _count,
+			totalMembers: _count,
 			...hottestCommunities.find(
 				(community) => community.tokenAddress === tokenAddress,
 			),
