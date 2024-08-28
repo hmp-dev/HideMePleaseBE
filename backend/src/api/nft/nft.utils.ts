@@ -19,32 +19,44 @@ function getBenefitLevel(points: number): BenefitLevel {
 export function getAllEligibleLevels(points: number) {
 	const benefitLevel = getBenefitLevel(points);
 
+	// switch (benefitLevel) {
+	// 	case BenefitLevel.LEVEL1:
+	// 		return [BenefitLevel.LEVEL1];
+	// 	case BenefitLevel.LEVEL2:
+	// 		return [BenefitLevel.LEVEL1, BenefitLevel.LEVEL2];
+	// 	case BenefitLevel.LEVEL3:
+	// 		return [
+	// 			BenefitLevel.LEVEL1,
+	// 			BenefitLevel.LEVEL2,
+	// 			BenefitLevel.LEVEL3,
+	// 		];
+	// 	case BenefitLevel.LEVEL4:
+	// 		return [
+	// 			BenefitLevel.LEVEL1,
+	// 			BenefitLevel.LEVEL2,
+	// 			BenefitLevel.LEVEL3,
+	// 			BenefitLevel.LEVEL4,
+	// 		];
+	// 	case BenefitLevel.LEVEL5:
+	// 		return [
+	// 			BenefitLevel.LEVEL1,
+	// 			BenefitLevel.LEVEL2,
+	// 			BenefitLevel.LEVEL3,
+	// 			BenefitLevel.LEVEL4,
+	// 			BenefitLevel.LEVEL5,
+	// 		];
+	// }
 	switch (benefitLevel) {
 		case BenefitLevel.LEVEL1:
 			return [BenefitLevel.LEVEL1];
 		case BenefitLevel.LEVEL2:
-			return [BenefitLevel.LEVEL1, BenefitLevel.LEVEL2];
+			return [BenefitLevel.LEVEL2];
 		case BenefitLevel.LEVEL3:
-			return [
-				BenefitLevel.LEVEL1,
-				BenefitLevel.LEVEL2,
-				BenefitLevel.LEVEL3,
-			];
+			return [BenefitLevel.LEVEL3];
 		case BenefitLevel.LEVEL4:
-			return [
-				BenefitLevel.LEVEL1,
-				BenefitLevel.LEVEL2,
-				BenefitLevel.LEVEL3,
-				BenefitLevel.LEVEL4,
-			];
+			return [BenefitLevel.LEVEL4];
 		case BenefitLevel.LEVEL5:
-			return [
-				BenefitLevel.LEVEL1,
-				BenefitLevel.LEVEL2,
-				BenefitLevel.LEVEL3,
-				BenefitLevel.LEVEL4,
-				BenefitLevel.LEVEL5,
-			];
+			return [BenefitLevel.LEVEL5];
 	}
 }
 
