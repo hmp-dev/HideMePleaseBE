@@ -446,20 +446,10 @@ export class UserNftService {
 		}
 
 		return {
-			collections: this.normaliseCollectionName(collections),
+			collections: collections,
 			selectedNftCount: response.selectedNftCount,
 			next: response.next,
 		};
-	}
-
-	private normaliseCollectionName(collections: NftCollectionWithTokens[]) {
-		return collections.map((collection) => ({
-			...collection,
-			name:
-				collection.tokens.length === 1
-					? collection.tokens[0].name || collection.name
-					: collection.name,
-		}));
 	}
 
 	async getNftCollections({

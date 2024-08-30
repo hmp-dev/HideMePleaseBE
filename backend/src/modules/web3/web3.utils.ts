@@ -9,3 +9,11 @@ export function isSolanaAddress(walletAddress: string) {
 		return false;
 	}
 }
+
+export function stripNftName(name: string) {
+	return name
+		.replace(/[0-9]/g, '')
+		.replaceAll('#', '')
+		.replaceAll(' ', '_')
+		.trim();
+}

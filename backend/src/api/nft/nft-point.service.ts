@@ -58,9 +58,11 @@ export class NftPointService {
 				nftUserCount[nftMember.tokenAddress] = new Set<string>();
 			}
 
-			nftUserCount[nftMember.tokenAddress].add(
-				nftMember.ownedWallet.userId,
-			);
+			if (nftMember.ownedWallet?.userId) {
+				nftUserCount[nftMember.tokenAddress].add(
+					nftMember.ownedWallet.userId,
+				);
+			}
 		}
 
 		const existingPointsCount: Record<string, number> = {};

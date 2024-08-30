@@ -173,6 +173,9 @@ importers:
             rxjs:
                 specifier: ^7.8.1
                 version: 7.8.1
+            string-similarity:
+                specifier: ^4.0.4
+                version: 4.0.4
             uuid:
                 specifier: ^9.0.1
                 version: 9.0.1
@@ -201,6 +204,9 @@ importers:
             '@types/multer':
                 specifier: ^1.4.11
                 version: 1.4.11
+            '@types/string-similarity':
+                specifier: ^4.0.2
+                version: 4.0.2
             '@types/superagent':
                 specifier: ^8.1.6
                 version: 8.1.6
@@ -5548,6 +5554,12 @@ packages:
         resolution:
             {
                 integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==,
+            }
+
+    '@types/string-similarity@4.0.2':
+        resolution:
+            {
+                integrity: sha512-LkJQ/jsXtCVMK+sKYAmX/8zEq+/46f1PTQw7YtmQwb74jemS1SlNLmARM2Zml9DgdDTWKAtc5L13WorpHPDjDA==,
             }
 
     '@types/superagent@8.1.6':
@@ -16327,6 +16339,13 @@ packages:
                 integrity: sha512-bbEs3scLeYNXLecRRuk6uJxdXUSj6le/8rNPHChIJTn2V79aXVTR1EH2OH5zLKKoz0V02fOUKZZcw01pLUShZA==,
             }
 
+    string-similarity@4.0.4:
+        resolution:
+            {
+                integrity: sha512-/q/8Q4Bl4ZKAPjj8WerIBJWALKkaPRfrvhfF8k/B23i4nzrlRj2/go1m90In7nG/3XDSbOo0+pu6RvCTM9RGMQ==,
+            }
+        deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
     string-width@2.1.1:
         resolution:
             {
@@ -23164,6 +23183,8 @@ snapshots:
             '@types/http-errors': 2.0.4
             '@types/node': 20.12.5
             '@types/send': 0.17.4
+
+    '@types/string-similarity@4.0.2': {}
 
     '@types/superagent@8.1.6':
         dependencies:
@@ -30827,6 +30848,8 @@ snapshots:
     string-argv@0.3.2: {}
 
     string-format@2.0.0: {}
+
+    string-similarity@4.0.4: {}
 
     string-width@2.1.1:
         dependencies:

@@ -72,6 +72,7 @@ export class NftOwnershipService {
 					category,
 				}),
 			),
+			skipDuplicates: true,
 		});
 	}
 

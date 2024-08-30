@@ -136,7 +136,8 @@ export class UnmarshalService {
 						''
 					)
 						.replace(/[0-9]/g, '')
-						.replaceAll('#', ''),
+						.replaceAll('#', '')
+						.trim(),
 					tokenAddress: item.asset_contract,
 					walletAddress: walletAddress,
 					collectionLogo: item.issuer_specific_data?.image_url,
