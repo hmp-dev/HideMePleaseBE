@@ -304,6 +304,8 @@ model SolanaGroups {
   createdAt    DateTime @default(now())
   tokenAddress String
   groupId      String
+
+  @@index([tokenAddress])
 }
 
 model directus_activity {
