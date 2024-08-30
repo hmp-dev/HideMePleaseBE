@@ -4,6 +4,7 @@ import { SupportedChains } from '@prisma/client';
 import axios from 'axios';
 
 import { getCompositeTokenId } from '@/api/nft/nft.utils';
+import { HeliusService } from '@/modules/helius/helius.service';
 import { MediaService } from '@/modules/media/media.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -28,6 +29,7 @@ export class UnmarshalService {
 		private configService: ConfigService<EnvironmentVariables, true>,
 		private prisma: PrismaService,
 		private mediaService: MediaService,
+		private heliusService: HeliusService,
 	) {}
 
 	async getKlaytnSystemNftsForAddress(
@@ -128,29 +130,56 @@ export class UnmarshalService {
 				collectionsMap[item.asset_contract] = {
 					tokens: [],
 					chainSymbol: chain,
-					name:
+					name: (
 						item.asset_contract_name ||
-						item.issuer_specific_data?.name,
+						item.issuer_specific_data?.name ||
+						''
+					)
+						.replace(/[0-9]/g, '')
+						.replaceAll('#', ''),
 					tokenAddress: item.asset_contract,
 					walletAddress: walletAddress,
 					collectionLogo: item.issuer_specific_data?.image_url,
 				};
 			}
 
-			const tokenId =
-				item.token_id ||
-				this.extractTokenIdFromName(item.issuer_specific_data.name);
+			if (chain === SupportedChains.SOLANA) {
+				// For solana, we rewrite
+				// tokenAddress -> tokenId
+				// groupId -> tokenAddress
+				const tokenId =
+					collectionsMap[item.asset_contract].tokenAddress;
 
-			const nftId = getCompositeTokenId(item.asset_contract, tokenId);
-			collectionsMap[item.asset_contract].tokens.push({
-				id: nftId,
-				tokenId,
-				name: item.issuer_specific_data?.name,
-				imageUrl: item.issuer_specific_data?.image_url,
-				selected: selectedNftIds.has(nftId),
-				ownerWalletAddress: walletAddress,
-			});
+				const groupId =
+					await this.heliusService.getGroupIdForNft(tokenId);
+				const nftId = getCompositeTokenId(groupId, tokenId);
+				collectionsMap[item.asset_contract].tokenAddress = groupId;
+
+				collectionsMap[item.asset_contract].tokens.push({
+					id: nftId,
+					tokenId,
+					name: item.issuer_specific_data?.name,
+					imageUrl: item.issuer_specific_data?.image_url,
+					selected: selectedNftIds.has(nftId),
+					ownerWalletAddress: walletAddress,
+				});
+			} else {
+				const tokenId =
+					item.token_id ||
+					this.extractTokenIdFromName(item.issuer_specific_data.name);
+
+				const nftId = getCompositeTokenId(item.asset_contract, tokenId);
+				collectionsMap[item.asset_contract].tokens.push({
+					id: nftId,
+					tokenId,
+					name: item.issuer_specific_data?.name,
+					imageUrl: item.issuer_specific_data?.image_url,
+					selected: selectedNftIds.has(nftId),
+					ownerWalletAddress: walletAddress,
+				});
+			}
 		}
+
 		for (const collection of Object.values(collectionsMap)) {
 			nftCollections.push(collection);
 		}

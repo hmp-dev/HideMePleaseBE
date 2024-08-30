@@ -261,17 +261,17 @@ model SpaceBenefitUsage {
 }
 
 model SystemConfig {
-  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @default(now()) @updatedAt
+  id                        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @default(now()) @updatedAt
   settingsBannerLink        String?
   settingsBannerHeading     String?
   settingsBannerDescription String?
-  modalBannerImageId        String?                   @db.Uuid @unique
-  modalBannerImage          directus_files?           @relation(fields: [modalBannerImageId], references: [id])
+  modalBannerImageId        String?         @unique @db.Uuid
+  modalBannerImage          directus_files? @relation(fields: [modalBannerImageId], references: [id])
   modalBannerStartDate      DateTime?
   modalBannerEndDate        DateTime?
-  maxDistanceFromSpace      Int      @default(100)
+  maxDistanceFromSpace      Int             @default(100)
 }
 
 model Notification {
@@ -297,6 +297,13 @@ model ScheduleNotification {
   scheduleTime DateTime @default(now())
   userId       String?  @db.Uuid
   User         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SolanaGroups {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  tokenAddress String
+  groupId      String
 }
 
 model directus_activity {

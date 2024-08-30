@@ -97,6 +97,10 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsNumber()
 	REDIS_PORT!: number;
+
+	@IsNotEmpty()
+	@IsString()
+	HELIUS_API_KEY!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
