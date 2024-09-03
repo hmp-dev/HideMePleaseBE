@@ -20,7 +20,13 @@ export class AuthService {
 		private worldcoinService: WorldcoinService,
 		private ensureUserService: EnsureUserService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
-	) {}
+	) {
+		// setTimeout(() => {
+		// 	this.jwtService
+		// 		.signAsync({ userId: 'a4dc19c4-9cb4-4ca5-8ee6-74f0e2ce797a' })
+		// 		.then(console.log);
+		// }, 3000);
+	}
 
 	async firebaseLogin({
 		firebaseLoginDTO: { token },

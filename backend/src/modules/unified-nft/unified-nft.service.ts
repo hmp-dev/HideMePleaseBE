@@ -4,6 +4,7 @@ import { SupportedChains } from '@prisma/client';
 import { PAGE_SIZES } from '@/constants';
 import { CovalentService } from '@/modules/covalent/covalent.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
+import { SimpleHashService } from '@/modules/simple-hash/simple-hash.service';
 import { UnifiedNftNext } from '@/modules/unified-nft/unified-nft.types';
 import { UnmarshalService } from '@/modules/unmarshal/unmarshal.service';
 import { SupportedChainsList } from '@/modules/web3/web3.constants';
@@ -16,6 +17,7 @@ export class UnifiedNftService {
 	constructor(
 		private covalentService: CovalentService,
 		private unmarshalService: UnmarshalService,
+		private simpleHashService: SimpleHashService,
 	) {}
 
 	async getNftsForAddress({
@@ -107,11 +109,15 @@ export class UnifiedNftService {
 				walletAddress,
 				selectedNftIds,
 			});
-		} else if (
-			chain === SupportedChains.SOLANA ||
-			chain === SupportedChains.KLAYTN
-		) {
+		} else if (chain === SupportedChains.KLAYTN) {
 			return this.unmarshalService.getNftsForAddress({
+				chain,
+				walletAddress,
+				selectedNftIds,
+				nextPage,
+			});
+		} else if (chain === SupportedChains.SOLANA) {
+			return this.simpleHashService.getNftsForAddress({
 				chain,
 				walletAddress,
 				selectedNftIds,

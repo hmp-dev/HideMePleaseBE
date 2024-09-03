@@ -101,6 +101,10 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	HELIUS_API_KEY!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	SIMPLEHASH_API_KEY!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

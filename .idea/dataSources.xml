@@ -14,14 +14,14 @@
     </data-source>
     <data-source
 			source="LOCAL"
-			name="hideme prod"
-			uuid="25323bbd-8ddf-4dda-8c41-41c9d53166e8"
+			name="hidemeplease@hidemepleasedatabase0804.c2zabqzqcfqp.ap-northeast-2.rds.amazonaws.com"
+			uuid="3be23ad6-4ef8-44dc-9190-a92209b24c15"
 		>
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
       <jdbc-url
-			>jdbc:postgresql://hidemepleasedatabase.c2zabqzqcfqp.ap-northeast-2.rds.amazonaws.com:5432/hidemeplease</jdbc-url>
+			>jdbc:postgresql://hidemepleasedatabase0804.c2zabqzqcfqp.ap-northeast-2.rds.amazonaws.com:5432/hidemeplease</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
