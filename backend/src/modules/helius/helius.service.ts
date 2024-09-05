@@ -21,6 +21,7 @@ export class HeliusService implements OnModuleInit {
 	}
 
 	async getGroupIdForNft(tokenAddress: string) {
+		console.log('HELIUS TRIGGERED');
 		const cachedValue = await this.prisma.solanaGroups.findFirst({
 			where: {
 				tokenAddress,
