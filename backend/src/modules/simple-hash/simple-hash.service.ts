@@ -7,10 +7,14 @@ import { getCompositeTokenId } from '@/api/nft/nft.utils';
 import { HeliusService } from '@/modules/helius/helius.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { SimpleHashNftForAddressResponse } from '@/modules/simple-hash/simple-hash.types';
+import { SupportedChainSimpleHashMapping } from '@/modules/web3/web3.constants';
 import { PickKey } from '@/types';
 import { EnvironmentVariables } from '@/utils/env';
 
-type SimpleHashSupportedTypes = PickKey<typeof SupportedChains, 'SOLANA'>;
+type SimpleHashSupportedTypes = PickKey<
+	typeof SupportedChains,
+	'ETHEREUM' | 'SOLANA' | 'POLYGON'
+>;
 
 @Injectable()
 export class SimpleHashService {
@@ -47,7 +51,7 @@ export class SimpleHashService {
 		const nftCollections: NftCollectionWithTokens[] = [];
 
 		const response = await this.client.get<SimpleHashNftForAddressResponse>(
-			`v0/nfts/owners?chains=solana&wallet_addresses=${walletAddress}&limit=50&cursor=${nextPage ? nextPage : undefined}`,
+			`v0/nfts/owners?chains=${SupportedChainSimpleHashMapping[chain]}&wallet_addresses=${walletAddress}&limit=50&cursor=${nextPage ? nextPage : undefined}`,
 		);
 
 		const next = response.data.next_cursor
@@ -61,50 +65,89 @@ export class SimpleHashService {
 				nftCollections,
 			};
 		}
+		if (chain === SupportedChains.SOLANA) {
+			for (const item of response.data.nfts) {
+				if (!collectionsMap[item.contract_address]) {
+					collectionsMap[item.contract_address] = {
+						tokens: [],
+						chainSymbol: chain,
+						name: item.collection?.name
+							? item.collection.name
+							: (item.name || '')
+									.replace(/[0-9]/g, '')
+									.replaceAll('#', '')
+									.trim(),
+						tokenAddress:
+							item.collection.collection_id ||
+							item.contract_address,
+						walletAddress: walletAddress,
+						collectionLogo:
+							item.collection.image_url || item.image_url,
+						symbol: item.collection?.symbol,
+					};
+				}
+				// For solana, we rewrite
+				// tokenAddress -> tokenId
+				// groupId -> tokenAddress
 
-		for (const item of response.data.nfts) {
-			if (!collectionsMap[item.contract_address]) {
-				collectionsMap[item.contract_address] = {
-					tokens: [],
-					chainSymbol: chain,
-					name: item.collection?.name
-						? item.collection.name
-						: (item.name || '')
-								.replace(/[0-9]/g, '')
-								.replaceAll('#', '')
-								.trim(),
-					tokenAddress:
-						item.collection.collection_id || item.contract_address,
-					walletAddress: walletAddress,
-					collectionLogo: item.collection.image_url || item.image_url,
-					symbol: item.collection?.symbol,
-				};
+				let nftId = getCompositeTokenId(
+					item.collection.collection_id,
+					item.contract_address,
+				);
+
+				if (!item.collection?.collection_id) {
+					const tokenId = item.contract_address;
+
+					const groupId =
+						await this.heliusService.getGroupIdForNft(tokenId);
+					nftId = getCompositeTokenId(groupId, tokenId);
+					collectionsMap[item.contract_address].tokenAddress =
+						groupId;
+				}
+
+				collectionsMap[item.contract_address].tokens.push({
+					id: nftId,
+					tokenId: item.contract_address,
+					name: item.name,
+					imageUrl: item.image_url,
+					selected: selectedNftIds.has(nftId),
+					ownerWalletAddress: walletAddress,
+				});
 			}
-			// For solana, we rewrite
-			// tokenAddress -> tokenId
-			// groupId -> tokenAddress
+		} else {
+			for (const item of response.data.nfts) {
+				const tokenAddress =
+					item.collection?.collection_id || item.contract_address;
 
-			let nftId = getCompositeTokenId(
-				item.collection.collection_id,
-				item.contract_address,
-			);
-			if (!item.collection?.collection_id) {
-				const tokenId = item.contract_address;
+				if (!collectionsMap[tokenAddress]) {
+					collectionsMap[tokenAddress] = {
+						tokens: [],
+						chainSymbol: chain,
+						name: item.collection?.name
+							? item.collection.name
+							: (item.name || '')
+									.replace(/[0-9]/g, '')
+									.replaceAll('#', '')
+									.trim(),
+						tokenAddress,
+						walletAddress: walletAddress,
+						collectionLogo:
+							item.collection.image_url || item.image_url,
+						symbol: item.collection?.symbol,
+					};
+				}
 
-				const groupId =
-					await this.heliusService.getGroupIdForNft(tokenId);
-				nftId = getCompositeTokenId(groupId, tokenId);
-				collectionsMap[item.contract_address].tokenAddress = groupId;
+				const nftId = getCompositeTokenId(tokenAddress, item.token_id);
+
+				collectionsMap[tokenAddress].tokens.push({
+					id: nftId,
+					tokenId: item.token_id,
+					name: item.name,
+					imageUrl: item.image_url,
+					selected: selectedNftIds.has(nftId),
+					ownerWalletAddress: walletAddress,
+				});
 			}
-
-			collectionsMap[item.contract_address].tokens.push({
-				id: nftId,
-				tokenId: item.contract_address,
-				name: item.name,
-				imageUrl: item.image_url,
-				selected: selectedNftIds.has(nftId),
-				ownerWalletAddress: walletAddress,
-			});
 		}
 
 		for (const collection of Object.values(collectionsMap)) {

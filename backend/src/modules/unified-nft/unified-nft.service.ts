@@ -100,23 +100,18 @@ export class UnifiedNftService {
 		nftCollections: NftCollectionWithTokens[];
 		next?: string;
 	}> {
-		if (
-			chain === SupportedChains.ETHEREUM ||
-			chain === SupportedChains.POLYGON
-		) {
-			return this.covalentService.getNftsForAddress({
-				chain,
-				walletAddress,
-				selectedNftIds,
-			});
-		} else if (chain === SupportedChains.KLAYTN) {
+		if (chain === SupportedChains.KLAYTN) {
 			return this.unmarshalService.getNftsForAddress({
 				chain,
 				walletAddress,
 				selectedNftIds,
 				nextPage,
 			});
-		} else if (chain === SupportedChains.SOLANA) {
+		} else if (
+			chain === SupportedChains.ETHEREUM ||
+			chain === SupportedChains.POLYGON ||
+			chain === SupportedChains.SOLANA
+		) {
 			return this.simpleHashService.getNftsForAddress({
 				chain,
 				walletAddress,

@@ -28,3 +28,9 @@ export const ChainToSymbolMapping = {
 	[SupportedChains.SOLANA]: 'Sol',
 	[SupportedChains.KLAYTN]: 'Klay',
 };
+
+export const SupportedChainSimpleHashMapping = {
+	[SupportedChains.ETHEREUM]: 'ethereum',
+	[SupportedChains.SOLANA]: 'solana',
+	[SupportedChains.POLYGON]: 'polygon',
+};
