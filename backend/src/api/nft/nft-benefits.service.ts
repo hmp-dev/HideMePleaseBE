@@ -1,5 +1,10 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+	BadRequestException,
+	Inject,
+	Injectable,
+	NotFoundException,
+} from '@nestjs/common';
 import { SpaceCategory, SupportedChains } from '@prisma/client';
 import { type Cache } from 'cache-manager';
 import { GeoPosition } from 'geo-position.ts';
@@ -78,10 +83,35 @@ export class NftBenefitsService {
 						collectionLogo: true,
 						chain: true,
 						category: true,
+						NftCollectionAllowedSpace: {
+							select: {
+								SpaceId: true,
+							},
+						},
 					},
 				},
 			},
 		});
+
+		if (!nftInstance) {
+			throw new NotFoundException(ErrorCodes.NFT_NOT_FOUND);
+		}
+
+		const allowedSpaces =
+			nftInstance.nftCollection.NftCollectionAllowedSpace.map(
+				(space) => space.SpaceId,
+			).filter((spaceId) => spaceId) as string[];
+
+		if (
+			allowedSpaces.length &&
+			spaceIds.length === 1 &&
+			!allowedSpaces.includes(spaceIds[0])
+		) {
+			return {
+				benefits: [],
+				benefitCount: 0,
+			};
+		}
 
 		if (nftInstance?.nftCollection.category && spaceId) {
 			const space = await this.prisma.space.findFirst({
@@ -127,6 +157,12 @@ export class NftBenefitsService {
 				);
 			}
 
+			if (allowedSpaces.length) {
+				sortedSpaceIds = sortedSpaceIds.filter((spaceId) =>
+					allowedSpaces.includes(spaceId),
+				);
+			}
+
 			const skip = pageSize * (currentPage - 1);
 			if (skip >= sortedSpaceIds.length) {
 				return {
@@ -151,6 +187,8 @@ export class NftBenefitsService {
 			sortedSpaceIds
 				.slice(skip, pageSize + skip)
 				.forEach((spaceId) => spaceIds.push(spaceId));
+		} else if (allowedSpaces.length) {
+			allowedSpaces.forEach((spaceId) => spaceIds.push(spaceId));
 		}
 
 		const [spaceBenefits, benefitCount, termsUrlMap] = await Promise.all([
@@ -203,7 +241,15 @@ export class NftBenefitsService {
 						in: benefitLevels,
 					},
 					active: true,
-					spaceId,
+					...(spaceId && {
+						spaceId,
+					}),
+					...(!spaceId &&
+						allowedSpaces.length && {
+							spaceId: {
+								in: allowedSpaces,
+							},
+						}),
 					...(nftInstance?.nftCollection.category && {
 						space: {
 							category: nftInstance.nftCollection.category,

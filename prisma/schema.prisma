@@ -28,10 +28,10 @@ model User {
   ScheduleNotification      ScheduleNotification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceUser                 SpaceUser[]
+  SystemNft                 SystemNft[]
   pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id])
   UserLastKnownSpace        UserLastKnownSpace[]
   Wallets                   Wallet[]
-  SystemNft                 SystemNft[]
 }
 
 model Announcements {
@@ -55,8 +55,9 @@ model NftCollection {
   collectionLogo            String?
   chain                     SupportedChains
   chatChannelCreated        Boolean                     @default(false)
-  Nft                       Nft[]
   category                  SpaceCategory?
+  Nft                       Nft[]
+  NftCollectionAllowedSpace NftCollectionAllowedSpace[]
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   NftCollectionPoints       NftCollectionPoints?
   SpaceBenefitUsage         SpaceBenefitUsage[]
@@ -80,8 +81,8 @@ model SystemNftCollection {
   termsUrl                 String?
   redeemTermsUrl           String?
   category                 SpaceCategory?
-  SystemNft                SystemNft[]
   maxDistanceFromSpace     Int?
+  SystemNft                SystemNft[]
   image                    directus_files             @relation(fields: [imageId], references: [id])
   space                    Space?                     @relation(fields: [spaceId], references: [id], onUpdate: NoAction)
   SystemNftCollectionSpace SystemNftCollectionSpace[]
@@ -98,10 +99,10 @@ model SystemNft {
   recipientAddress String
   tokenFileId      Int
   name             String
+  userId           String              @db.Uuid
   nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
   tokenFile        MediaFile           @relation(fields: [tokenFileId], references: [id])
-  userId           String              @db.Uuid
-  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NftCollectionPoints {
@@ -172,28 +173,29 @@ model MediaFile {
 }
 
 model Space {
-  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt                DateTime                   @default(now())
-  updatedAt                DateTime                   @default(now()) @updatedAt
-  deleted                  Boolean                    @default(false)
-  name                     String
-  latitude                 Float
-  longitude                Float
-  address                  String
-  webLink                  String
-  businessHoursEnd         String
-  businessHoursStart       String
-  category                 SpaceCategory
-  introduction             String                     @default("")
-  locationDescription      String                     @default("")
-  imageId                  String                     @db.Uuid
-  image                    directus_files             @relation(fields: [imageId], references: [id])
-  SpaceBenefit             SpaceBenefit[]
-  SpaceUser                SpaceUser[]
-  SpaceUserInvites         SpaceUserInvites[]
-  SystemNftCollection      SystemNftCollection[]
-  SystemNftCollectionSpace SystemNftCollectionSpace[]
-  UserLastKnownSpace       UserLastKnownSpace[]
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now()) @updatedAt
+  deleted                   Boolean                     @default(false)
+  name                      String
+  latitude                  Float
+  longitude                 Float
+  address                   String
+  webLink                   String
+  businessHoursEnd          String
+  businessHoursStart        String
+  category                  SpaceCategory
+  introduction              String                      @default("")
+  locationDescription       String                      @default("")
+  imageId                   String                      @db.Uuid
+  NftCollectionAllowedSpace NftCollectionAllowedSpace[]
+  image                     directus_files              @relation(fields: [imageId], references: [id])
+  SpaceBenefit              SpaceBenefit[]
+  SpaceUser                 SpaceUser[]
+  SpaceUserInvites          SpaceUserInvites[]
+  SystemNftCollection       SystemNftCollection[]
+  SystemNftCollectionSpace  SystemNftCollectionSpace[]
+  UserLastKnownSpace        UserLastKnownSpace[]
 }
 
 model SpaceUser {
@@ -267,11 +269,11 @@ model SystemConfig {
   settingsBannerLink        String?
   settingsBannerHeading     String?
   settingsBannerDescription String?
-  modalBannerImageId        String?         @unique @db.Uuid
-  modalBannerImage          directus_files? @relation(fields: [modalBannerImageId], references: [id])
-  modalBannerStartDate      DateTime?
-  modalBannerEndDate        DateTime?
   maxDistanceFromSpace      Int             @default(100)
+  modalBannerEndDate        DateTime?
+  modalBannerImageId        String?         @unique @db.Uuid
+  modalBannerStartDate      DateTime?
+  modalBannerImage          directus_files? @relation(fields: [modalBannerImageId], references: [id])
 }
 
 model Notification {
@@ -746,6 +748,14 @@ model SystemNftCollectionSpace {
   SpaceId                         String?              @db.Uuid
   Space                           Space?               @relation(fields: [SpaceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "systemnftcollectionspace_spaceid_foreign")
   SystemNftCollection             SystemNftCollection? @relation(fields: [SystemNftCollectionTokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction, map: "systemnftcollectionspace_systemnftcollectio__7fdec97_foreign")
+}
+
+model NftCollectionAllowedSpace {
+  id                        Int            @id @default(autoincrement())
+  NftCollectionTokenAddress String?
+  SpaceId                   String?        @db.Uuid
+  NftCollection             NftCollection? @relation(fields: [NftCollectionTokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction, map: "nftcollectionallowedspace_nftcollectiontokenaddress_foreign")
+  Space                     Space?         @relation(fields: [SpaceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "nftcollectionallowedspace_spaceid_foreign")
 }
 
 enum LoginType {
