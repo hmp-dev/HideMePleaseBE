@@ -8,6 +8,7 @@ export interface SimpleHashNftAsset {
 	name: string;
 	description: string;
 	image_url: string;
+	video_url: string;
 	token_id: string;
 
 	collection: {
