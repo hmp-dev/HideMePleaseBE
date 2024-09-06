@@ -85,6 +85,7 @@ export class NftOwnershipService {
 					name: token.name || '',
 					tokenId: token.tokenId?.toString() || '',
 					imageUrl: token.imageUrl || '',
+					videoUrl: token.videoUrl ? token.videoUrl : null,
 					tokenAddress: collection.tokenAddress,
 					id: token.id,
 					ownedWalletAddress: token.ownerWalletAddress,

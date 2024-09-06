@@ -109,7 +109,8 @@ export class SimpleHashService {
 					id: nftId,
 					tokenId: item.contract_address,
 					name: item.name,
-					imageUrl: item.image_url || item.video_url,
+					imageUrl: item.image_url,
+					videoUrl: item.video_url,
 					selected: selectedNftIds.has(nftId),
 					ownerWalletAddress: walletAddress,
 				});
@@ -143,7 +144,8 @@ export class SimpleHashService {
 					id: nftId,
 					tokenId: item.token_id,
 					name: item.name,
-					imageUrl: item.image_url || item.video_url,
+					imageUrl: item.image_url,
+					videoUrl: item.video_url,
 					selected: selectedNftIds.has(nftId),
 					ownerWalletAddress: walletAddress,
 				});

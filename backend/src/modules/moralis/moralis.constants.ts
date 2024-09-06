@@ -38,6 +38,7 @@ export interface NftToken {
 	tokenId: string;
 	name?: string;
 	imageUrl?: string;
+	videoUrl?: string;
 	selected: boolean;
 	ownerWalletAddress: string;
 }

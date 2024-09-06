@@ -11,6 +11,7 @@ export type NftCreateDTO = Pick<
 	| 'id'
 	| 'name'
 	| 'imageUrl'
+	| 'videoUrl'
 	| 'tokenAddress'
 	| 'tokenId'
 	| 'ownedWalletAddress'

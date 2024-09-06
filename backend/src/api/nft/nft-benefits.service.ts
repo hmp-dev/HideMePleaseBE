@@ -77,6 +77,7 @@ export class NftBenefitsService {
 			select: {
 				name: true,
 				imageUrl: true,
+				videoUrl: true,
 				nftCollection: {
 					select: {
 						name: true,
@@ -315,14 +316,15 @@ export class NftBenefitsService {
 						state,
 						tokenAddress,
 						nftCollectionName:
-							nftInstance?.name ||
-							nftInstance?.nftCollection?.name ||
+							nftInstance.name ||
+							nftInstance.nftCollection?.name ||
 							'',
 						nftCollectionImage:
-							nftInstance?.imageUrl ||
-							nftInstance?.nftCollection.collectionLogo ||
+							nftInstance.imageUrl ||
+							nftInstance.nftCollection.collectionLogo ||
 							'',
-						nftCollectionChain: nftInstance?.nftCollection.chain,
+						nftCollectionVideo: nftInstance.videoUrl,
+						nftCollectionChain: nftInstance.nftCollection.chain,
 						termsUrl: termsUrlMap[tokenAddress]?.spaceIds?.includes(
 							space.id,
 						)

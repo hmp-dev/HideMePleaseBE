@@ -50,6 +50,7 @@ export class UserNftService {
 				id: true,
 				name: true,
 				imageUrl: true,
+				videoUrl: true,
 				order: true,
 				tokenAddress: true,
 				nftCollection: {
@@ -127,6 +128,7 @@ export class UserNftService {
 					id: true,
 					name: true,
 					imageUrl: true,
+					videoUrl: true,
 					tokenAddress: true,
 				},
 				orderBy: {
@@ -382,6 +384,7 @@ export class UserNftService {
 								lastOwnershipCheck: true,
 								name: true,
 								imageUrl: true,
+								videoUrl: true,
 							},
 							where: {
 								ownedWallet: {

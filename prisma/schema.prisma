@@ -137,6 +137,7 @@ model Nft {
   deleted            Boolean       @default(false)
   name               String
   imageUrl           String
+  videoUrl           String?
   tokenAddress       String
   tokenId            String
   tokenUpdatedAt     DateTime?
