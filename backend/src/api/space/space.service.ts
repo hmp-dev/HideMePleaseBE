@@ -186,35 +186,27 @@ export class SpaceService {
 
 		const mostPointsSpace = await this.getSpaceWithMostPointsInLastWeek();
 
-		const sortedSpaceIds =
+		let sortedSpaceIds =
 			await this.spaceLocationService.getSpacesSortedByLocation({
 				latitude,
 				longitude,
 			});
 
-		const skip = SPACE_LIST_PAGE_SIZE * (currentPage - 1);
-
-		let spaceIds = sortedSpaceIds;
-
 		// Hottest space should be at top
 		if (mostPointsSpace?.spaceId) {
-			spaceIds = spaceIds.filter(
+			sortedSpaceIds = sortedSpaceIds.filter(
 				(spaceId) => spaceId !== mostPointsSpace.spaceId,
 			);
-			if (currentPage === 1) {
-				spaceIds.unshift(mostPointsSpace.spaceId);
-			}
+			sortedSpaceIds.unshift(mostPointsSpace.spaceId);
 		}
 
 		const spaces = await this.prisma.space.findMany({
 			where: {
 				category,
 				id: {
-					in: spaceIds,
+					in: sortedSpaceIds,
 				},
 			},
-			skip: skip,
-			take: SPACE_LIST_PAGE_SIZE,
 			select: {
 				id: true,
 				name: true,
@@ -232,9 +224,19 @@ export class SpaceService {
 			},
 		});
 
-		const sortedSpaces = spaces.sort((spaceA, spaceB) =>
-			spaceIds.indexOf(spaceA.id) > spaceIds.indexOf(spaceB.id) ? 1 : -1,
-		);
+		const skip = SPACE_LIST_PAGE_SIZE * (currentPage - 1);
+		if (skip >= spaces.length) {
+			return [];
+		}
+
+		const sortedSpaces = spaces
+			.sort((spaceA, spaceB) =>
+				sortedSpaceIds.indexOf(spaceA.id) >
+				sortedSpaceIds.indexOf(spaceB.id)
+					? 1
+					: -1,
+			)
+			.slice(skip, SPACE_LIST_PAGE_SIZE + skip);
 
 		const hidingUsers =
 			await this.userLocationService.getNumberOfUsersHidingInSpaces(
