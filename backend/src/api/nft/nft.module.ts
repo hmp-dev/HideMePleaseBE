@@ -4,6 +4,7 @@ import { AuthModule } from '@/api/auth/auth.module';
 import { NftController } from '@/api/nft/nft.controller';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftCommunityService } from '@/api/nft/nft-community.service';
+import { NftLevelService } from '@/api/nft/nft-level.service';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { NftPointService } from '@/api/nft/nft-point.service';
 import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
@@ -33,6 +34,7 @@ import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 		NftOwnershipService,
 		NftPointService,
 		NftCommunityService,
+		NftLevelService,
 	],
 	exports: [
 		WelcomeNftService,

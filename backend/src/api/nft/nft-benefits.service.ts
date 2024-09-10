@@ -16,7 +16,7 @@ import {
 	TOP_NFT_PAGE_SIZE,
 } from '@/api/nft/nft.constants';
 import { BenefitState, BenefitUsageType } from '@/api/nft/nft.types';
-import { getAllEligibleLevels } from '@/api/nft/nft.utils';
+import { NftLevelService } from '@/api/nft/nft-level.service';
 import { SpaceLocationService } from '@/api/space/space-location.service';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
@@ -40,6 +40,7 @@ export class NftBenefitsService {
 		private systemConfig: SystemConfigService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 		private spaceLocationService: SpaceLocationService,
+		private nftLevelService: NftLevelService,
 	) {}
 
 	async getCollectionBenefits({
@@ -63,7 +64,9 @@ export class NftBenefitsService {
 		const currentPage = isNaN(page) || !page ? 1 : page;
 
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
-		const benefitLevels = getAllEligibleLevels(collectionPoints);
+
+		const benefitLevels =
+			await this.nftLevelService.getAllEligibleLevels(collectionPoints);
 
 		const spaceIds = spaceId ? [spaceId] : [];
 
@@ -498,7 +501,8 @@ export class NftBenefitsService {
 		longitude: number;
 	}) {
 		const collectionPoints = await this.getCollectionPoints(tokenAddress);
-		const benefitLevels = getAllEligibleLevels(collectionPoints);
+		const benefitLevels =
+			await this.nftLevelService.getAllEligibleLevels(collectionPoints);
 
 		const spacesOfferingTheseBenefits = await this.prisma.space.findMany({
 			where: {

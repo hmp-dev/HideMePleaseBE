@@ -1,13 +1,3 @@
-import { BenefitLevel } from '@prisma/client';
-
-export const BENEFIT_POINT_CAP: Record<BenefitLevel, number> = {
-	[BenefitLevel.LEVEL1]: 100,
-	[BenefitLevel.LEVEL2]: 200,
-	[BenefitLevel.LEVEL3]: 300,
-	[BenefitLevel.LEVEL4]: 400,
-	[BenefitLevel.LEVEL5]: Infinity,
-};
-
 export const BENEFIT_USAGE_PAGE_SIZE = 10;
 export const BENEFIT_PAGE_SIZE = 6;
 export const TOP_NFT_PAGE_SIZE = 3;
