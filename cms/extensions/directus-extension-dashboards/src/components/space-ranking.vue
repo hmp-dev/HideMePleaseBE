@@ -4,7 +4,6 @@
 			<v-icon name="download"></v-icon>
 		</v-button>
 	</div>
-
 	<div v-if="loading">
 		<v-skeleton-loader />
 		<br />
@@ -14,13 +13,18 @@
 		<br />
 		<v-skeleton-loader />
 	</div>
-	<v-table v-if="!loading" :headers="tableHeaders" :items="users" show-resize>
-		<template #[`item.userId`]="{ item }">
+	<v-table
+		v-if="!loading"
+		:headers="tableHeaders"
+		:items="spaces"
+		show-resize
+	>
+		<template #[`item.spaceId`]="{ item }">
 			<router-link :to="getLinkForItem(item)" class="item-link">
 				<display-formatted-value
 					type="string"
 					:item="item"
-					:value="item.userId"
+					:value="item.spaceId"
 				/>
 			</router-link>
 		</template>
@@ -43,7 +47,7 @@ import { TIMEFRAMES } from '../constants';
 import { downloadJSONAsCSV, getStartDate } from '../utils';
 
 export default {
-	name: 'UserRanking',
+	name: 'SpaceRanking',
 	inheritAttrs: false,
 	props: {
 		timeframe: {
@@ -54,21 +58,22 @@ export default {
 	setup(props) {
 		const tableHeaders = ref([
 			{
-				text: 'User Id',
-				value: 'userId',
+				text: 'Space Id',
+				value: 'spaceId',
 				align: 'left',
 				description: null,
 				width: 350,
 			},
 			{
-				text: 'Nickname',
+				text: 'Space Name',
 				value: 'name',
 				// sortable: true,
 				align: 'left',
+				width: 350,
 				description: null,
 			},
 			{
-				text: 'Points Made',
+				text: 'Points Distributed',
 				value: 'totalPoints',
 				align: 'left',
 				description: null,
@@ -76,9 +81,9 @@ export default {
 		]);
 
 		const loading = ref(true);
-		const users = ref([]);
+		const spaces = ref([]);
 
-		async function fetchTopUsers() {
+		async function fetchTopSpaces() {
 			try {
 				loading.value = true;
 				const res = await fetch(`/directus-extension-custom-proxy`, {
@@ -88,13 +93,13 @@ export default {
 					},
 					method: 'POST',
 					body: JSON.stringify({
-						url: `/v1/cms/top-users?${getStartDate(props.timeframe)}`,
+						url: `/v1/cms/top-spaces?${getStartDate(props.timeframe)}`,
 					}),
 				});
 
-				users.value = await res.json();
+				spaces.value = await res.json();
 			} catch (e) {
-				console.log('unable to get top users: ', e);
+				console.log('unable to get top spaces: ', e);
 			} finally {
 				loading.value = false;
 			}
@@ -103,20 +108,21 @@ export default {
 		watch(
 			() => props.timeframe,
 			() => {
-				fetchTopUsers();
+				fetchTopSpaces();
 			},
 		);
-		fetchTopUsers();
 
-		function getLinkForItem(user) {
-			return `/content/User/${user.userId}`;
+		fetchTopSpaces();
+
+		function getLinkForItem(space) {
+			return `/content/Space/${space.spaceId}`;
 		}
 
 		function downloadCsv() {
-			downloadJSONAsCSV(users.value, 'user-ranking');
+			downloadJSONAsCSV(spaces.value, 'space-ranking');
 		}
 
-		return { tableHeaders, users, loading, getLinkForItem, downloadCsv };
+		return { tableHeaders, spaces, loading, getLinkForItem, downloadCsv };
 	},
 };
 </script>

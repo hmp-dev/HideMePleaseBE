@@ -69,12 +69,20 @@ export class CmsService {
 		};
 	}
 
-	async getTopUsers() {
+	async getTopUsers(props: { startDate?: string }) {
+		const startDate = props.startDate ? new Date(props.startDate) : null;
 		const topUsers = await this.prisma.spaceBenefitUsage.groupBy({
 			by: 'userId',
 			_sum: {
 				pointsEarned: true,
 			},
+			...(startDate && {
+				where: {
+					createdAt: {
+						gte: startDate,
+					},
+				},
+			}),
 			orderBy: {
 				_sum: {
 					pointsEarned: 'desc',
@@ -106,12 +114,20 @@ export class CmsService {
 		}));
 	}
 
-	async getTopNfts() {
+	async getTopNfts(props: { startDate?: string }) {
+		const startDate = props.startDate ? new Date(props.startDate) : null;
 		const topNfts = await this.prisma.spaceBenefitUsage.groupBy({
 			by: 'tokenAddress',
 			_sum: {
 				pointsEarned: true,
 			},
+			...(startDate && {
+				where: {
+					createdAt: {
+						gte: startDate,
+					},
+				},
+			}),
 			orderBy: {
 				_sum: {
 					pointsEarned: 'desc',
@@ -122,7 +138,7 @@ export class CmsService {
 		const tokenNames = await this.prisma.nftCollection.findMany({
 			where: {
 				tokenAddress: {
-					in: topNfts.map((nft) => nft.tokenAddress),
+					in: topNfts.map((space) => space.tokenAddress),
 				},
 			},
 			select: {
@@ -141,5 +157,78 @@ export class CmsService {
 			totalPoints: topNft._sum.pointsEarned,
 			tokenAddress: topNft.tokenAddress,
 		}));
+	}
+
+	async getTopSpaces(props: { startDate?: string }) {
+		const startDate = props.startDate ? new Date(props.startDate) : null;
+
+		const [topBenefits, allSpaces] = await Promise.all([
+			this.prisma.spaceBenefitUsage.groupBy({
+				by: 'benefitId',
+				_sum: {
+					pointsEarned: true,
+				},
+				...(startDate && {
+					where: {
+						createdAt: {
+							gte: startDate,
+						},
+					},
+				}),
+				orderBy: {
+					_sum: {
+						pointsEarned: 'desc',
+					},
+				},
+			}),
+			this.prisma.space.findMany({
+				select: {
+					id: true,
+					name: true,
+				},
+			}),
+		]);
+
+		const linkedBenefits = await this.prisma.spaceBenefit.findMany({
+			where: {
+				id: {
+					in: topBenefits.map((benefit) => benefit.benefitId),
+				},
+			},
+			select: {
+				id: true,
+				spaceId: true,
+			},
+		});
+
+		const benefitSpaceMapping: Record<string, string> = {};
+		for (const benefit of linkedBenefits) {
+			benefitSpaceMapping[benefit.id] = benefit.spaceId;
+		}
+
+		const spacePointAggregates: Record<
+			string,
+			{ name: string; totalPoints: number; spaceId: string }
+		> = {};
+		for (const space of allSpaces) {
+			spacePointAggregates[space.id] = {
+				spaceId: space.id,
+				name: space.name,
+				totalPoints: 0,
+			};
+		}
+
+		for (const benefit of topBenefits) {
+			const spaceId = benefitSpaceMapping[benefit.benefitId];
+			if (!benefit._sum.pointsEarned) {
+				continue;
+			}
+			spacePointAggregates[spaceId].totalPoints +=
+				benefit._sum.pointsEarned;
+		}
+
+		return Object.values(spacePointAggregates).sort((spaceA, spaceB) =>
+			spaceA.totalPoints < spaceB.totalPoints ? 1 : -1,
+		);
 	}
 }

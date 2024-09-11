@@ -1,4 +1,9 @@
 <template>
+	<div style="display: flex; justify-content: end">
+		<v-button rounded icon @click="downloadCsv">
+			<v-icon name="download"></v-icon>
+		</v-button>
+	</div>
 	<div v-if="loading">
 		<v-skeleton-loader />
 		<br />
@@ -8,6 +13,7 @@
 		<br />
 		<v-skeleton-loader />
 	</div>
+
 	<v-table v-if="!loading" :headers="tableHeaders" :items="nfts" show-resize>
 		<template #[`item.tokenAddress`]="{ item }">
 			<router-link :to="getLinkForItem(item)" class="item-link">
@@ -32,13 +38,20 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import { TIMEFRAMES } from '../constants';
+import { downloadJSONAsCSV, getStartDate } from '../utils';
 
 export default {
 	name: 'NftRanking',
 	inheritAttrs: false,
-	props: {},
-	setup() {
+	props: {
+		timeframe: {
+			type: String,
+			default: TIMEFRAMES.ALL,
+		},
+	},
+	setup(props) {
 		const tableHeaders = ref([
 			{
 				text: 'NFT Token Address',
@@ -68,6 +81,7 @@ export default {
 
 		async function fetchTopNfts() {
 			try {
+				loading.value = true;
 				const res = await fetch(`/directus-extension-custom-proxy`, {
 					headers: {
 						'Accept': 'application/json',
@@ -75,7 +89,7 @@ export default {
 					},
 					method: 'POST',
 					body: JSON.stringify({
-						url: '/v1/cms/top-nfts',
+						url: `/v1/cms/top-nfts?${getStartDate(props.timeframe)}`,
 					}),
 				});
 
@@ -87,13 +101,24 @@ export default {
 			}
 		}
 
+		watch(
+			() => props.timeframe,
+			() => {
+				fetchTopNfts();
+			},
+		);
+
 		fetchTopNfts();
 
 		function getLinkForItem(nft) {
 			return `/content/NftCollection/${nft.tokenAddress}`;
 		}
 
-		return { tableHeaders, nfts, loading, getLinkForItem };
+		function downloadCsv() {
+			downloadJSONAsCSV(nfts.value, 'nft-ranking');
+		}
+
+		return { tableHeaders, nfts, loading, getLinkForItem, downloadCsv };
 	},
 };
 </script>

@@ -86,16 +86,39 @@ export class CmsController {
 	@ApiOperation({
 		summary: 'Get Top Ranked users',
 	})
+	@ApiQuery({
+		name: 'startDate',
+		type: 'string',
+		required: false,
+	})
 	@Get('/top-users')
-	getTopUsers() {
-		return this.cmsService.getTopUsers();
+	getTopUsers(@Query() { startDate }: { startDate?: string }) {
+		return this.cmsService.getTopUsers({ startDate });
 	}
 
 	@ApiOperation({
 		summary: 'Get Top Ranked NFTs',
 	})
+	@ApiQuery({
+		name: 'startDate',
+		type: 'string',
+		required: false,
+	})
 	@Get('/top-nfts')
-	getTopNfts() {
-		return this.cmsService.getTopNfts();
+	getTopNfts(@Query() { startDate }: { startDate?: string }) {
+		return this.cmsService.getTopNfts({ startDate });
+	}
+
+	@ApiOperation({
+		summary: 'Get Top Ranked Spaces',
+	})
+	@ApiQuery({
+		name: 'startDate',
+		type: 'string',
+		required: false,
+	})
+	@Get('/top-spaces')
+	getTopSpaces(@Query() { startDate }: { startDate?: string }) {
+		return this.cmsService.getTopSpaces({ startDate });
 	}
 }

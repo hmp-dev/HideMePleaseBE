@@ -11,19 +11,25 @@
 		<template #navigation>
 			<page-navigation :current="page" :pages="allPages" />
 		</template>
-		<!--		<template #actions>-->
-		<!--			<v-input class="module-search" :model-value="search">-->
-		<!--				<template #prepend><v-icon name="search" /></template>-->
-		<!--			</v-input>-->
-		<!--			<v-button v-tooltip.bottom="'COOL'" icon rounded>-->
-		<!--				<v-icon name="launch" />-->
-		<!--			</v-button>-->
-		<!--		</template>-->
+		<template #actions>
+			<template>
+				<v-select
+					class="custom-select"
+					v-model="timeframe"
+					:items="selectOptions"
+					v-bind="state"
+				/>
+			</template>
+		</template>
 
 		<router-view name="dashboards" :page="page" />
 		<div class="page-container">
-			<user-ranking v-if="page === null" />
-			<nft-ranking v-if="page === 'nft-ranking'" />
+			<user-ranking :timeframe="timeframe" v-if="page === null" />
+			<nft-ranking :timeframe="timeframe" v-if="page === 'nft-ranking'" />
+			<space-ranking
+				:timeframe="timeframe"
+				v-if="page === 'space-ranking'"
+			/>
 		</div>
 	</private-view>
 </template>
@@ -33,20 +39,27 @@
 	margin: 16px;
 	padding: 16px;
 }
+
+.custom-select .v-input {
+	width: 200px !important;
+}
 </style>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { ref, watch } from 'vue';
-import { useApi } from '@directus/extensions-sdk';
 import PageNavigation from './components/navigation.vue';
 import UserRanking from './components/user-ranking.vue';
 import NftRanking from './components/nft-ranking.vue';
+import SpaceRanking from './components/space-ranking.vue';
+import { TIMEFRAMES } from './constants';
+
 export default defineComponent({
 	components: {
 		PageNavigation,
 		UserRanking,
 		NftRanking,
+		SpaceRanking,
 	},
 	props: {
 		page: {
@@ -65,6 +78,9 @@ export default defineComponent({
 					case 'nft-ranking':
 						pageTitle.value = 'NFT Ranking';
 						break;
+					case 'space-ranking':
+						pageTitle.value = 'Space Ranking';
+						break;
 					default:
 						pageTitle.value = '404: Not Found';
 				}
@@ -80,7 +96,6 @@ export default defineComponent({
 			}
 		}
 
-		const api = useApi();
 		const pageTitle = ref('');
 		const breadcrumb = ref([
 			{
@@ -88,6 +103,26 @@ export default defineComponent({
 				to: `/dashboards`,
 			},
 		]);
+		const selectOptions = [
+			{
+				text: TIMEFRAMES.LAST_7_DAYS,
+				value: TIMEFRAMES.LAST_7_DAYS,
+			},
+			{
+				text: TIMEFRAMES.LAST_30_DAYS,
+				value: TIMEFRAMES.LAST_30_DAYS,
+			},
+			{
+				text: TIMEFRAMES.LAST_90_DAYS,
+				value: TIMEFRAMES.LAST_90_DAYS,
+			},
+			{
+				text: TIMEFRAMES.ALL,
+				value: TIMEFRAMES.ALL,
+			},
+		];
+
+		const timeframe = ref(TIMEFRAMES.LAST_7_DAYS);
 
 		const allPages = ref([
 			{
@@ -104,6 +139,13 @@ export default defineComponent({
 				icon: 'public',
 				color: '',
 			},
+			{
+				label: 'Space Ranking',
+				uri: 'space-ranking',
+				to: '/dashboards/space-ranking',
+				icon: 'public',
+				color: '',
+			},
 		]);
 
 		renderPage(props.page);
@@ -112,10 +154,17 @@ export default defineComponent({
 			() => props.page,
 			() => {
 				renderPage(props.page);
+				timeframe.value = TIMEFRAMES.LAST_7_DAYS;
 			},
 		);
 
-		return { page_title: pageTitle, breadcrumb, allPages };
+		return {
+			page_title: pageTitle,
+			breadcrumb,
+			allPages,
+			selectOptions,
+			timeframe,
+		};
 	},
 });
 </script>
