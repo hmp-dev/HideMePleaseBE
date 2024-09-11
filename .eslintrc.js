@@ -20,6 +20,8 @@ const project = [
 	'./world-auth-app/tsconfig.json',
 	'./cms/extensions/directus-extension-custom-select/tsconfig.json',
 	'./cms/extensions/directus-extension-image-url-preview/tsconfig.json',
+	'./cms/extensions/directus-extension-custom-proxy/tsconfig.json',
+	'./cms/extensions/directus-extension-dashboards/tsconfig.json',
 ];
 
 const settings = {

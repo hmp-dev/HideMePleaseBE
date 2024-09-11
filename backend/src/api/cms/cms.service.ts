@@ -68,4 +68,78 @@ export class CmsService {
 			endDate: modalBannerEndDate,
 		};
 	}
+
+	async getTopUsers() {
+		const topUsers = await this.prisma.spaceBenefitUsage.groupBy({
+			by: 'userId',
+			_sum: {
+				pointsEarned: true,
+			},
+			orderBy: {
+				_sum: {
+					pointsEarned: 'desc',
+				},
+			},
+		});
+
+		const userNames = await this.prisma.user.findMany({
+			where: {
+				id: {
+					in: topUsers.map((user) => user.userId),
+				},
+			},
+			select: {
+				id: true,
+				nickName: true,
+			},
+		});
+
+		const nameIdMapping: Record<string, string> = {};
+		for (const user of userNames) {
+			nameIdMapping[user.id] = user.nickName || '';
+		}
+
+		return topUsers.map((topUser) => ({
+			name: nameIdMapping[topUser.userId],
+			totalPoints: topUser._sum.pointsEarned,
+			userId: topUser.userId,
+		}));
+	}
+
+	async getTopNfts() {
+		const topNfts = await this.prisma.spaceBenefitUsage.groupBy({
+			by: 'tokenAddress',
+			_sum: {
+				pointsEarned: true,
+			},
+			orderBy: {
+				_sum: {
+					pointsEarned: 'desc',
+				},
+			},
+		});
+
+		const tokenNames = await this.prisma.nftCollection.findMany({
+			where: {
+				tokenAddress: {
+					in: topNfts.map((nft) => nft.tokenAddress),
+				},
+			},
+			select: {
+				tokenAddress: true,
+				name: true,
+			},
+		});
+
+		const nameIdMapping: Record<string, string> = {};
+		for (const nft of tokenNames) {
+			nameIdMapping[nft.tokenAddress] = nft.name || '';
+		}
+
+		return topNfts.map((topNft) => ({
+			name: nameIdMapping[topNft.tokenAddress],
+			totalPoints: topNft._sum.pointsEarned,
+			tokenAddress: topNft.tokenAddress,
+		}));
+	}
 }

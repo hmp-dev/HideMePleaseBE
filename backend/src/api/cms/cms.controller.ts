@@ -82,4 +82,20 @@ export class CmsController {
 	getModalBanner() {
 		return this.cmsService.getModalBanner();
 	}
+
+	@ApiOperation({
+		summary: 'Get Top Ranked users',
+	})
+	@Get('/top-users')
+	getTopUsers() {
+		return this.cmsService.getTopUsers();
+	}
+
+	@ApiOperation({
+		summary: 'Get Top Ranked NFTs',
+	})
+	@Get('/top-nfts')
+	getTopNfts() {
+		return this.cmsService.getTopNfts();
+	}
 }
