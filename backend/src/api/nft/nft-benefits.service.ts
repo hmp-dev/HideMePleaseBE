@@ -198,9 +198,20 @@ export class NftBenefitsService {
 		const [spaceBenefits, benefitCount, termsUrlMap] = await Promise.all([
 			this.prisma.spaceBenefit.findMany({
 				where: {
-					level: {
-						in: benefitLevels,
-					},
+					OR: [
+						{
+							level: {
+								in: benefitLevels,
+							},
+						},
+						{
+							SpaceBenefitNftCollection: {
+								some: {
+									NftCollectionTokenAddress: tokenAddress,
+								},
+							},
+						},
+					],
 					active: true,
 					...(spaceIds.length && {
 						spaceId: {
@@ -241,9 +252,20 @@ export class NftBenefitsService {
 			}),
 			this.prisma.spaceBenefit.count({
 				where: {
-					level: {
-						in: benefitLevels,
-					},
+					OR: [
+						{
+							level: {
+								in: benefitLevels,
+							},
+						},
+						{
+							SpaceBenefitNftCollection: {
+								some: {
+									NftCollectionTokenAddress: tokenAddress,
+								},
+							},
+						},
+					],
 					active: true,
 					...(spaceId && {
 						spaceId,

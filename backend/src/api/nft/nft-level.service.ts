@@ -29,13 +29,14 @@ export class NftLevelService {
 			}[];
 		};
 
-		const pointMap: Record<BenefitLevel, number> = {
+		const pointMap = {
 			LEVEL1: 100,
 			LEVEL2: 200,
 			LEVEL3: 300,
 			LEVEL4: 400,
 			LEVEL5: 999999,
-		};
+			LEVEL_NFT: Infinity,
+		} satisfies Record<BenefitLevel, number>;
 
 		if (cachedData && new Date(cachedData.expiry) > new Date()) {
 			cachedData.pointCaps.forEach(
@@ -66,7 +67,7 @@ export class NftLevelService {
 		} else if (points <= pointMap[BenefitLevel.LEVEL4]) {
 			return BenefitLevel.LEVEL4;
 		} else if (points <= pointMap[BenefitLevel.LEVEL5]) {
-			return BenefitLevel.LEVEL4;
+			return BenefitLevel.LEVEL5;
 		}
 
 		throw new InternalServerErrorException(ErrorCodes.UNHANDLED_ERROR);

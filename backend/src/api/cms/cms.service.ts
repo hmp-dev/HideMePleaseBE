@@ -282,9 +282,9 @@ export class CmsService {
 		];
 
 		const usageFrequency7Day =
-			100 * (userIds7Day.length / distinctHoldingUsers.length);
+			100 * (userIds7Day.length / (distinctHoldingUsers.length || 1));
 		const usageFrequency30Day =
-			100 * (userIds30Day.length / distinctHoldingUsers.length);
+			100 * (userIds30Day.length / (distinctHoldingUsers.length || 1));
 
 		return {
 			usageFrequency7Day: `${usageFrequency7Day.toFixed(2)} %`,

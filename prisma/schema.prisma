@@ -60,6 +60,7 @@ model NftCollection {
   NftCollectionAllowedSpace NftCollectionAllowedSpace[]
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   NftCollectionPoints       NftCollectionPoints?
+  SpaceBenefitNftCollection SpaceBenefitNftCollection[]
   SpaceBenefitUsage         SpaceBenefitUsage[]
 }
 
@@ -137,13 +138,13 @@ model Nft {
   deleted            Boolean       @default(false)
   name               String
   imageUrl           String
-  videoUrl           String?
   tokenAddress       String
   tokenId            String
   tokenUpdatedAt     DateTime?
   ownedWalletAddress String
   order              Int           @default(0)
   lastOwnershipCheck DateTime      @default(now())
+  videoUrl           String?
   ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])
   nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
   User               User[]
@@ -224,18 +225,19 @@ model SpaceUserInvites {
 }
 
 model SpaceBenefit {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @default(now()) @updatedAt
-  deleted           Boolean             @default(false)
-  spaceId           String              @db.Uuid
-  active            Boolean             @default(true)
-  description       String
-  level             BenefitLevel        @default(LEVEL1)
-  singleUse         Boolean             @default(false)
-  isRepresentative  Boolean             @default(false)
-  space             Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  SpaceBenefitUsage SpaceBenefitUsage[]
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now()) @updatedAt
+  deleted                   Boolean                     @default(false)
+  spaceId                   String                      @db.Uuid
+  active                    Boolean                     @default(true)
+  description               String
+  level                     BenefitLevel                @default(LEVEL1)
+  singleUse                 Boolean                     @default(false)
+  isRepresentative          Boolean                     @default(false)
+  space                     Space                       @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  SpaceBenefitNftCollection SpaceBenefitNftCollection[]
+  SpaceBenefitUsage         SpaceBenefitUsage[]
 }
 
 model UserLastKnownSpace {
@@ -765,6 +767,14 @@ model NftCollectionAllowedSpace {
   Space                     Space?         @relation(fields: [SpaceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "nftcollectionallowedspace_spaceid_foreign")
 }
 
+model SpaceBenefitNftCollection {
+  id                        Int            @id @default(autoincrement())
+  SpaceBenefitId            String?        @db.Uuid
+  NftCollectionTokenAddress String?
+  NftCollection             NftCollection? @relation(fields: [NftCollectionTokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction, map: "spacebenefitnftcollection_nftcollectiontokenaddress_foreign")
+  SpaceBenefit              SpaceBenefit?  @relation(fields: [SpaceBenefitId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "spacebenefitnftcollection_spacebenefitid_foreign")
+}
+
 enum LoginType {
   FIREBASE
   WORLD_ID
@@ -805,4 +815,5 @@ enum BenefitLevel {
   LEVEL3
   LEVEL4
   LEVEL5
+  LEVEL_NFT
 }
