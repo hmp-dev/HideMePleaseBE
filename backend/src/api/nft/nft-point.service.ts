@@ -147,7 +147,11 @@ export class NftPointService {
 		);
 
 		const memberIds = [
-			...new Set(nftMembers.map((member) => member.ownedWallet.userId)),
+			...new Set(
+				nftMembers
+					.filter((member) => member?.ownedWallet?.userId)
+					.map((member) => member.ownedWallet.userId),
+			),
 		];
 
 		const userPointMapping: Record<string, number> = {};

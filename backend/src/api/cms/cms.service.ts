@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { subDays } from 'date-fns';
 
 import { ANNOUNCEMENTS_PAGE_SIZE } from '@/api/cms/cms.constants';
 import { MediaService } from '@/modules/media/media.service';
@@ -230,5 +231,64 @@ export class CmsService {
 		return Object.values(spacePointAggregates).sort((spaceA, spaceB) =>
 			spaceA.totalPoints < spaceB.totalPoints ? 1 : -1,
 		);
+	}
+
+	async getNftUsageFrequency({ tokenAddress }: { tokenAddress: string }) {
+		const monthAgo = subDays(new Date(), 30);
+		const weekAgo = subDays(new Date(), 7);
+
+		const [usageUsers, totalHoldingUsers] = await Promise.all([
+			this.prisma.spaceBenefitUsage.findMany({
+				where: {
+					tokenAddress,
+					createdAt: {
+						gte: monthAgo,
+					},
+				},
+				select: {
+					userId: true,
+					createdAt: true,
+				},
+			}),
+			this.prisma.nft.findMany({
+				where: {
+					tokenAddress,
+				},
+				select: {
+					ownedWallet: {
+						select: {
+							userId: true,
+						},
+					},
+				},
+			}),
+		]);
+
+		const userIds30Day = [
+			...new Set(usageUsers.map((user) => user.userId)),
+		];
+		const userIds7Day = [
+			...new Set(
+				usageUsers
+					.filter((usageUser) => usageUser.createdAt >= weekAgo)
+					.map((user) => user.userId),
+			),
+		];
+
+		const distinctHoldingUsers = [
+			...new Set(
+				totalHoldingUsers.map((user) => user.ownedWallet.userId),
+			),
+		];
+
+		const usageFrequency7Day =
+			100 * (userIds7Day.length / distinctHoldingUsers.length);
+		const usageFrequency30Day =
+			100 * (userIds30Day.length / distinctHoldingUsers.length);
+
+		return {
+			usageFrequency7Day: `${usageFrequency7Day.toFixed(2)} %`,
+			usageFrequency30Day: `${usageFrequency30Day.toFixed(2)} %`,
+		};
 	}
 }

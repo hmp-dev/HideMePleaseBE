@@ -32,9 +32,6 @@ export default {
 	},
 	inject: ['values'],
 	setup(props) {
-		console.log(props.value);
-		console.log(JSON.stringify(props));
-
 		return { image: props.value };
 	},
 };

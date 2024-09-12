@@ -1,6 +1,7 @@
 import {
 	Controller,
 	Get,
+	Param,
 	Put,
 	Query,
 	Req,
@@ -14,6 +15,7 @@ import {
 	ApiBody,
 	ApiConsumes,
 	ApiOperation,
+	ApiParam,
 	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
@@ -120,5 +122,18 @@ export class CmsController {
 	@Get('/top-spaces')
 	getTopSpaces(@Query() { startDate }: { startDate?: string }) {
 		return this.cmsService.getTopSpaces({ startDate });
+	}
+
+	@ApiOperation({
+		summary: 'Get Nft usage frequency',
+	})
+	@ApiParam({
+		name: 'tokenAddress',
+		type: 'string',
+		required: true,
+	})
+	@Get('/nft-usage-frequency/:tokenAddress')
+	getNftUsageFrequency(@Param('tokenAddress') tokenAddress: string) {
+		return this.cmsService.getNftUsageFrequency({ tokenAddress });
 	}
 }
