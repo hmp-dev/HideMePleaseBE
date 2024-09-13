@@ -195,6 +195,22 @@ export class NftBenefitsService {
 			allowedSpaces.forEach((spaceId) => spaceIds.push(spaceId));
 		}
 
+		const blacklistedSpaces = await this.prisma.spaceBenefit.findMany({
+			where: {
+				SpaceBenefitNftCollection: {
+					some: {
+						NftCollectionTokenAddress: tokenAddress,
+					},
+				},
+			},
+			select: {
+				spaceId: true,
+			},
+		});
+		const blacklistedSpaceIds = blacklistedSpaces.map(
+			(space) => space.spaceId,
+		);
+
 		const [spaceBenefits, benefitCount, termsUrlMap] = await Promise.all([
 			this.prisma.spaceBenefit.findMany({
 				where: {
@@ -202,6 +218,11 @@ export class NftBenefitsService {
 						{
 							level: {
 								in: benefitLevels,
+							},
+							spaceId: {
+								not: {
+									in: blacklistedSpaceIds,
+								},
 							},
 						},
 						{
@@ -256,6 +277,11 @@ export class NftBenefitsService {
 						{
 							level: {
 								in: benefitLevels,
+							},
+							spaceId: {
+								not: {
+									in: blacklistedSpaceIds,
+								},
 							},
 						},
 						{
