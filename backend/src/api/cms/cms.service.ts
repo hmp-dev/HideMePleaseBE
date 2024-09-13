@@ -291,4 +291,112 @@ export class CmsService {
 			usageFrequency30Day: `${usageFrequency30Day.toFixed(2)} %`,
 		};
 	}
+
+	async getBenefitUsageForUser({
+		userId,
+		startDate: start,
+	}: {
+		userId: string;
+		startDate?: string;
+	}) {
+		const startDate = start ? new Date(start) : null;
+
+		const benefitUsage = await this.prisma.spaceBenefitUsage.findMany({
+			where: {
+				userId,
+				...(startDate && {
+					createdAt: {
+						gte: startDate,
+					},
+				}),
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+			select: {
+				user: {
+					select: {
+						id: true,
+						nickName: true,
+					},
+				},
+				benefit: {
+					select: {
+						id: true,
+						description: true,
+						space: {
+							select: {
+								id: true,
+								name: true,
+							},
+						},
+					},
+				},
+				createdAt: true,
+				nftCollection: {
+					select: {
+						name: true,
+						symbol: true,
+						tokenAddress: true,
+					},
+				},
+			},
+		});
+
+		return benefitUsage.map((usage) => ({
+			nickName: usage.user.nickName,
+			userId: usage.user.id,
+			benefit: usage.benefit.description,
+			benefitId: usage.benefit.id,
+			space: usage.benefit.space.name,
+			spaceId: usage.benefit.space.id,
+			createdAt: usage.createdAt,
+			nftName: usage.nftCollection.name,
+			nftSymbol: usage.nftCollection.symbol,
+			tokenAddress: usage.nftCollection.tokenAddress,
+		}));
+	}
+
+	async getAggregateBenefitUsageForUser({ userId }: { userId: string }) {
+		const benefitUsage = await this.prisma.spaceBenefitUsage.groupBy({
+			by: 'benefitId',
+			_sum: {
+				pointsEarned: true,
+			},
+			where: {
+				userId,
+			},
+		});
+
+		const benefitPointMap: Record<string, number> = {};
+		for (const benefit of benefitUsage) {
+			benefitPointMap[benefit.benefitId] = benefit._sum.pointsEarned || 0;
+		}
+
+		const benefitDetails = await this.prisma.spaceBenefit.findMany({
+			where: {
+				id: {
+					in: benefitUsage.map((benefit) => benefit.benefitId),
+				},
+			},
+			select: {
+				id: true,
+				description: true,
+				space: {
+					select: {
+						id: true,
+						name: true,
+					},
+				},
+			},
+		});
+
+		return benefitDetails.map((benefit) => ({
+			benefitId: benefit.id,
+			benefit: benefit.description,
+			totalPoints: benefitPointMap[benefit.id],
+			spaceId: benefit.space.id,
+			spaceName: benefit.space.name,
+		}));
+	}
 }

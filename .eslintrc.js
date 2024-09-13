@@ -23,6 +23,8 @@ const project = [
 	'./cms/extensions/directus-extension-custom-proxy/tsconfig.json',
 	'./cms/extensions/directus-extension-dashboards/tsconfig.json',
 	'./cms/extensions/directus-extension-community-benefits-inquiry/tsconfig.json',
+	'./cms/extensions/directus-extension-user-benefits-inquiry/tsconfig.json',
+	'./cms/extensions/directus-extension-user-benefits-aggregate/tsconfig.json',
 ];
 
 const settings = {
