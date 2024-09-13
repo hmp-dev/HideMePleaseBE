@@ -5,6 +5,7 @@ import { PAGE_SIZES } from '@/constants';
 import { CovalentService } from '@/modules/covalent/covalent.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { SimpleHashService } from '@/modules/simple-hash/simple-hash.service';
+import { NftHardcoderService } from '@/modules/unified-nft/nft-hardcoder.service';
 import { UnifiedNftNext } from '@/modules/unified-nft/unified-nft.types';
 import { UnmarshalService } from '@/modules/unmarshal/unmarshal.service';
 import { SupportedChainsList } from '@/modules/web3/web3.constants';
@@ -18,6 +19,7 @@ export class UnifiedNftService {
 		private covalentService: CovalentService,
 		private unmarshalService: UnmarshalService,
 		private simpleHashService: SimpleHashService,
+		private nftHardcoderService: NftHardcoderService,
 	) {}
 
 	async getNftsForAddress({
@@ -74,7 +76,11 @@ export class UnifiedNftService {
 				next = null;
 			}
 
-			nftCollections.push(...collections.nftCollections);
+			nftCollections.push(
+				...this.nftHardcoderService.replaceHardcodedNfts(
+					collections.nftCollections,
+				),
+			);
 			if (nftCollections.length >= PAGE_SIZES.NFT_COLLECTIONS) {
 				break;
 			}
