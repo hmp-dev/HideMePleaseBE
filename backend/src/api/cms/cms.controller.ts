@@ -170,4 +170,33 @@ export class CmsController {
 	getAggregateBenefitUsageForUser(@Param('userId') userId: string) {
 		return this.cmsService.getAggregateBenefitUsageForUser({ userId });
 	}
+
+	@ApiOperation({
+		summary: 'Get system nft list',
+	})
+	@Get('/system-nfts')
+	getSystemNfts() {
+		return this.cmsService.getSystemNfts();
+	}
+
+	@ApiOperation({
+		summary: 'Get nft benefit usage',
+	})
+	@ApiParam({
+		name: 'tokenAddress',
+		type: 'string',
+		required: true,
+	})
+	@ApiQuery({
+		name: 'startDate',
+		type: 'string',
+		required: false,
+	})
+	@Get('/nft/:tokenAddress/benefit-usage')
+	getNftBenefitUsage(
+		@Param('tokenAddress') tokenAddress: string,
+		@Query() { startDate }: { startDate?: string },
+	) {
+		return this.cmsService.getNftBenefitUsage({ tokenAddress, startDate });
+	}
 }

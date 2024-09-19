@@ -30,6 +30,10 @@
 				:timeframe="timeframe"
 				v-if="page === 'space-ranking'"
 			/>
+			<system-benefit-usages
+				:timeframe="timeframe"
+				v-if="page === 'benefit-usage'"
+			/>
 		</div>
 	</private-view>
 </template>
@@ -52,10 +56,12 @@ import PageNavigation from './components/navigation.vue';
 import UserRanking from './components/user-ranking.vue';
 import NftRanking from './components/nft-ranking.vue';
 import SpaceRanking from './components/space-ranking.vue';
+import SystemBenefitUsages from './components/system-benefits-usage.vue';
 import { TIMEFRAMES } from './constants';
 
 export default defineComponent({
 	components: {
+		SystemBenefitUsages,
 		PageNavigation,
 		UserRanking,
 		NftRanking,
@@ -80,6 +86,9 @@ export default defineComponent({
 						break;
 					case 'space-ranking':
 						pageTitle.value = 'Space Ranking';
+						break;
+					case 'benefit-usage':
+						pageTitle.value = 'Nft Benefit Usage';
 						break;
 					default:
 						pageTitle.value = '404: Not Found';
@@ -143,6 +152,13 @@ export default defineComponent({
 				label: 'Space Ranking',
 				uri: 'space-ranking',
 				to: '/dashboards/space-ranking',
+				icon: 'public',
+				color: '',
+			},
+			{
+				label: 'Nft Benefit Usage',
+				uri: 'benefit-usage',
+				to: '/dashboards/benefit-usage',
 				icon: 'public',
 				color: '',
 			},

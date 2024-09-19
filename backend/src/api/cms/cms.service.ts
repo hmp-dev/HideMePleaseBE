@@ -399,4 +399,84 @@ export class CmsService {
 			spaceName: benefit.space.name,
 		}));
 	}
+
+	getSystemNfts() {
+		return this.prisma.systemNftCollection.findMany({
+			select: {
+				name: true,
+				tokenAddress: true,
+			},
+			where: {
+				addressUpdated: true,
+			},
+		});
+	}
+
+	async getNftBenefitUsage(props: {
+		tokenAddress: string;
+		startDate?: string;
+	}) {
+		const startDate = props.startDate ? new Date(props.startDate) : null;
+
+		const benefitUsages = await this.prisma.spaceBenefitUsage.findMany({
+			orderBy: {
+				createdAt: 'desc',
+			},
+			where: {
+				tokenAddress: props.tokenAddress,
+				...(startDate && {
+					createdAt: {
+						gte: startDate,
+					},
+				}),
+			},
+			select: {
+				createdAt: true,
+				benefitId: true,
+				userId: true,
+				pointsEarned: true,
+				tokenAddress: true,
+				benefit: {
+					select: {
+						description: true,
+						spaceId: true,
+						space: {
+							select: {
+								name: true,
+							},
+						},
+					},
+				},
+				user: {
+					select: {
+						nickName: true,
+						email: true,
+						loginType: true,
+					},
+				},
+				nftCollection: {
+					select: {
+						name: true,
+						symbol: true,
+						chain: true,
+					},
+				},
+			},
+		});
+
+		return benefitUsages.map(
+			({ benefit, user, nftCollection, ...rest }) => ({
+				...rest,
+				benefitDescription: benefit.description,
+				spaceId: benefit.spaceId,
+				spaceName: benefit.space.name,
+				userName: user.nickName,
+				userEmail: user.email,
+				userLoginType: user.loginType,
+				nftName: nftCollection.name,
+				nftSymbol: nftCollection.symbol,
+				nftChain: nftCollection.chain,
+			}),
+		);
+	}
 }
