@@ -148,8 +148,6 @@ model Nft {
   ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])
   nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
   User               User[]
-
-  @@unique([tokenAddress, tokenId])
 }
 
 model Wallet {

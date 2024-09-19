@@ -34,7 +34,12 @@ export class NftHardcoderService {
 		);
 		if (calmMindNft) {
 			filteredCollections.unshift({
-				tokens: [calmMindNft],
+				tokens: [
+					{
+						...calmMindNft,
+						id: `${calmMindNft.id}_${calmMindNft.ownerWalletAddress}`,
+					},
+				],
 				chainSymbol: 'ETHEREUM',
 				name: 'Calm Mind',
 				tokenAddress: FICTIONAL_CALM_MIND_TOKEN_ADDRESS,
@@ -48,7 +53,12 @@ export class NftHardcoderService {
 		);
 		if (relaxedMindNft) {
 			filteredCollections.unshift({
-				tokens: [relaxedMindNft],
+				tokens: [
+					{
+						...relaxedMindNft,
+						id: `${relaxedMindNft.id}_${relaxedMindNft.ownerWalletAddress}`,
+					},
+				],
 				chainSymbol: 'ETHEREUM',
 				name: 'Relaxed Mind',
 				tokenAddress: FICTIONAL_RELAXED_MIND_TOKEN_ADDRESS,
