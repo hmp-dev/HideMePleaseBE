@@ -25,6 +25,7 @@ const project = [
 	'./cms/extensions/directus-extension-community-benefits-inquiry/tsconfig.json',
 	'./cms/extensions/directus-extension-user-benefits-inquiry/tsconfig.json',
 	'./cms/extensions/directus-extension-user-benefits-aggregate/tsconfig.json',
+	'./cms/extensions/directus-extension-locale-date/tsconfig.json',
 ];
 
 const settings = {
