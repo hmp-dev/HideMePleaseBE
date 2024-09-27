@@ -795,6 +795,8 @@ enum WalletProvider {
   KLIP
   PHANTOM
   WALLET_CONNECT
+  WEPIN_EVM
+  WEPIN_SOLANA
 }
 
 enum SpaceCategory {

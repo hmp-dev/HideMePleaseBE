@@ -26,6 +26,8 @@
 		"@nestjs/platform-express": "^10.3.7",
 		"@nestjs/schedule": "^4.0.2",
 		"@nestjs/swagger": "^7.3.1",
+		"@sentry/nestjs": "^8.32.0",
+		"@sentry/profiling-node": "^8.32.0",
 		"@solana/web3.js": "^1.92.3",
 		"@supercharge/promise-pool": "^3.2.0",
 		"@unmarshal/sdk": "^2.0.3",

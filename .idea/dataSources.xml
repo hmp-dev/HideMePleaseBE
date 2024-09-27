@@ -14,7 +14,7 @@
     </data-source>
     <data-source
 			source="LOCAL"
-			name="hidemeplease@hidemepleasedatabase0804.c2zabqzqcfqp.ap-northeast-2.rds.amazonaws.com"
+			name="old prod"
 			uuid="3be23ad6-4ef8-44dc-9190-a92209b24c15"
 		>
       <driver-ref>postgresql</driver-ref>
@@ -22,6 +22,42 @@
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
       <jdbc-url
 			>jdbc:postgresql://hidemepleasedatabase0804.c2zabqzqcfqp.ap-northeast-2.rds.amazonaws.com:5432/hidemeplease</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="com.intellij.clouds.kubernetes.db.host.port" />
+        <property
+					name="com.intellij.clouds.kubernetes.db.enabled"
+					value="false"
+				/>
+        <property
+					name="com.intellij.clouds.kubernetes.db.resource.type"
+					value="Deployment"
+				/>
+        <property name="com.intellij.clouds.kubernetes.db.container.port" />
+      </jdbc-additional-properties>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source
+			source="LOCAL"
+			name="new prod"
+			uuid="ce20ecc1-0b78-49e4-8499-c780a5050d45"
+		>
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url
+			>jdbc:postgresql://hmp2024.cakclrq2opqj.ap-northeast-2.rds.amazonaws.com:5432/hidemeplease</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="com.intellij.clouds.kubernetes.db.host.port" />
+        <property
+					name="com.intellij.clouds.kubernetes.db.enabled"
+					value="false"
+				/>
+        <property
+					name="com.intellij.clouds.kubernetes.db.resource.type"
+					value="Deployment"
+				/>
+        <property name="com.intellij.clouds.kubernetes.db.container.port" />
+      </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

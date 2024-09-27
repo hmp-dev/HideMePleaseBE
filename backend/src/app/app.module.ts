@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core/constants';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
 import { API_MODULES } from '@/api';
 import { HttpExceptionFilter } from '@/exception-filters/http-exception.filter';
@@ -16,6 +17,10 @@ import { AppService } from './app.service';
 		{
 			provide: APP_FILTER,
 			useClass: HttpExceptionFilter,
+		},
+		{
+			provide: APP_FILTER,
+			useClass: SentryGlobalFilter,
 		},
 	],
 })

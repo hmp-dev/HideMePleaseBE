@@ -25,7 +25,8 @@ export class WalletService {
 				data: {
 					userId: authContext.userId,
 					publicAddress:
-						provider === WalletProvider.PHANTOM
+						provider === WalletProvider.PHANTOM ||
+						provider === WalletProvider.WEPIN_SOLANA
 							? publicAddress
 							: publicAddress.toLowerCase(),
 					provider,

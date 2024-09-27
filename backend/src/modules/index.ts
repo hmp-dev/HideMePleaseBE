@@ -1,6 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SentryModule } from '@sentry/nestjs/setup';
 import * as redisStore from 'cache-manager-redis-store';
 import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import { LoggerModule } from 'nestjs-pino';
@@ -16,6 +17,7 @@ import { isDevelopment, isTest } from '@/utils/predicates';
 import { PrismaModule } from './prisma/prisma.module';
 
 const DEFAULT_MODULES = [
+	SentryModule.forRoot(),
 	ConfigModule.forRoot({
 		validate: !isTest() ? validateEnv : undefined,
 		isGlobal: true,

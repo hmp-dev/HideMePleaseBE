@@ -4,7 +4,7 @@ import {
 	InternalServerErrorException,
 	Logger,
 } from '@nestjs/common';
-import { SupportedChains, WalletProvider } from '@prisma/client';
+import { SupportedChains, Wallet, WalletProvider } from '@prisma/client';
 import { GeoPosition } from 'geo-position.ts';
 
 import { getCompositeTokenId } from '@/api/nft/nft.utils';
@@ -171,6 +171,28 @@ export class WelcomeNftService {
 		};
 	}
 
+	getFreeNftWalletAddress(
+		wallets: Pick<Wallet, 'provider' | 'publicAddress'>[],
+	) {
+		const wepinWallet = wallets.find(
+			(wallet) => wallet.provider === WalletProvider.WEPIN_EVM,
+		);
+		if (wepinWallet) {
+			return wepinWallet.publicAddress;
+		}
+
+		const klipWallet = wallets.find(
+			(wallet) => wallet.provider === WalletProvider.KLIP,
+		);
+		if (klipWallet) {
+			return klipWallet.publicAddress;
+		}
+
+		throw new InternalServerErrorException(
+			ErrorCodes.UNHANDLED_STATE_INVALID_PROVIDERS,
+		);
+	}
+
 	async consumeWelcomeNft({
 		request,
 		tokenAddress,
@@ -194,19 +216,25 @@ export class WelcomeNftService {
 			throw new BadRequestException(ErrorCodes.FREE_NFT_ALREADY_CLAIMED);
 		}
 
-		const klipWallet = await this.prisma.wallet.findFirst({
+		const klipCompatibleWallets = await this.prisma.wallet.findMany({
 			where: {
 				userId: authContext.userId,
-				provider: WalletProvider.KLIP,
+				provider: {
+					in: [WalletProvider.KLIP, WalletProvider.WEPIN_EVM],
+				},
 			},
 			select: {
 				publicAddress: true,
+				provider: true,
 			},
 		});
-
-		if (!klipWallet) {
+		if (!klipCompatibleWallets.length) {
 			throw new BadRequestException(ErrorCodes.KLIP_WALLET_MISSING);
 		}
+
+		const freeNftWalletAddress = this.getFreeNftWalletAddress(
+			klipCompatibleWallets,
+		);
 
 		const systemNft = await this.prisma.systemNftCollection.findFirst({
 			where: {
@@ -250,7 +278,7 @@ export class WelcomeNftService {
 
 		const mintRes = await this.klaytnNftService.mintToken({
 			aliasOrAddress: tokenAddress,
-			destinationWalletAddress: klipWallet.publicAddress,
+			destinationWalletAddress: freeNftWalletAddress,
 			tokenId: tokenId.toString(),
 			tokenUri: this.mediaService.getUrl(uploadedMetadata)!,
 		});
@@ -267,7 +295,7 @@ export class WelcomeNftService {
 					tokenUri: this.mediaService.getUrl(uploadedMetadata)!,
 					tokenFileId: uploadedMetadata.id,
 					imageUrl: this.mediaService.getUrl(systemNft.image)!,
-					recipientAddress: klipWallet.publicAddress,
+					recipientAddress: freeNftWalletAddress,
 					userId: authContext.userId,
 				},
 			}),
@@ -333,7 +361,7 @@ export class WelcomeNftService {
 				tokenId: tokenId.toString(),
 				tokenAddress,
 				imageUrl: this.mediaService.getUrl(systemNft.image)!,
-				ownedWalletAddress: klipWallet.publicAddress,
+				ownedWalletAddress: freeNftWalletAddress,
 				lastOwnershipCheck: new Date(),
 				tokenUpdatedAt: new Date(),
 				order: 0,
