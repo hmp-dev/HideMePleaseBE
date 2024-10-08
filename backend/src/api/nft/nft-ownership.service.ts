@@ -10,7 +10,7 @@ import { CACHE_TTL } from '@/constants';
 import { KlaytnNftService } from '@/modules/klaytn/klaytn-nft.service';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
+// import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
 
 @Injectable()
 export class NftOwnershipService {
@@ -18,7 +18,7 @@ export class NftOwnershipService {
 
 	constructor(
 		private prisma: PrismaService,
-		private unifiedNftService: UnifiedNftService,
+		// private unifiedNftService: UnifiedNftService,
 		private klaytnNftService: KlaytnNftService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
@@ -104,55 +104,55 @@ export class NftOwnershipService {
 			});
 	}
 
-	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-	async syncAllNftOwnership() {
-		this.logger.log(`Starting ownership check for all nfts`);
-
-		const allNfts = await this.prisma.nft.findMany({
-			select: {
-				tokenAddress: true,
-				id: true,
-				tokenId: true,
-				ownedWalletAddress: true,
-				nftCollection: {
-					select: {
-						chain: true,
-					},
-				},
-			},
-		});
-
-		const { errors } = await PromisePool.for(allNfts)
-			.withConcurrency(5)
-			.process(async (nft) => {
-				const isOwner = await this.unifiedNftService.checkNftOwner({
-					tokenAddress: nft.tokenAddress,
-					tokenId: nft.tokenId,
-					chain: nft.nftCollection.chain,
-					walletAddress: nft.ownedWalletAddress,
-				});
-				if (!isOwner) {
-					this.logger.log(
-						`Ownership of ${nft.tokenAddress} ${nft.tokenId} no longer belongs to ${nft.ownedWalletAddress}. Deleting record`,
-					);
-					await this.prisma.nft.delete({
-						where: {
-							id: nft.id,
-						},
-					});
-				} else {
-					this.logger.log(
-						`Ownership of ${nft.tokenAddress} ${nft.tokenId} verified to ${nft.ownedWalletAddress}`,
-					);
-				}
-			});
-		this.logger.log(
-			`Nft ownership check completed with ${errors.length} errors`,
-		);
-		if (errors.length) {
-			this.logger.log(`Errors: ${JSON.stringify(errors)}`);
-		}
-	}
+	// @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+	// async syncAllNftOwnership() {
+	// 	this.logger.log(`Starting ownership check for all nfts`);
+	//
+	// 	const allNfts = await this.prisma.nft.findMany({
+	// 		select: {
+	// 			tokenAddress: true,
+	// 			id: true,
+	// 			tokenId: true,
+	// 			ownedWalletAddress: true,
+	// 			nftCollection: {
+	// 				select: {
+	// 					chain: true,
+	// 				},
+	// 			},
+	// 		},
+	// 	});
+	//
+	// 	const { errors } = await PromisePool.for(allNfts)
+	// 		.withConcurrency(5)
+	// 		.process(async (nft) => {
+	// 			const isOwner = await this.unifiedNftService.checkNftOwner({
+	// 				tokenAddress: nft.tokenAddress,
+	// 				tokenId: nft.tokenId,
+	// 				chain: nft.nftCollection.chain,
+	// 				walletAddress: nft.ownedWalletAddress,
+	// 			});
+	// 			if (!isOwner) {
+	// 				this.logger.log(
+	// 					`Ownership of ${nft.tokenAddress} ${nft.tokenId} no longer belongs to ${nft.ownedWalletAddress}. Deleting record`,
+	// 				);
+	// 				await this.prisma.nft.delete({
+	// 					where: {
+	// 						id: nft.id,
+	// 					},
+	// 				});
+	// 			} else {
+	// 				this.logger.log(
+	// 					`Ownership of ${nft.tokenAddress} ${nft.tokenId} verified to ${nft.ownedWalletAddress}`,
+	// 				);
+	// 			}
+	// 		});
+	// 	this.logger.log(
+	// 		`Nft ownership check completed with ${errors.length} errors`,
+	// 	);
+	// 	if (errors.length) {
+	// 		this.logger.log(`Errors: ${JSON.stringify(errors)}`);
+	// 	}
+	// }
 
 	@Cron(CronExpression.EVERY_MINUTE)
 	async syncSubmittedNftContracts() {
