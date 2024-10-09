@@ -48,6 +48,8 @@ export class WelcomeNftService {
 					select: {
 						maxDistanceFromSpace: true,
 						tokenAddress: true,
+						lastMintedTokenId: true,
+						maxMintedTokens: true,
 						space: {
 							select: {
 								id: true,
@@ -58,6 +60,10 @@ export class WelcomeNftService {
 					},
 				});
 
+			const availableNfts = spacesOfferingWelcomeNfts.filter(
+				(nft) => nft.lastMintedTokenId < nft.maxMintedTokens,
+			);
+
 			const userPosition = new GeoPosition(
 				Number(latitude),
 				Number(longitude),
@@ -65,7 +71,7 @@ export class WelcomeNftService {
 			const maxDistance = (await this.systemConfig.get())
 				.maxDistanceFromSpace;
 
-			const spacesWithDistance = spacesOfferingWelcomeNfts.map((nft) => {
+			const spacesWithDistance = availableNfts.map((nft) => {
 				if (!nft.space) {
 					throw new InternalServerErrorException(
 						ErrorCodes.UNHANDLED_ERROR,
