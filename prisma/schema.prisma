@@ -270,17 +270,19 @@ model BenefitLevelPointCap {
 }
 
 model SystemConfig {
-  id                        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @default(now()) @updatedAt
-  settingsBannerLink        String?
-  settingsBannerHeading     String?
-  settingsBannerDescription String?
-  maxDistanceFromSpace      Int             @default(100)
-  modalBannerEndDate        DateTime?
-  modalBannerImageId        String?         @unique @db.Uuid
-  modalBannerStartDate      DateTime?
-  modalBannerImage          directus_files? @relation(fields: [modalBannerImageId], references: [id])
+  id                          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @default(now()) @updatedAt
+  settingsBannerLink          String?
+  settingsBannerHeading       String?
+  settingsBannerDescription   String?
+  settingsBannerHeadingEn     String?
+  settingsBannerDescriptionEn String?
+  maxDistanceFromSpace        Int             @default(100)
+  modalBannerEndDate          DateTime?
+  modalBannerImageId          String?         @unique @db.Uuid
+  modalBannerStartDate        DateTime?
+  modalBannerImage            directus_files? @relation(fields: [modalBannerImageId], references: [id])
 }
 
 model Notification {

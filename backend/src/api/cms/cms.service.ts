@@ -47,12 +47,16 @@ export class CmsService {
 		const {
 			settingsBannerLink,
 			settingsBannerDescription,
+			settingsBannerDescriptionEn,
 			settingsBannerHeading,
+			settingsBannerHeadingEn,
 		} = await this.systemConfig.get();
 
 		return {
 			settingsBannerLink,
 			settingsBannerDescription,
+			settingsBannerDescriptionEn,
+			settingsBannerHeadingEn,
 			settingsBannerHeading,
 		};
 	}

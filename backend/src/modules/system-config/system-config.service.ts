@@ -16,6 +16,8 @@ interface SystemConfigRes {
 	settingsBannerLink: string | null;
 	settingsBannerHeading: string | null;
 	settingsBannerDescription: string | null;
+	settingsBannerHeadingEn: string | null;
+	settingsBannerDescriptionEn: string | null;
 	modalBannerImageUrl: string | undefined;
 	modalBannerStartDate: Date | null;
 	modalBannerEndDate: Date | null;
@@ -47,6 +49,8 @@ export class SystemConfigService {
 				settingsBannerLink: true,
 				settingsBannerHeading: true,
 				settingsBannerDescription: true,
+				settingsBannerHeadingEn: true,
+				settingsBannerDescriptionEn: true,
 				modalBannerImage: true,
 				modalBannerStartDate: true,
 				modalBannerEndDate: true,
