@@ -512,30 +512,39 @@ export class NftBenefitsService {
 			};
 		}
 
-		const [collectionStats, lowestPrice] = await Promise.all([
-			this.moralisApiService.getNFTCollectionStats({
-				address: tokenAddress,
-				chain: SupportedChainMapping[tokenData.chain],
-			}),
-			this.moralisApiService.getNFTLowestPrice({
-				address: tokenAddress,
-				chain: SupportedChainMapping[tokenData.chain],
-			}),
-		]);
+		try {
+			const [collectionStats, lowestPrice] = await Promise.all([
+				this.moralisApiService.getNFTCollectionStats({
+					address: tokenAddress,
+					chain: SupportedChainMapping[tokenData.chain],
+				}),
+				this.moralisApiService.getNFTLowestPrice({
+					address: tokenAddress,
+					chain: SupportedChainMapping[tokenData.chain],
+				}),
+			]);
 
-		const res = {
-			network: tokenData.chain,
-			holderCount: collectionStats.result.owners.current,
-			floorPrice: lowestPrice?.result.price.ether || '0',
-			symbol: ChainToSymbolMapping[tokenData.chain],
-		};
-		await this.cacheManager.set(
-			cacheKey,
-			res,
-			CACHE_TTL.THIRTY_MIN_IN_MILLISECONDS,
-		);
+			const res = {
+				network: tokenData.chain,
+				holderCount: collectionStats.result.owners.current,
+				floorPrice: lowestPrice?.result.price.ether || '0',
+				symbol: ChainToSymbolMapping[tokenData.chain],
+			};
+			await this.cacheManager.set(
+				cacheKey,
+				res,
+				CACHE_TTL.THIRTY_MIN_IN_MILLISECONDS,
+			);
 
-		return res;
+			return res;
+		} catch (e) {
+			return {
+				network: tokenData.chain,
+				holderCount: '0',
+				floorPrice: '0.00',
+				symbol: ChainToSymbolMapping[tokenData.chain],
+			};
+		}
 	}
 
 	async getNftCollectionSpaces({
