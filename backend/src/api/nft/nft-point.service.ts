@@ -17,8 +17,13 @@ export class NftPointService {
 	async recalculateNftCollectionPoints(computeFluctuation = false) {
 		this.logger.log('recalculatePoints started');
 
-		const [nftMembers, communityPoints, existingPoints] = await Promise.all(
-			[
+		const [nftCollections, nftMembers, communityPoints, existingPoints] =
+			await Promise.all([
+				this.prisma.nftCollection.findMany({
+					select: {
+						tokenAddress: true,
+					},
+				}),
 				this.prisma.nft.findMany({
 					select: {
 						tokenAddress: true,
@@ -48,8 +53,7 @@ export class NftPointService {
 							},
 						})
 					: null,
-			],
-		);
+			]);
 
 		const nftUserCount: Record<string, Set<string>> = {};
 
@@ -77,16 +81,17 @@ export class NftPointService {
 			newPointCount[point.tokenAddress] = point._sum.pointsEarned || 0;
 		}
 
-		const insertionData = nftMembers
+		const insertionData = nftCollections
 			.map(({ tokenAddress }) => ({
 				tokenAddress: tokenAddress,
-				totalMembers: nftUserCount[tokenAddress].size,
+				totalMembers: nftUserCount[tokenAddress]?.size || 0,
 				totalPoints: newPointCount[tokenAddress] || 0,
 				pointFluctuation: existingPointsCount[tokenAddress]
 					? (newPointCount[tokenAddress] || 0) -
 						existingPointsCount[tokenAddress]
 					: undefined,
 			}))
+			.filter((data) => data.totalPoints > 0)
 			.sort((pointA, pointB) =>
 				pointA.totalPoints > pointB.totalPoints ? -1 : 1,
 			)
