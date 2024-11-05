@@ -109,6 +109,9 @@ export class WelcomeNftService {
 			where: {
 				spaceId: null,
 				addressUpdated: true,
+				lastMintedTokenId: {
+					lt: this.prisma.systemNftCollection.fields.maxMintedTokens,
+				},
 			},
 			select: {
 				tokenAddress: true,
