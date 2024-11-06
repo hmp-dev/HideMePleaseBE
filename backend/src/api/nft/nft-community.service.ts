@@ -135,16 +135,16 @@ export class NftCommunityService {
 		const topNfts = nftCounts
 			.sort((nftA, nftB) => (nftA._count < nftB._count ? 1 : -1))
 			.slice(0, 3);
-
-		const nftMemberCounts = await this.prisma.nft.groupBy({
-			by: 'tokenAddress',
-			where: {
-				tokenAddress: {
-					in: topNfts.map((nft) => nft.tokenAddress),
-				},
-			},
-			_count: true,
-		});
+		//
+		// const nftMemberCounts = await this.prisma.nft.groupBy({
+		// 	by: 'tokenAddress',
+		// 	where: {
+		// 		tokenAddress: {
+		// 			in: topNfts.map((nft) => nft.tokenAddress),
+		// 		},
+		// 	},
+		// 	_count: true,
+		// });
 
 		const hottestCommunities = await this.prisma.nftCollection.findMany({
 			where: {
@@ -157,16 +157,23 @@ export class NftCommunityService {
 				name: true,
 				collectionLogo: true,
 				chain: true,
+				NftCollectionPoints: {
+					select: {
+						totalMembers: true,
+					},
+				},
 			},
 		});
 
 		return topNfts.map(({ tokenAddress }) => ({
 			totalMembers:
-				nftMemberCounts.find((nft) => nft.tokenAddress === tokenAddress)
-					?._count || 0,
+				hottestCommunities.find(
+					(community) => community.tokenAddress === tokenAddress,
+				)?.NftCollectionPoints?.totalMembers || 0,
 			...hottestCommunities.find(
 				(community) => community.tokenAddress === tokenAddress,
 			),
+			NftCollectionPoints: undefined,
 		}));
 	}
 
