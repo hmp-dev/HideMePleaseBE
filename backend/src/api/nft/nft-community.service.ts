@@ -59,9 +59,7 @@ export class NftCommunityService {
 					},
 				},
 			}),
-			this.prisma.nft.groupBy({
-				by: 'tokenAddress',
-			}),
+			this.prisma.nftCollectionPoints.count(),
 		]);
 
 		const allCommunities = allNftCommunities.map(
@@ -76,8 +74,8 @@ export class NftCommunityService {
 		);
 
 		return {
-			communityCount: communityCount.length,
-			itemCount: communityCount.length,
+			communityCount: communityCount,
+			itemCount: communityCount,
 			allCommunities,
 		};
 	}
