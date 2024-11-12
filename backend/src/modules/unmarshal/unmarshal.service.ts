@@ -1,4 +1,4 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupportedChains } from '@prisma/client';
 import axios from 'axios';
@@ -21,6 +21,7 @@ type UnmarshalSupportedTypes = PickKey<
 
 @Injectable()
 export class UnmarshalService {
+	logger = new Logger(UnmarshalService.name);
 	client = axios.create({
 		baseURL: 'https://api.unmarshal.com',
 	});
@@ -31,6 +32,16 @@ export class UnmarshalService {
 		private mediaService: MediaService,
 		private heliusService: HeliusService,
 	) {}
+
+	getApiKey(): string {
+		const keys = this.configService.get<string[]>('UNMARSHAL_API_KEYS');
+
+		const index = Math.floor(Math.random() * keys.length);
+
+		this.logger.log('using unmarshal key ' + index);
+
+		return keys[index];
+	}
 
 	async getKlaytnSystemNftsForAddress(
 		walletAddress: string,
@@ -110,7 +121,7 @@ export class UnmarshalService {
 		}
 
 		const response = await this.client.get<UnmarshalNftForAddressResponse>(
-			`v3/${UnmarshalSupportedChainMapping[chain]}/address/${walletAddress}/nft-assets?auth_key=${this.configService.get('UNMARSHAL_API_KEY')}&offset=${nextPage ? parseInt(nextPage) : undefined}`,
+			`v3/${UnmarshalSupportedChainMapping[chain]}/address/${walletAddress}/nft-assets?auth_key=${this.getApiKey()}&offset=${nextPage ? parseInt(nextPage) : undefined}`,
 		);
 
 		const next = response.data.next_offset
@@ -205,7 +216,7 @@ export class UnmarshalService {
 	}) {
 		if (chain === SupportedChains.KLAYTN) {
 			const response = await this.client.get<string[]>(
-				`v1/${UnmarshalSupportedChainMapping[chain]}/address/${tokenAddress}/nftholders?tokenId=${tokenId}&auth_key=${this.configService.get('UNMARSHAL_API_KEY')}`,
+				`v1/${UnmarshalSupportedChainMapping[chain]}/address/${tokenAddress}/nftholders?tokenId=${tokenId}&auth_key=${this.getApiKey()}`,
 			);
 			if (!response.data.length) {
 				return false;

@@ -1,7 +1,8 @@
 import 'reflect-metadata';
 
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, Transform } from 'class-transformer';
 import {
+	IsArray,
 	IsEnum,
 	IsNotEmpty,
 	IsNumber,
@@ -67,8 +68,10 @@ export class EnvironmentVariables {
 	COVALENT_API_KEY!: string;
 
 	@IsNotEmpty()
-	@IsString()
-	UNMARSHAL_API_KEY!: string;
+	@Transform(({ value }) => splitStringIntoNonBlankArray(value as string))
+	@IsArray()
+	@IsString({ each: true })
+	UNMARSHAL_API_KEYS!: string[];
 
 	@IsNotEmpty()
 	@IsString()
@@ -119,4 +122,11 @@ export function validateEnv(config: Record<string, unknown>) {
 		throw new Error(errors.toString());
 	}
 	return validatedConfig;
+}
+
+function splitStringIntoNonBlankArray(value: string, delim = ','): string[] {
+	return value
+		.split(delim)
+		.map((v) => v.trim())
+		.filter(Boolean);
 }
