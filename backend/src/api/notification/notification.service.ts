@@ -120,6 +120,7 @@ export class NotificationService {
 			this.prisma.user.findFirst({
 				where: {
 					id: userId,
+					notificationsEnabled: true,
 				},
 				select: {
 					nickName: true,
@@ -188,6 +189,7 @@ export class NotificationService {
 		const user = await this.prisma.user.findFirst({
 			where: {
 				id: userId,
+				notificationsEnabled: true,
 			},
 			select: {
 				fcmToken: true,
@@ -196,7 +198,7 @@ export class NotificationService {
 
 		if (!user?.fcmToken) {
 			this.logger.log(
-				`Could not send UserCommunityRankFallenNotification notif due to missing fcm, userId: ${userId} `,
+				`Could not send UserCommunityRankFallenNotification notif due to missing fcm or notif disabled, userId: ${userId} `,
 			);
 			return;
 		}
@@ -254,6 +256,7 @@ export class NotificationService {
 			const user = await this.prisma.user.findFirst({
 				where: {
 					id: userId,
+					notificationsEnabled: true,
 				},
 				select: {
 					fcmToken: true,
@@ -271,6 +274,9 @@ export class NotificationService {
 				select: {
 					fcmToken: true,
 					id: true,
+				},
+				where: {
+					notificationsEnabled: true,
 				},
 			});
 			users.forEach((user) => {

@@ -264,6 +264,9 @@ export class NftBenefitsService {
 						},
 						where: {
 							userId: authContext.userId,
+							createdAt: {
+								gt: benefitUsageResetTime(),
+							},
 						},
 						orderBy: {
 							createdAt: 'desc',
@@ -346,10 +349,7 @@ export class NftBenefitsService {
 						} else {
 							used = SpaceBenefitUsage.some(
 								(benefitUsage) =>
-									benefitUsage.tokenAddress ===
-										tokenAddress &&
-									benefitUsage.createdAt >
-										benefitUsageResetTime(),
+									benefitUsage.tokenAddress === tokenAddress,
 							);
 							if (used) {
 								state = BenefitState.USED;
