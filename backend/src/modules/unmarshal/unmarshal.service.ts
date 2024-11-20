@@ -176,6 +176,15 @@ export class UnmarshalService {
 					ownerWalletAddress: walletAddress,
 				});
 			} else {
+				const systemNftIndex = nftCollections.findIndex(
+					(nftCollection) =>
+						nftCollection.tokenAddress === item.asset_contract,
+				);
+				if (systemNftIndex !== -1) {
+					// remove the systemNft
+					nftCollections.splice(systemNftIndex, 1);
+				}
+
 				const tokenId =
 					item.token_id ||
 					this.extractTokenIdFromName(item.issuer_specific_data.name);
