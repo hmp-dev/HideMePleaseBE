@@ -1,0 +1,6 @@
+{
+	"userRankChanged": "Congrats {nickName} for reaching {newRank}!",
+	"communityRankUpdate": "{community} rank update",
+	"userRankingDrop": "{community} ranking drop",
+	"youDroppedInRank": "Oh no! You’ve dropped from {oldRank} to {newRank} place. Keep engaging to climb back up!"
+}

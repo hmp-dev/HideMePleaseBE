@@ -1,0 +1,4 @@
+packages:
+    - backend
+    - world-auth-app
+    - cms

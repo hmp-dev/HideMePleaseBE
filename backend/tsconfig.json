@@ -1,0 +1,14 @@
+{
+	"extends": "../tsconfig.json",
+	"include": ["*.d.ts", "**/*.ts", "**/*.tsx", "*.ts"],
+	"exclude": ["node_modules"],
+	"compilerOptions": {
+		"baseUrl": ".",
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"paths": {
+			"@/*": ["src/*"],
+			"shared/*": ["../shared/src/*"]
+		}
+	}
+}

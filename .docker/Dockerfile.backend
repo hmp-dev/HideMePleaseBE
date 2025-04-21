@@ -1,0 +1,38 @@
+FROM node:20-slim AS base
+RUN npm i -g pnpm
+RUN apt-get update  \
+    && apt-get upgrade -y \
+    && apt-get install -y openssl  \
+    && apt-get clean -y \
+    && rm -rf /root/.cache \
+    && rm -rf /var/apt/lists/* \
+    && rm -rf /var/cache/apt/*
+
+FROM base AS install
+WORKDIR /app/
+ARG TARGET
+COPY package.json pnpm-lock.yaml tsconfig.json .npmrc pnpm-workspace.yaml ./
+COPY backend/package.json backend/tsconfig*.json backend/nest-cli.json ./backend/
+COPY prisma prisma
+RUN pnpm install -r --ignore-scripts
+RUN pnpm run prisma:generate
+
+FROM install AS build
+WORKDIR /app/
+ARG TARGET
+COPY backend/src backend/src
+COPY shared/ shared/
+WORKDIR /app/backend
+RUN pnpm run build
+
+FROM install AS app
+WORKDIR /app/backend
+ARG TARGET
+ARG NODE_OPTIONS=""
+ENV NODE_ENV=production
+ENV NODE_OPTIONS=${NODE_OPTIONS}
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 app
+COPY --from=build --chown=app:nodejs /app/backend/dist dist
+USER app
+CMD ["dist/backend/src/main.js"]
