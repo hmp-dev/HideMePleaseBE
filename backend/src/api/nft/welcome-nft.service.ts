@@ -341,7 +341,7 @@ export class WelcomeNftService {
 					tokenAddress: systemNft.tokenAddress,
 					contractType: systemNft.contractType,
 					collectionLogo: this.mediaService.getUrl(systemNft.image),
-					chain: SupportedChains.KLAYTN,
+					chain: (systemNft.contractType === "KIP-17") ? SupportedChains.KLAYTN : SupportedChains.AVALANCHE,
 					category: systemNft.category,
 				},
 			});
