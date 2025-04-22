@@ -790,6 +790,7 @@ enum SupportedChains {
   MUMBAI
   SOLANA
   KLAYTN
+  AVALANCHE
 }
 
 enum WalletProvider {
