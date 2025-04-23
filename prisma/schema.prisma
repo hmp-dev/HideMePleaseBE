@@ -16,7 +16,7 @@ model User {
   id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   introduction              String                      @default("")
   locationPublic            Boolean                     @default(true)
-  nickName                  String?                     @unique
+  nickName                  String?                     
   pfpNftId                  String?
   notificationsEnabled      Boolean                     @default(true)
   fcmToken                  String?
