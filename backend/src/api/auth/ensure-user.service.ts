@@ -106,7 +106,7 @@ export class EnsureUserService {
 
 	private async generateNickName() {
 		let digits = 3;
-		const found = false;
+		let found = false;
 		while (!found) {
 			const newName = `HMP${100 + Math.floor(Math.random() * digits)}`;
 			const existingUser = await this.prisma.user.findFirst({
@@ -117,6 +117,7 @@ export class EnsureUserService {
 			});
 
 			if (!existingUser) {
+				found = true;
 				return newName;
 			}
 			digits++;
