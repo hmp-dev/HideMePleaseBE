@@ -38,14 +38,30 @@ export class WelcomeNftService {
 		latitude?: number;
 		longitude?: number;
 	}): Promise<string> {
+		// 1. 먼저 글로벌 NFT 확인 (백업용)
+		const globalNft = await this.prisma.systemNftCollection.findFirst({
+			where: {
+				spaceId: null,
+				addressUpdated: true,
+				lastMintedTokenId: {
+					lt: this.prisma.systemNftCollection.fields.maxMintedTokens,
+				},
+			},
+			select: {
+				tokenAddress: true,
+			},
+		});
+
+		// 2. 위치 정보가 있으면 스페셜 NFT 찾기
 		if (latitude && longitude) {
-			const spacesOfferingWelcomeNfts =
-				await this.prisma.systemNftCollection.findMany({
+			try {
+				const spacesOfferingWelcomeNfts = await this.prisma.systemNftCollection.findMany({
 					where: {
-						spaceId: {
-							not: null,
-						},
+						spaceId: { not: null },
 						addressUpdated: true,
+						lastMintedTokenId: {
+							lt: this.prisma.systemNftCollection.fields.maxMintedTokens,
+						},
 					},
 					select: {
 						maxDistanceFromSpace: true,
@@ -63,63 +79,53 @@ export class WelcomeNftService {
 					},
 				});
 
-			const availableNfts = spacesOfferingWelcomeNfts.filter(
-				(nft) => nft.lastMintedTokenId < nft.maxMintedTokens,
-			);
-
-			const userPosition = new GeoPosition(
-				Number(latitude),
-				Number(longitude),
-			);
-			const maxDistance = (await this.systemConfig.get())
-				.maxDistanceFromSpace;
-
-			const spacesWithDistance = availableNfts.map((nft) => {
-				if (!nft.space) {
-					throw new InternalServerErrorException(
-						ErrorCodes.UNHANDLED_ERROR,
+				if (spacesOfferingWelcomeNfts.length > 0) {
+					const userPosition = new GeoPosition(
+						Number(latitude),
+						Number(longitude),
 					);
+					const systemMaxDistance = (await this.systemConfig.get())
+						.maxDistanceFromSpace;
+
+					const spacesWithDistance = spacesOfferingWelcomeNfts.map((nft) => {
+						if (!nft.space) {
+							this.logger.warn(`Space not found for NFT: ${nft.tokenAddress}`);
+							return null;
+						}
+
+						const spacePosition = new GeoPosition(
+							nft.space.latitude,
+							nft.space.longitude,
+						);
+
+						const distance = Number(
+							userPosition.Distance(spacePosition).toFixed(0),
+						);
+						const maxDistance = nft.maxDistanceFromSpace ?? systemMaxDistance;
+
+						return {
+							...nft,
+							distance,
+							isWithinRange: distance <= maxDistance,
+						};
+					}).filter((space): space is NonNullable<typeof space> => space !== null);
+
+					// 거리순으로 정렬하고 범위 내 가장 가까운 스페이스 찾기
+					const nearestSpace = spacesWithDistance
+						.filter((space) => space.isWithinRange)
+						.sort((a, b) => a.distance - b.distance)[0];
+
+					if (nearestSpace) {
+						return nearestSpace.tokenAddress;
+					}
 				}
-
-				const spacePosition = new GeoPosition(
-					nft.space.latitude,
-					nft.space.longitude,
-				);
-
-				return {
-					...nft,
-					distance: Number(
-						userPosition.Distance(spacePosition).toFixed(0),
-					),
-				};
-			});
-
-			const sortedSpaces = spacesWithDistance.sort((spaceA, spaceB) =>
-				spaceA.distance > spaceB.distance ? 1 : -1,
-			);
-
-			const [nearestSpace] = sortedSpaces.filter(
-				(space) =>
-					space.distance <=
-					(space.maxDistanceFromSpace ?? maxDistance),
-			);
-			if (nearestSpace) {
-				return nearestSpace.tokenAddress;
+			} catch (error) {
+				this.logger.error('Error while finding special NFT:', error);
+				// 에러가 발생해도 글로벌 NFT로 넘어갈 수 있도록 함
 			}
 		}
 
-		const globalNft = await this.prisma.systemNftCollection.findFirst({
-			where: {
-				spaceId: null,
-				addressUpdated: true,
-				lastMintedTokenId: {
-					lt: this.prisma.systemNftCollection.fields.maxMintedTokens,
-				},
-			},
-			select: {
-				tokenAddress: true,
-			},
-		});
+		// 3. 스페셜 NFT를 찾지 못했거나 위치 정보가 없는 경우 글로벌 NFT 반환
 		if (!globalNft) {
 			throw new BadRequestException(ErrorCodes.MISSING_SYSTEM_NFT);
 		}
@@ -136,56 +142,51 @@ export class WelcomeNftService {
 		request: Request;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-	
+
 		const userClaimedNfts = (
-		  await this.prisma.systemNft.findMany({
+			await this.prisma.systemNft.findMany({
+				where: {
+					userId: authContext.userId,
+				},
+				select: {
+					tokenAddress: true,
+				},
+			})
+		).map((nft) => nft.tokenAddress);
+
+		const systemNftAddress = await this.getAppropriateSystemNft({
+			latitude,
+			longitude,
+		});
+
+		const systemNft = await this.prisma.systemNftCollection.findFirst({
 			where: {
-			  userId: authContext.userId,
+				tokenAddress: systemNftAddress,
 			},
 			select: {
-			  tokenAddress: true,
+				name: true,
+				tokenAddress: true,
+				redeemTermsUrl: true,
+				lastMintedTokenId: true,
+				maxMintedTokens: true,
+				image: true,
+				contractType: true,
 			},
-		  })
-		).map((nft) => nft.tokenAddress);
-	
-		const systemNftAddress = await this.getAppropriateSystemNft({
-		  latitude,
-		  longitude,
 		});
-	
-		const systemNft = await this.prisma.systemNftCollection.findFirst({
-		  where: {
-			tokenAddress: systemNftAddress,
-		  },
-		  select: {
-			name: true,
-			tokenAddress: true,
-			redeemTermsUrl: true,
-			lastMintedTokenId: true,
-			maxMintedTokens: true,
-			image: true,
-			contractType: true,
-			space: {
-			  select: {
-				id: true,
-			  },
-			},
-		  },
-		});
-	
+
 		if (!systemNft) {
-		  throw new BadRequestException(ErrorCodes.MISSING_SYSTEM_NFT);
+			throw new BadRequestException(ErrorCodes.MISSING_SYSTEM_NFT);
 		}
-	
-		const { image, lastMintedTokenId, maxMintedTokens, space, ...rest } = systemNft;
-	
+
+		const { image, lastMintedTokenId, maxMintedTokens, ...rest } =
+			systemNft;
+
 		return {
-		  ...rest,
-		  totalCount: maxMintedTokens,
-		  usedCount: lastMintedTokenId,
-		  image: this.mediaService.getUrl(systemNft.image),
-		  freeNftAvailable: !userClaimedNfts.includes(systemNftAddress),
-		  type: space ? 'special' : 'global', // ✅ 여기에 type 필드 추가
+			...rest,
+			totalCount: maxMintedTokens,
+			usedCount: lastMintedTokenId,
+			image: this.mediaService.getUrl(systemNft.image),
+			freeNftAvailable: !userClaimedNfts.includes(systemNftAddress),
 		};
 	}
 
