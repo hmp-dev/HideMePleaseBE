@@ -171,6 +171,11 @@ export class WelcomeNftService {
 				maxMintedTokens: true,
 				image: true,
 				contractType: true,
+				space: {
+				  select: {
+					id: true,
+				  },
+				},
 			},
 		});
 
@@ -178,7 +183,7 @@ export class WelcomeNftService {
 			throw new BadRequestException(ErrorCodes.MISSING_SYSTEM_NFT);
 		}
 
-		const { image, lastMintedTokenId, maxMintedTokens, ...rest } =
+		const { image, lastMintedTokenId, maxMintedTokens, space, ...rest } =
 			systemNft;
 
 		return {
@@ -187,6 +192,7 @@ export class WelcomeNftService {
 			usedCount: lastMintedTokenId,
 			image: this.mediaService.getUrl(systemNft.image),
 			freeNftAvailable: !userClaimedNfts.includes(systemNftAddress),
+			type: space ? 'special' : 'global',
 		};
 	}
 
