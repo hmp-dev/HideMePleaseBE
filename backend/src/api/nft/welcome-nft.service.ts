@@ -136,51 +136,56 @@ export class WelcomeNftService {
 		request: Request;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-
+	
 		const userClaimedNfts = (
-			await this.prisma.systemNft.findMany({
-				where: {
-					userId: authContext.userId,
-				},
-				select: {
-					tokenAddress: true,
-				},
-			})
-		).map((nft) => nft.tokenAddress);
-
-		const systemNftAddress = await this.getAppropriateSystemNft({
-			latitude,
-			longitude,
-		});
-
-		const systemNft = await this.prisma.systemNftCollection.findFirst({
+		  await this.prisma.systemNft.findMany({
 			where: {
-				tokenAddress: systemNftAddress,
+			  userId: authContext.userId,
 			},
 			select: {
-				name: true,
-				tokenAddress: true,
-				redeemTermsUrl: true,
-				lastMintedTokenId: true,
-				maxMintedTokens: true,
-				image: true,
-				contractType: true,
+			  tokenAddress: true,
 			},
+		  })
+		).map((nft) => nft.tokenAddress);
+	
+		const systemNftAddress = await this.getAppropriateSystemNft({
+		  latitude,
+		  longitude,
 		});
-
+	
+		const systemNft = await this.prisma.systemNftCollection.findFirst({
+		  where: {
+			tokenAddress: systemNftAddress,
+		  },
+		  select: {
+			name: true,
+			tokenAddress: true,
+			redeemTermsUrl: true,
+			lastMintedTokenId: true,
+			maxMintedTokens: true,
+			image: true,
+			contractType: true,
+			space: {
+			  select: {
+				id: true,
+			  },
+			},
+		  },
+		});
+	
 		if (!systemNft) {
-			throw new BadRequestException(ErrorCodes.MISSING_SYSTEM_NFT);
+		  throw new BadRequestException(ErrorCodes.MISSING_SYSTEM_NFT);
 		}
-
-		const { image, lastMintedTokenId, maxMintedTokens, ...rest } =
-			systemNft;
-
+	
+		const { image, lastMintedTokenId, maxMintedTokens, space, ...rest } = systemNft;
+	
 		return {
-			...rest,
-			totalCount: maxMintedTokens,
-			usedCount: lastMintedTokenId,
-			image: this.mediaService.getUrl(systemNft.image),
-			freeNftAvailable: !userClaimedNfts.includes(systemNftAddress),
+		  ...rest,
+		  totalCount: maxMintedTokens,
+		  usedCount: lastMintedTokenId,
+		  image: this.mediaService.getUrl(systemNft.image),
+		  freeNftAvailable: !userClaimedNfts.includes(systemNftAddress),
+		  type: space ? 'special' : 'global', // ✅ 여기에 type 필드 추가
 		};
 	}
 
