@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { getLoginType } from '@/api/auth/auth.utils';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -7,6 +7,8 @@ import { AuthContext } from '@/types';
 
 @Injectable()
 export class EnsureUserService {
+	private logger = new Logger(EnsureUserService.name);
+
 	constructor(
 		private prisma: PrismaService,
 		private sendbirdService: SendbirdService,
@@ -22,33 +24,36 @@ export class EnsureUserService {
 		email?: string;
 	}) {
 		try {
-			return await this.retrieveUser(authContext);
-		} catch {
-			return await this.createUser(authContext, { name, email });
-		}
-	}
+			const existingUser = await this.prisma.user.findFirst({
+				where: {
+					OR: [
+						{
+							id: authContext.userId,
+						},
+						{
+							firebaseId: authContext.firebaseId,
+						},
+						{
+							wldNullifierHash: authContext.nullifierHash,
+						},
+					],
+				},
+				select: {
+					id: true,
+					wldNullifierHash: true,
+					firebaseId: true,
+				},
+			});
 
-	private async retrieveUser(authContext: Partial<AuthContext>) {
-		return this.prisma.user.findFirstOrThrow({
-			where: {
-				OR: [
-					{
-						id: authContext.userId,
-					},
-					{
-						firebaseId: authContext.firebaseId,
-					},
-					{
-						wldNullifierHash: authContext.nullifierHash,
-					},
-				],
-			},
-			select: {
-				id: true,
-				wldNullifierHash: true,
-				firebaseId: true,
-			},
-		});
+			if (existingUser) {
+				return existingUser;
+			}
+
+			return await this.createUser(authContext, { name, email });
+		} catch (error) {
+			this.logger.error('Error in getOrCreateUser:', error);
+			throw error;
+		}
 	}
 
 	private async createUser(
