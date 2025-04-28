@@ -1,18 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { Axios } from 'axios';
+import axios, { AxiosError } from 'axios';
 
 import { EnvironmentVariables } from '@/utils/env';
 
 @Injectable()
 export class SendbirdService {
-	private client: Axios;
+	private client;
 
 	constructor(
 		private configService: ConfigService<EnvironmentVariables, true>,
 	) {
-		this.client = new Axios({
-			...axios.defaults,
+		this.client = axios.create({
 			baseURL: `https://api-${this.configService.get('SENDBIRD_APP_ID')}.sendbird.com/v3`,
 			headers: {
 				'Api-Token': this.configService.get<string>('SENDBIRD_TOKEN'),
@@ -28,14 +27,23 @@ export class SendbirdService {
 		userId: string;
 		nickname: string;
 	}): Promise<string> {
-		const res = await this.client.post<{ access_token: string }>('users', {
-			user_id: userId,
-			nickname,
-			issue_access_token: true,
-			profile_url: '',
-		});
+		try {
+			const res = await this.client.post('users', {
+				user_id: userId,
+				nickname,
+				issue_access_token: true,
+				profile_url: '',
+			});
 
-		return res.data.access_token;
+			return res.data.access_token;
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				console.error('Sendbird createUser error:', error.response?.data || error.message);
+			} else {
+				console.error('Sendbird createUser error:', error);
+			}
+			throw error;
+		}
 	}
 
 	async updateUser({
