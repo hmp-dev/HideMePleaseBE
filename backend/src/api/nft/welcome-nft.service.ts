@@ -49,6 +49,7 @@ export class WelcomeNftService {
 			},
 			select: {
 				tokenAddress: true,
+				contractType: true,
 			},
 		});
 
