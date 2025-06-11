@@ -13,7 +13,7 @@ import { KlaytnNftService } from '@/modules/klaytn/klaytn-nft.service';
 import { AvalancheNftService } from '@/modules/avalanche/avalanche-nft.service';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { SendbirdService } from '@/modules/sendbird/sendbird.service';
+//import { SendbirdService } from '@/modules/sendbird/sendbird.service';
 import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -28,7 +28,7 @@ export class WelcomeNftService {
 		private klaytnNftService: KlaytnNftService,
 		private avalancheNftService: AvalancheNftService,
 		private systemConfig: SystemConfigService,
-		private sendbirdService: SendbirdService,
+		//private sendbirdService: SendbirdService,
 	) {}
 
 	async getAppropriateSystemNft({
