@@ -212,6 +212,8 @@ export class SpaceService {
 				name: true,
 				image: true,
 				category: true,
+				latitude: true,
+				longitude: true,
 				SpaceBenefit: {
 					select: {
 						description: true,
