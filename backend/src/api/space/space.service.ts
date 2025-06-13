@@ -226,19 +226,30 @@ export class SpaceService {
 			},
 		});
 
-		const skip = SPACE_LIST_PAGE_SIZE * (currentPage - 1);
-		if (skip >= spaces.length) {
-			return [];
-		}
-
-		const sortedSpaces = spaces
-			.sort((spaceA, spaceB) =>
+		// page가 999이면 전체 데이터 반환
+		let sortedSpaces;
+		if (currentPage === 999) {
+			sortedSpaces = spaces.sort((spaceA, spaceB) =>
 				sortedSpaceIds.indexOf(spaceA.id) >
 				sortedSpaceIds.indexOf(spaceB.id)
 					? 1
 					: -1,
-			)
-			.slice(skip, SPACE_LIST_PAGE_SIZE + skip);
+			);
+		} else {
+			const skip = SPACE_LIST_PAGE_SIZE * (currentPage - 1);
+			if (skip >= spaces.length) {
+				return [];
+			}
+
+			sortedSpaces = spaces
+				.sort((spaceA, spaceB) =>
+					sortedSpaceIds.indexOf(spaceA.id) >
+					sortedSpaceIds.indexOf(spaceB.id)
+						? 1
+						: -1,
+				)
+				.slice(skip, SPACE_LIST_PAGE_SIZE + skip);
+		}
 
 		const hidingUsers =
 			await this.userLocationService.getNumberOfUsersHidingInSpaces(
