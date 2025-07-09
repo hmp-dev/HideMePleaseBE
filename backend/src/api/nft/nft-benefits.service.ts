@@ -35,7 +35,7 @@ import { benefitUsageResetTime } from '@/utils/time';
 export class NftBenefitsService {
 	// 특정 사용자에게만 보여줄 혜택 ID 목록
 	private readonly SPECIAL_SPACE_BENEFIT_IDS = [
-		'99f182cc-3559-4e14-b01b-0d58b000bb3ea',
+		'99f182cc-3559-4e14-b01b-0d58b00bb3ea',
 		'e75c89d5-4496-4360-9533-453d9ecad312'
 	];
 
