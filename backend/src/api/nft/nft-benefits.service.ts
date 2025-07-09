@@ -5,7 +5,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { SpaceCategory, SupportedChains } from '@prisma/client';
+import { BenefitLevel, SpaceCategory, SupportedChains } from '@prisma/client';
 import { type Cache } from 'cache-manager';
 import { GeoPosition } from 'geo-position.ts';
 
@@ -33,6 +33,17 @@ import { benefitUsageResetTime } from '@/utils/time';
 
 @Injectable()
 export class NftBenefitsService {
+	// 특정 사용자에게만 보여줄 혜택 ID 목록
+	private readonly SPECIAL_SPACE_BENEFIT_IDS = [
+		'99f182cc-3559-4e14-b01b-0d58b000bb3ea',
+		'e75c89d5-4496-4360-9533-453d9ecad312'
+	];
+
+	// 특정 사용자 ID 목록
+	private readonly SPECIAL_USER_IDS = [
+		'chochul12@gmail.com' 
+	];
+
 	constructor(
 		private prisma: PrismaService,
 		private mediaService: MediaService,
@@ -42,6 +53,38 @@ export class NftBenefitsService {
 		private spaceLocationService: SpaceLocationService,
 		private nftLevelService: NftLevelService,
 	) {}
+
+	/**
+	 * 특정 사용자에게만 추가 혜택을 보여주는지 확인
+	 */
+	private isSpecialUser(userId: string): boolean {
+		return this.SPECIAL_USER_IDS.includes(userId);
+	}
+
+	/**
+	 * 특정 혜택을 맨 위에 정렬하는 함수
+	 */
+	private sortBenefitsWithSpecialFirst(benefits: any[], userId: string) {
+		if (!this.isSpecialUser(userId)) {
+			return benefits;
+		}
+
+		return benefits.sort((a, b) => {
+			// 특정 혜택들을 맨 위로
+			const aIsSpecial = this.SPECIAL_SPACE_BENEFIT_IDS.includes(a.id);
+			const bIsSpecial = this.SPECIAL_SPACE_BENEFIT_IDS.includes(b.id);
+			
+			if (aIsSpecial && !bIsSpecial) return -1;
+			if (!aIsSpecial && bIsSpecial) return 1;
+			
+			// 둘 다 특별한 혜택이면 원래 순서 유지
+			if (aIsSpecial && bIsSpecial) {
+				return this.SPECIAL_SPACE_BENEFIT_IDS.indexOf(a.id) - this.SPECIAL_SPACE_BENEFIT_IDS.indexOf(b.id);
+			}
+			
+			return 0;
+		});
+	}
 
 	async getCollectionBenefits({
 		tokenAddress,
@@ -67,6 +110,14 @@ export class NftBenefitsService {
 
 		const benefitLevels =
 			await this.nftLevelService.getAllEligibleLevels(collectionPoints);
+
+		// undefined 체크 추가
+		if (!benefitLevels) {
+			return {
+				benefits: [],
+				benefitCount: 0,
+			};
+		}
 
 		const spaceIds = spaceId ? [spaceId] : [];
 
@@ -211,28 +262,44 @@ export class NftBenefitsService {
 			(space) => space.spaceId,
 		);
 
+		// 특정 사용자용 추가 조건 생성
+		const isUserSpecial = this.isSpecialUser(authContext.userId);
+		
+		const baseConditions = [
+			{
+				level: {
+					in: benefitLevels,
+				},
+				spaceId: {
+					not: {
+						in: blacklistedSpaceIds,
+					},
+				},
+			},
+			{
+				SpaceBenefitNftCollection: {
+					some: {
+						NftCollectionTokenAddress: tokenAddress,
+					},
+				},
+			},
+		];
+
+		// 특정 사용자에게만 추가 혜택 조건 추가
+		if (isUserSpecial) {
+			// 여러 개의 특정 혜택 ID를 OR 조건에 추가
+			this.SPECIAL_SPACE_BENEFIT_IDS.forEach(benefitId => {
+				baseConditions.push({
+					id: benefitId,
+					active: true,
+				} as any);
+			});
+		}
+
 		const [spaceBenefits, benefitCount, termsUrlMap] = await Promise.all([
 			this.prisma.spaceBenefit.findMany({
 				where: {
-					OR: [
-						{
-							level: {
-								in: benefitLevels,
-							},
-							spaceId: {
-								not: {
-									in: blacklistedSpaceIds,
-								},
-							},
-						},
-						{
-							SpaceBenefitNftCollection: {
-								some: {
-									NftCollectionTokenAddress: tokenAddress,
-								},
-							},
-						},
-					],
+					OR: baseConditions,
 					active: true,
 					...(spaceIds.length && {
 						spaceId: {
@@ -276,25 +343,7 @@ export class NftBenefitsService {
 			}),
 			this.prisma.spaceBenefit.count({
 				where: {
-					OR: [
-						{
-							level: {
-								in: benefitLevels,
-							},
-							spaceId: {
-								not: {
-									in: blacklistedSpaceIds,
-								},
-							},
-						},
-						{
-							SpaceBenefitNftCollection: {
-								some: {
-									NftCollectionTokenAddress: tokenAddress,
-								},
-							},
-						},
-					],
+					OR: baseConditions,
 					active: true,
 					...(spaceId && {
 						spaceId,
@@ -322,7 +371,8 @@ export class NftBenefitsService {
 			this.getNftTermsUrls(),
 		]);
 
-		const sortedSpaceBenefits =
+		// 기존 위치 기반 정렬 후 특수 혜택 정렬 적용
+		let sortedSpaceBenefits =
 			spaceIds.length > 1
 				? spaceBenefits.sort((benefitA, benefitB) =>
 						spaceIds.indexOf(benefitA.space.id) >
@@ -331,6 +381,12 @@ export class NftBenefitsService {
 							: -1,
 					)
 				: spaceBenefits;
+
+		// 특수 사용자 혜택을 맨 위로 정렬
+		sortedSpaceBenefits = this.sortBenefitsWithSpecialFirst(
+			sortedSpaceBenefits,
+			authContext.userId
+		);
 
 		return {
 			benefits: sortedSpaceBenefits.map(
@@ -341,14 +397,14 @@ export class NftBenefitsService {
 						if (rest.singleUse) {
 							used = true;
 							state = SpaceBenefitUsage.find(
-								(benefitUsage) =>
+								(benefitUsage: any) =>
 									benefitUsage.tokenAddress === tokenAddress,
 							)
 								? BenefitState.USED
 								: BenefitState.UNAVAILABLE;
 						} else {
 							used = SpaceBenefitUsage.some(
-								(benefitUsage) =>
+								(benefitUsage: any) =>
 									benefitUsage.tokenAddress === tokenAddress,
 							);
 							if (used) {
