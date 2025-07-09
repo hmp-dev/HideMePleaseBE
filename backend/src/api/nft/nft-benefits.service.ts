@@ -5,7 +5,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { BenefitLevel, SpaceCategory, SupportedChains } from '@prisma/client';
+import { SpaceCategory, SupportedChains } from '@prisma/client';
 import { type Cache } from 'cache-manager';
 import { GeoPosition } from 'geo-position.ts';
 
@@ -41,7 +41,8 @@ export class NftBenefitsService {
 
 	// 특정 사용자 ID 목록
 	private readonly SPECIAL_USER_IDS = [
-		'chochul12@gmail.com' 
+		'chochul12@gmail.com',
+		'rofeels@gmail.coms'
 	];
 
 	constructor(
