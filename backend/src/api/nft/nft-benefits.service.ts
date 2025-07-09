@@ -39,10 +39,10 @@ export class NftBenefitsService {
 		'e75c89d5-4496-4360-9533-453d9ecad312'
 	];
 
-	// 특정 사용자 ID 목록
-	private readonly SPECIAL_USER_IDS = [
+	// 특정 혜택을 받을 수 있는 이메일 목록
+	private readonly SPECIAL_USER_EMAILS = [
 		'chochul12@gmail.com',
-		'rofeels@gmail.coms'
+		'rofeels@gmail.com'
 	];
 
 	constructor(
@@ -56,17 +56,31 @@ export class NftBenefitsService {
 	) {}
 
 	/**
-	 * 특정 사용자에게만 추가 혜택을 보여주는지 확인
+	 * 특정 사용자에게만 추가 혜택을 보여주는지 확인 (User 모델의 email로 확인)
 	 */
-	private isSpecialUser(userId: string): boolean {
-		return this.SPECIAL_USER_IDS.includes(userId);
+	private async isSpecialUser(userId: string): Promise<boolean> {
+		try {
+			const user = await this.prisma.user.findUnique({
+				where: { id: userId },
+				select: { email: true }
+			});
+
+			if (!user?.email) {
+				return false;
+			}
+
+			return this.SPECIAL_USER_EMAILS.includes(user.email);
+		} catch (error) {
+			console.error('특수 사용자 확인 중 오류:', error);
+			return false;
+		}
 	}
 
 	/**
 	 * 특정 혜택을 맨 위에 정렬하는 함수
 	 */
-	private sortBenefitsWithSpecialFirst(benefits: any[], userId: string) {
-		if (!this.isSpecialUser(userId)) {
+	private async sortBenefitsWithSpecialFirst(benefits: any[], userId: string) {
+		if (!(await this.isSpecialUser(userId))) {
 			return benefits;
 		}
 
@@ -264,7 +278,7 @@ export class NftBenefitsService {
 		);
 
 		// 특정 사용자용 추가 조건 생성
-		const isUserSpecial = this.isSpecialUser(authContext.userId);
+		const isUserSpecial = await this.isSpecialUser(authContext.userId);
 		
 		const baseConditions = [
 			{
@@ -384,7 +398,7 @@ export class NftBenefitsService {
 				: spaceBenefits;
 
 		// 특수 사용자 혜택을 맨 위로 정렬
-		sortedSpaceBenefits = this.sortBenefitsWithSpecialFirst(
+		sortedSpaceBenefits = await this.sortBenefitsWithSpecialFirst(
 			sortedSpaceBenefits,
 			authContext.userId
 		);
