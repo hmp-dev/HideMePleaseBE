@@ -13,3 +13,22 @@ export interface SpaceWithLocation {
 	latitude: number;
 	longitude: number;
 }
+
+export enum DayOfWeek {
+	MONDAY = 'MONDAY',
+	TUESDAY = 'TUESDAY',
+	WEDNESDAY = 'WEDNESDAY',
+	THURSDAY = 'THURSDAY',
+	FRIDAY = 'FRIDAY',
+	SATURDAY = 'SATURDAY',
+	SUNDAY = 'SUNDAY',
+}
+
+export interface SpaceBusinessHours {
+	dayOfWeek: DayOfWeek;
+	openTime: string | null;
+	closeTime: string | null;
+	breakStartTime: string | null;
+	breakEndTime: string | null;
+	isClosed: boolean;
+}

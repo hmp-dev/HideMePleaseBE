@@ -178,16 +178,22 @@ model Space {
   updatedAt                 DateTime                    @default(now()) @updatedAt
   deleted                   Boolean                     @default(false)
   name                      String
+  nameEn                    String?
   latitude                  Float
   longitude                 Float
   address                   String
+  addressEn                 String?
   webLink                   String
   businessHoursEnd          String
   businessHoursStart        String
   category                  SpaceCategory
   introduction              String                      @default("")
+  introductionEn            String?
   locationDescription       String                      @default("")
   imageId                   String                      @db.Uuid
+  isTemporarilyClosed       Boolean                     @default(false) // 임시 휴무 상태
+  temporaryClosureReason    String?                     // 임시 휴무 사유
+  temporaryClosureEndDate   DateTime?                   // 임시 휴무 종료일
   NftCollectionAllowedSpace NftCollectionAllowedSpace[]
   image                     directus_files              @relation(fields: [imageId], references: [id])
   SpaceBenefit              SpaceBenefit[]
@@ -196,6 +202,7 @@ model Space {
   SystemNftCollection       SystemNftCollection[]
   SystemNftCollectionSpace  SystemNftCollectionSpace[]
   UserLastKnownSpace        UserLastKnownSpace[]
+  SpaceBusinessHours        SpaceBusinessHours[]
 }
 
 model SpaceUser {
@@ -819,4 +826,30 @@ enum BenefitLevel {
   LEVEL4
   LEVEL5
   LEVEL_NFT
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model SpaceBusinessHours {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+  spaceId        String    @db.Uuid
+  dayOfWeek      DayOfWeek
+  openTime       String?   // 예: "09:00", null이면 휴무일
+  closeTime      String?   // 예: "18:00", null이면 휴무일
+  breakStartTime String?   // 예: "12:00", 브레이크타임 시작
+  breakEndTime   String?   // 예: "13:00", 브레이크타임 종료
+  isClosed       Boolean   @default(false) // 휴무일 여부
+  space          Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, dayOfWeek])
 }

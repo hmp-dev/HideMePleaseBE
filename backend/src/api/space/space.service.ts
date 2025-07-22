@@ -210,10 +210,14 @@ export class SpaceService {
 			select: {
 				id: true,
 				name: true,
+				nameEn: true,
 				image: true,
 				category: true,
 				latitude: true,
 				longitude: true,
+				isTemporarilyClosed: true,
+				temporaryClosureReason: true,
+				temporaryClosureEndDate: true,
 				SpaceBenefit: {
 					select: {
 						description: true,
@@ -222,6 +226,19 @@ export class SpaceService {
 						isRepresentative: true,
 					},
 					take: 1,
+				},
+				SpaceBusinessHours: {
+					select: {
+						dayOfWeek: true,
+						openTime: true,
+						closeTime: true,
+						breakStartTime: true,
+						breakEndTime: true,
+						isClosed: true,
+					},
+					orderBy: {
+						dayOfWeek: 'asc',
+					},
 				},
 			},
 		});
@@ -277,15 +294,34 @@ export class SpaceService {
 			select: {
 				id: true,
 				name: true,
+				nameEn: true,
 				latitude: true,
 				longitude: true,
 				address: true,
+				addressEn: true,
 				businessHoursStart: true,
 				businessHoursEnd: true,
 				category: true,
 				introduction: true,
+				introductionEn: true,
 				locationDescription: true,
 				image: true,
+				isTemporarilyClosed: true,
+				temporaryClosureReason: true,
+				temporaryClosureEndDate: true,
+				SpaceBusinessHours: {
+					select: {
+						dayOfWeek: true,
+						openTime: true,
+						closeTime: true,
+						breakStartTime: true,
+						breakEndTime: true,
+						isClosed: true,
+					},
+					orderBy: {
+						dayOfWeek: 'asc',
+					},
+				},
 			},
 		});
 		if (!space) {
@@ -563,7 +599,11 @@ export class SpaceService {
 			select: {
 				id: true,
 				name: true,
+				nameEn: true,
 				image: true,
+				isTemporarilyClosed: true,
+				temporaryClosureReason: true,
+				temporaryClosureEndDate: true,
 				SpaceBenefit: {
 					select: {
 						description: true,
@@ -571,6 +611,19 @@ export class SpaceService {
 					},
 					orderBy: {
 						isRepresentative: 'desc',
+					},
+				},
+				SpaceBusinessHours: {
+					select: {
+						dayOfWeek: true,
+						openTime: true,
+						closeTime: true,
+						breakStartTime: true,
+						breakEndTime: true,
+						isClosed: true,
+					},
+					orderBy: {
+						dayOfWeek: 'asc',
 					},
 				},
 			},
