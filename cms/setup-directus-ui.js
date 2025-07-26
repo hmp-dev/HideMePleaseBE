@@ -1,14 +1,15 @@
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 // 데이터베이스 연결 설정
 const connectionConfig = {
-  host: process.env.DB_HOST || 'your-db-host',
+  host: process.env.DB_HOST,
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_DATABASE || 'your-database',
-  user: process.env.DB_USER || 'your-username',
-  password: process.env.DB_PASSWORD || 'your-password',
+  database: process.env.DB_DATABASE,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
   ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false }
 };
 
@@ -23,7 +24,7 @@ async function setupDirectusUI() {
     
     // Directus UI 설정 SQL 파일 읽기
     const directusSQL = fs.readFileSync(
-      path.join(__dirname, 'directus_only_event_categories.sql'), 
+      path.join(__dirname, 'migrations', 'directus_only_event_categories.sql'), 
       'utf8'
     );
     
