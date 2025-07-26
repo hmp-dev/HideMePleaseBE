@@ -240,6 +240,19 @@ export class SpaceService {
 						dayOfWeek: 'asc',
 					},
 				},
+				SpaceEventCategory: {
+					select: {
+						eventCategory: {
+							select: {
+								id: true,
+								name: true,
+								nameEn: true,
+								colorCode: true,
+								iconUrl: true,
+							},
+						},
+					},
+				},
 			},
 		});
 
@@ -307,6 +320,19 @@ export class SpaceService {
 				locationDescription: true,
 				image: true,
 				isTemporarilyClosed: true,
+				SpaceEventCategory: {
+					select: {
+						eventCategory: {
+							select: {
+								id: true,
+								name: true,
+								nameEn: true,
+								colorCode: true,
+								iconUrl: true,
+							},
+						},
+					},
+				},
 				temporaryClosureReason: true,
 				temporaryClosureEndDate: true,
 				SpaceBusinessHours: {
@@ -320,6 +346,19 @@ export class SpaceService {
 					},
 					orderBy: {
 						dayOfWeek: 'asc',
+					},
+				},
+				SpaceEventCategory: {
+					select: {
+						eventCategory: {
+							select: {
+								id: true,
+								name: true,
+								nameEn: true,
+								colorCode: true,
+								iconUrl: true,
+							},
+						},
 					},
 				},
 			},
@@ -624,6 +663,19 @@ export class SpaceService {
 					},
 					orderBy: {
 						dayOfWeek: 'asc',
+					},
+				},
+				SpaceEventCategory: {
+					select: {
+						eventCategory: {
+							select: {
+								id: true,
+								name: true,
+								nameEn: true,
+								colorCode: true,
+								iconUrl: true,
+							},
+						},
 					},
 				},
 			},

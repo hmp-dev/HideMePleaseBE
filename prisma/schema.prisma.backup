@@ -203,7 +203,6 @@ model Space {
   SystemNftCollection       SystemNftCollection[]
   SystemNftCollectionSpace  SystemNftCollectionSpace[]
   UserLastKnownSpace        UserLastKnownSpace[]
-  SpaceEventCategory        SpaceEventCategory[]
 }
 
 model SpaceUser {
@@ -795,34 +794,6 @@ model SpaceBusinessHours {
   breakStartTime String?  @db.VarChar(255)
   breakEndTime   String?  @db.VarChar(255)
   space          Space?   @relation(fields: [spaceId], references: [id], onUpdate: NoAction, map: "spacebusinesshours_spaceid_foreign")
-}
-
-model EventCategory {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @default(now()) @updatedAt
-  deleted            Boolean              @default(false)
-  name               String               @unique
-  nameEn             String?
-  description        String?
-  descriptionEn      String?
-  displayOrder       Int                  @default(0)
-  isActive           Boolean              @default(true)
-  colorCode          String?              // 예: "#FF5733" 카테고리 색상
-  iconUrl            String?              // 카테고리 아이콘 URL
-  SpaceEventCategory SpaceEventCategory[]
-}
-
-model SpaceEventCategory {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @default(now()) @updatedAt
-  spaceId         String        @db.Uuid
-  eventCategoryId String        @db.Uuid
-  space           Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id], onDelete: Cascade)
-
-  @@unique([spaceId, eventCategoryId])
 }
 
 enum LoginType {

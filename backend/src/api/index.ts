@@ -1,5 +1,6 @@
 import { AuthModule } from '@/api/auth/auth.module';
 import { CmsModule } from '@/api/cms/cms.module';
+import { EventCategoryModule } from '@/api/event-category/event-category.module';
 import { NftModule } from '@/api/nft/nft.module';
 import { SpaceModule } from '@/api/space/space.module';
 import { UsersModule } from '@/api/users/users.module';
@@ -12,4 +13,5 @@ export const API_MODULES = [
 	WalletModule,
 	CmsModule,
 	SpaceModule,
+	EventCategoryModule,
 ];
