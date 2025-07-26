@@ -1,7 +1,28 @@
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+
+// .env 파일 읽기
+function loadEnv() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    const envFile = fs.readFileSync(envPath, 'utf8');
+    const lines = envFile.split('\n');
+    
+    lines.forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, ...valueParts] = trimmedLine.split('=');
+        const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+        process.env[key] = value;
+      }
+    });
+  } catch (error) {
+    console.log('Warning: Could not load .env file:', error.message);
+  }
+}
+
+loadEnv();
 
 // 데이터베이스 연결 설정
 const connectionConfig = {
@@ -12,6 +33,14 @@ const connectionConfig = {
   password: process.env.DB_PASSWORD,
   ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false }
 };
+
+console.log('Database connection config:', {
+  host: connectionConfig.host,
+  port: connectionConfig.port,
+  database: connectionConfig.database,
+  user: connectionConfig.user,
+  ssl: connectionConfig.ssl
+});
 
 async function setupDirectusUI() {
   const client = new Client(connectionConfig);
