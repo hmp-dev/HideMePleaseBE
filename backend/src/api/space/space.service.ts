@@ -291,8 +291,9 @@ export class SpaceService {
 				sortedSpaces.map((space) => space.id),
 			);
 
-		return sortedSpaces.map(({ SpaceBenefit, ...rest }) => ({
+		return sortedSpaces.map(({ SpaceBenefit, SpaceEventCategory, ...rest }) => ({
 			...rest,
+			SpaceEventCategory,
 			benefitDescription: SpaceBenefit[0]?.description,
 			image: rest.image ? this.mediaService.getUrl(rest.image as any) : null,
 			hidingCount: hidingUsers[rest.id],
