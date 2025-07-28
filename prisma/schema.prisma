@@ -823,6 +823,7 @@ model SpaceEventCategory {
   eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, eventCategoryId])
+  @@map("Space_EventCategory")
 }
 
 enum LoginType {
