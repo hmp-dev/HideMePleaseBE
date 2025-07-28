@@ -15,7 +15,7 @@ export class EventCategoryService {
 			return await this.prisma.eventCategory.create({
 				data: createEventCategoryDto,
 			});
-		} catch (error) {
+		} catch (error: any) {
 			if (error.code === 'P2002') {
 				throw new ConflictException('Event category with this name already exists');
 			}
@@ -73,7 +73,7 @@ export class EventCategoryService {
 				where: { id },
 				data: updateEventCategoryDto,
 			});
-		} catch (error) {
+		} catch (error: any) {
 			if (error.code === 'P2002') {
 				throw new ConflictException('Event category with this name already exists');
 			}

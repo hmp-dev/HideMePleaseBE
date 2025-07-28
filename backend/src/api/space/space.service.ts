@@ -211,7 +211,12 @@ export class SpaceService {
 				id: true,
 				name: true,
 				nameEn: true,
-				image: true,
+				image: {
+					select: {
+						id: true,
+						filename_download: true,
+					},
+				},
 				category: true,
 				latitude: true,
 				longitude: true,
@@ -318,7 +323,12 @@ export class SpaceService {
 				introduction: true,
 				introductionEn: true,
 				locationDescription: true,
-				image: true,
+				image: {
+					select: {
+						id: true,
+						filename_download: true,
+					},
+				},
 				isTemporarilyClosed: true,
 				SpaceEventCategory: {
 					select: {
@@ -431,7 +441,12 @@ export class SpaceService {
 						select: {
 							id: true,
 							name: true,
-							image: true,
+							image: {
+					select: {
+						id: true,
+						filename_download: true,
+					},
+				},
 						},
 					},
 				},
@@ -639,7 +654,12 @@ export class SpaceService {
 				id: true,
 				name: true,
 				nameEn: true,
-				image: true,
+				image: {
+					select: {
+						id: true,
+						filename_download: true,
+					},
+				},
 				isTemporarilyClosed: true,
 				temporaryClosureReason: true,
 				temporaryClosureEndDate: true,

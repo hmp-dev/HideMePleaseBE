@@ -7,7 +7,7 @@ export class CreateEventCategoryDto {
 		example: '할로윈 이벤트',
 	})
 	@IsString()
-	name: string;
+	name!: string;
 
 	@ApiProperty({
 		description: 'Event category name in English',
@@ -83,7 +83,7 @@ export class AssignEventCategoryToSpaceDto {
 		example: '123e4567-e89b-12d3-a456-426614174000',
 	})
 	@IsUUID()
-	spaceId: string;
+	spaceId!: string;
 
 	@ApiProperty({
 		description: 'Event category IDs to assign',
@@ -91,15 +91,15 @@ export class AssignEventCategoryToSpaceDto {
 		type: [String],
 	})
 	@IsUUID('all', { each: true })
-	eventCategoryIds: string[];
+	eventCategoryIds!: string[];
 }
 
 export class EventCategoryResponseDto {
 	@ApiProperty()
-	id: string;
+	id!: string;
 
 	@ApiProperty()
-	name: string;
+	name!: string;
 
 	@ApiProperty({ required: false })
 	nameEn?: string;
@@ -111,10 +111,10 @@ export class EventCategoryResponseDto {
 	descriptionEn?: string;
 
 	@ApiProperty()
-	displayOrder: number;
+	displayOrder!: number;
 
 	@ApiProperty()
-	isActive: boolean;
+	isActive!: boolean;
 
 	@ApiProperty({ required: false })
 	colorCode?: string;
@@ -123,8 +123,8 @@ export class EventCategoryResponseDto {
 	iconUrl?: string;
 
 	@ApiProperty()
-	createdAt: Date;
+	createdAt!: Date;
 
 	@ApiProperty()
-	updatedAt: Date;
+	updatedAt!: Date;
 }
