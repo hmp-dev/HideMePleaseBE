@@ -215,6 +215,7 @@ export class SpaceService {
 					select: {
 						id: true,
 						filename_download: true,
+						filename_disk: true,
 					},
 				},
 				category: true,
@@ -328,6 +329,7 @@ export class SpaceService {
 					select: {
 						id: true,
 						filename_download: true,
+						filename_disk: true,
 					},
 				},
 				isTemporarilyClosed: true,
@@ -433,6 +435,7 @@ export class SpaceService {
 					select: {
 						id: true,
 						filename_download: true,
+						filename_disk: true,
 					},
 				},
 						},
@@ -646,6 +649,7 @@ export class SpaceService {
 					select: {
 						id: true,
 						filename_download: true,
+						filename_disk: true,
 					},
 				},
 				isTemporarilyClosed: true,
