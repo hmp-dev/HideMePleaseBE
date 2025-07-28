@@ -294,7 +294,7 @@ export class SpaceService {
 		return sortedSpaces.map(({ SpaceBenefit, ...rest }) => ({
 			...rest,
 			benefitDescription: SpaceBenefit[0]?.description,
-			image: this.mediaService.getUrl(rest.image),
+			image: rest.image ? this.mediaService.getUrl(rest.image as any) : null,
 			hidingCount: hidingUsers[rest.id],
 			hot: mostPointsSpace?.spaceId === rest.id,
 			hotPoints:
@@ -358,19 +358,6 @@ export class SpaceService {
 						dayOfWeek: 'asc',
 					},
 				},
-				SpaceEventCategory: {
-					select: {
-						eventCategory: {
-							select: {
-								id: true,
-								name: true,
-								nameEn: true,
-								colorCode: true,
-								iconUrl: true,
-							},
-						},
-					},
-				},
 			},
 		});
 		if (!space) {
@@ -399,7 +386,7 @@ export class SpaceService {
 		return {
 			...space,
 			hidingCount: hidingUsers[spaceId],
-			image: this.mediaService.getUrl(space.image),
+			image: space.image ? this.mediaService.getUrl(space.image as any) : null,
 			spaceOpen,
 		};
 	}
@@ -457,7 +444,7 @@ export class SpaceService {
 					...benefit,
 					spaceId,
 					spaceName: space.name,
-					spaceImage: this.mediaService.getUrl(space.image),
+					spaceImage: space.image ? this.mediaService.getUrl(space.image as any) : null,
 					used: true,
 					state: BenefitState.UNAVAILABLE,
 					tokenAddress: null,
@@ -708,7 +695,7 @@ export class SpaceService {
 
 		return newSpaces.map(({ SpaceBenefit, ...space }) => ({
 			...space,
-			image: this.mediaService.getUrl(space.image),
+			image: space.image ? this.mediaService.getUrl(space.image as any) : null,
 			mainBenefitDescription: SpaceBenefit[0]?.description,
 			remainingBenefitCount: SpaceBenefit.length
 				? SpaceBenefit.length - 1
