@@ -37,6 +37,16 @@ export class UpdateUserProfileDTO {
 	@IsOptional()
 	@IsString()
 	fcmToken?: string;
+
+	@ApiProperty()
+	@IsOptional()
+	@IsString()
+	profilePartsString?: string;
+
+	@ApiProperty()
+	@IsOptional()
+	@IsString()
+	finalProfileImageUrl?: string;
 }
 
 export class UpdateLastKnownLocationDTO {

@@ -79,6 +79,8 @@ export class UsersService {
 			introduction,
 			notificationsEnabled,
 			fcmToken,
+			profilePartsString,
+			finalProfileImageUrl,
 		},
 		request,
 	}: {
@@ -87,42 +89,46 @@ export class UsersService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
+		const updateData: any = {};
+		
+		if (nickName !== undefined) updateData.nickName = nickName;
+		if (introduction !== undefined) updateData.introduction = introduction;
+		if (locationPublic !== undefined) updateData.locationPublic = locationPublic;
+		if (pfpNftId !== undefined) updateData.pfpNftId = pfpNftId;
+		if (notificationsEnabled !== undefined) updateData.notificationsEnabled = notificationsEnabled;
+		if (fcmToken !== undefined) updateData.fcmToken = fcmToken;
+		if (profilePartsString !== undefined) updateData.profilePartsString = profilePartsString;
+		if (finalProfileImageUrl !== undefined) updateData.finalProfileImageUrl = finalProfileImageUrl;
+
 		await this.prisma.user.update({
 			where: {
 				id: authContext.userId,
 			},
-			data: {
-				nickName,
-				introduction,
-				locationPublic,
-				pfpNftId,
-				notificationsEnabled,
-				fcmToken,
-			},
+			data: updateData,
 		});
 
-		if (nickName) {
-			await this.sendbirdService.updateUser({
-				userId: authContext.userId,
-				nickname: nickName,
-			});
-		}
-		if (pfpNftId) {
-			const nft = await this.prisma.nft.findFirst({
-				where: {
-					id: pfpNftId,
-				},
-				select: {
-					imageUrl: true,
-				},
-			});
-			if (nft?.imageUrl) {
-				await this.sendbirdService.updateUser({
-					userId: authContext.userId,
-					profileImageUrl: nft.imageUrl,
-				});
-			}
-		}
+		// if (nickName) {
+		// 	await this.sendbirdService.updateUser({
+		// 		userId: authContext.userId,
+		// 		nickname: nickName,
+		// 	});
+		// }
+		// if (pfpNftId) {
+		// 	const nft = await this.prisma.nft.findFirst({
+		// 		where: {
+		// 			id: pfpNftId,
+		// 		},
+		// 		select: {
+		// 			imageUrl: true,
+		// 		},
+		// 	});
+		// 	if (nft?.imageUrl) {
+		// 		await this.sendbirdService.updateUser({
+		// 			userId: authContext.userId,
+		// 			profileImageUrl: nft.imageUrl,
+		// 		});
+		// 	}
+		// }
 
 		return this.getUserProfile({ request });
 	}

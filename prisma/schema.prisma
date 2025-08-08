@@ -20,6 +20,8 @@ model User {
   pfpNftId                  String?
   notificationsEnabled      Boolean                     @default(true)
   fcmToken                  String?
+  profilePartsString        String?
+  finalProfileImageUrl      String?
   loginType                 LoginType
   email                     String?
   chatAccessToken           String?
