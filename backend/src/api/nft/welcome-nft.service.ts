@@ -200,6 +200,7 @@ export class WelcomeNftService {
 	getFreeNftWalletAddress(
 		wallets: Pick<Wallet, 'provider' | 'publicAddress'>[],
 	) {
+		// Priority 1: WEPIN_EVM wallet (highest priority)
 		const wepinWallet = wallets.find(
 			(wallet) => wallet.provider === WalletProvider.WEPIN_EVM,
 		);
@@ -207,11 +208,33 @@ export class WelcomeNftService {
 			return wepinWallet.publicAddress;
 		}
 
+		// Priority 2: KLIP wallet
 		const klipWallet = wallets.find(
 			(wallet) => wallet.provider === WalletProvider.KLIP,
 		);
 		if (klipWallet) {
 			return klipWallet.publicAddress;
+		}
+
+		// Priority 3: METAMASK wallet
+		const metamaskWallet = wallets.find(
+			(wallet) => wallet.provider === WalletProvider.METAMASK,
+		);
+		if (metamaskWallet) {
+			return metamaskWallet.publicAddress;
+		}
+
+		// Priority 4: WALLET_CONNECT wallet
+		const walletConnectWallet = wallets.find(
+			(wallet) => wallet.provider === WalletProvider.WALLET_CONNECT,
+		);
+		if (walletConnectWallet) {
+			return walletConnectWallet.publicAddress;
+		}
+
+		// Priority 5: Any other wallet (fallback)
+		if (wallets.length > 0) {
+			return wallets[0].publicAddress;
 		}
 
 		throw new InternalServerErrorException(
@@ -242,24 +265,23 @@ export class WelcomeNftService {
 			throw new BadRequestException(ErrorCodes.FREE_NFT_ALREADY_CLAIMED);
 		}
 
-		const klipCompatibleWallets = await this.prisma.wallet.findMany({
+		// Get all user wallets
+		const wallets = await this.prisma.wallet.findMany({
 			where: {
 				userId: authContext.userId,
-				provider: {
-					in: [WalletProvider.KLIP, WalletProvider.WEPIN_EVM],
-				},
 			},
 			select: {
 				publicAddress: true,
 				provider: true,
 			},
 		});
-		if (!klipCompatibleWallets.length) {
+
+		if (!wallets.length) {
 			throw new BadRequestException(ErrorCodes.KLIP_WALLET_MISSING);
 		}
 
 		const freeNftWalletAddress = this.getFreeNftWalletAddress(
-			klipCompatibleWallets,
+			wallets,
 		);
 
 		const systemNft = await this.prisma.systemNftCollection.findFirst({

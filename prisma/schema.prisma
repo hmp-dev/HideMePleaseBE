@@ -105,7 +105,7 @@ model SystemNft {
   userId           String              @db.Uuid
   nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
   tokenFile        MediaFile           @relation(fields: [tokenFileId], references: [id])
-  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NftCollectionPoints {
@@ -130,7 +130,7 @@ model NftCollectionMemberPoints {
   tokenAddress     String
   userId           String        @db.Uuid
   nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Nft {
@@ -149,7 +149,7 @@ model Nft {
   videoUrl           String?
   ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])
   nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
-  User               User[]
+  User              User[]
 }
 
 model Wallet {
@@ -160,7 +160,7 @@ model Wallet {
   publicAddress String         @id @unique
   provider      WalletProvider
   Nft           Nft[]
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model MediaFile {
@@ -202,10 +202,10 @@ model Space {
   SpaceBusinessHours        SpaceBusinessHours[]
   SpaceUser                 SpaceUser[]
   SpaceUserInvites          SpaceUserInvites[]
+  SpaceEventCategory        SpaceEventCategory[]
   SystemNftCollection       SystemNftCollection[]
   SystemNftCollectionSpace  SystemNftCollectionSpace[]
   UserLastKnownSpace        UserLastKnownSpace[]
-  SpaceEventCategory        SpaceEventCategory[]
 }
 
 model SpaceUser {
@@ -217,7 +217,7 @@ model SpaceUser {
   userId    String        @db.Uuid
   role      SpaceUserRole @default(SPACE_ADMIN)
   space     Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, userId])
 }
@@ -256,7 +256,7 @@ model UserLastKnownSpace {
   spaceId   String   @db.Uuid
   userId    String   @db.Uuid
   space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SpaceBenefitUsage {
@@ -270,7 +270,7 @@ model SpaceBenefitUsage {
   tokenAddress  String
   benefit       SpaceBenefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
-  user          User          @relation("user", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user          User         @relation("user", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model BenefitLevelPointCap {
@@ -305,7 +305,7 @@ model Notification {
   params    Json?
   sent      Boolean  @default(false)
   userId    String   @db.Uuid
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ScheduleNotification {
@@ -317,7 +317,7 @@ model ScheduleNotification {
   sent         Boolean  @default(false)
   scheduleTime DateTime @default(now())
   userId       String?  @db.Uuid
-  User         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User         User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SolanaGroups {
@@ -810,8 +810,8 @@ model EventCategory {
   descriptionEn      String?
   displayOrder       Int                  @default(0)
   isActive           Boolean              @default(true)
-  colorCode          String?              // 예: "#FF5733" 카테고리 색상
-  iconUrl            String?              // 카테고리 아이콘 URL
+  colorCode          String?
+  iconUrl            String?
   SpaceEventCategory SpaceEventCategory[]
 }
 
@@ -819,12 +819,13 @@ model SpaceEventCategory {
   id              Int           @id @default(autoincrement())
   spaceId         String        @map("Space_id") @db.Uuid
   eventCategoryId String        @map("EventCategory_id") @db.Uuid
-  space           Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id], onDelete: Cascade)
+  space           Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, eventCategoryId])
   @@map("Space_EventCategory")
 }
+
 
 enum LoginType {
   FIREBASE
