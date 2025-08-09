@@ -320,7 +320,7 @@ export class WelcomeNftService {
 		
 		// For test user, check if metadata already exists
 		let uploadedMetadata;
-		const testUserId = '7eaa002d-3991-491b-bca0-d2133683d582';
+		// testUserId already declared above, reuse it
 		
 		if (authContext.userId === testUserId) {
 			// Try to find existing systemNft to reuse metadata

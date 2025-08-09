@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { WalletService } from '@/api/wallet/wallet.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { SendbirdService } from '@/modules/sendbird/sendbird.service';
+// import { SendbirdService } from '@/modules/sendbird/sendbird.service';
 import { AuthContext } from '@/types';
 import { EnvironmentVariables } from '@/utils/env';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -15,7 +15,7 @@ export class UsersService {
 	constructor(
 		private prisma: PrismaService,
 		private walletService: WalletService,
-		private sendbirdService: SendbirdService,
+		// private sendbirdService: SendbirdService,
 		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
 
