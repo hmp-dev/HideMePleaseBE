@@ -65,6 +65,9 @@ export class SpaceService {
 		if (!isValidUUID(benefitId)) {
 			throw new BadRequestException(ErrorCodes.INVALID_BENEFIT_ID);
 		}
+		if (!isValidUUID(redeemBenefitsDTO.spaceId)) {
+			throw new BadRequestException(ErrorCodes.INVALID_SPACE_ID);
+		}
 
 		const benefit = await this.prisma.spaceBenefit.findFirst({
 			where: {
