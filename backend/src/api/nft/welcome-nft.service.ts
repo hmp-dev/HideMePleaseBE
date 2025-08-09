@@ -350,8 +350,17 @@ export class WelcomeNftService {
 		this.logger.log(`Result of mint token: ${JSON.stringify(mintRes)}`);
 
 		await Promise.all([
-			this.prisma.systemNft.create({
-				data: {
+			this.prisma.systemNft.upsert({
+				where: {
+					id: getCompositeTokenId(tokenAddress, tokenId),
+				},
+				update: {
+					tokenUri: this.mediaService.getUrl(uploadedMetadata)!,
+					tokenFileId: uploadedMetadata.id,
+					recipientAddress: freeNftWalletAddress,
+					userId: authContext.userId,
+				},
+				create: {
 					id: getCompositeTokenId(tokenAddress, tokenId),
 					tokenAddress,
 					tokenId,
@@ -420,8 +429,16 @@ export class WelcomeNftService {
 		}
 		await this.makeSpaceForFreeNftToken(authContext.userId);
 		*/
-		await this.prisma.nft.create({
-			data: {
+		await this.prisma.nft.upsert({
+			where: {
+				id: getCompositeTokenId(tokenAddress, tokenId),
+			},
+			update: {
+				ownedWalletAddress: freeNftWalletAddress,
+				lastOwnershipCheck: new Date(),
+				tokenUpdatedAt: new Date(),
+			},
+			create: {
 				id: getCompositeTokenId(tokenAddress, tokenId),
 				name: tokenName,
 				tokenId: tokenId.toString(),
