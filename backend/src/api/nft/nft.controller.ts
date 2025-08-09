@@ -14,6 +14,7 @@ import {
 	ApiQuery,
 	ApiTags,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 
 import { NftCommunitySortOrder } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
