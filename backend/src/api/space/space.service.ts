@@ -139,14 +139,38 @@ export class SpaceService {
 			}
 		}
 
-		await this.prisma.spaceBenefitUsage.create({
-			data: {
-				benefitId,
-				userId: authContext.userId,
+		// Check if NftCollection exists
+		const nftCollection = await this.prisma.nftCollection.findFirst({
+			where: {
 				tokenAddress: redeemBenefitsDTO.tokenAddress,
-				pointsEarned: DEFAULT_POINTS.VISIT_SPACE,
 			},
 		});
+		
+		if (!nftCollection) {
+			this.logger.error(`NftCollection not found for tokenAddress: ${redeemBenefitsDTO.tokenAddress}`);
+			throw new BadRequestException(ErrorCodes.ENTITY_NOT_FOUND);
+		}
+
+		this.logger.log(`Creating SpaceBenefitUsage with:`, {
+			benefitId,
+			userId: authContext.userId,
+			tokenAddress: redeemBenefitsDTO.tokenAddress,
+			pointsEarned: DEFAULT_POINTS.VISIT_SPACE,
+		});
+
+		try {
+			await this.prisma.spaceBenefitUsage.create({
+				data: {
+					benefitId,
+					userId: authContext.userId,
+					tokenAddress: redeemBenefitsDTO.tokenAddress,
+					pointsEarned: DEFAULT_POINTS.VISIT_SPACE,
+				},
+			});
+		} catch (error) {
+			this.logger.error(`Failed to create SpaceBenefitUsage:`, error);
+			throw error;
+		}
 
 		if (benefit.space.category === SpaceCategory.WALKERHILL) {
 			void this.notificationService.sendNotification({

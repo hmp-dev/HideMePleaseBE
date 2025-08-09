@@ -250,19 +250,24 @@ export class WelcomeNftService {
 		tokenAddress: string;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-		const userClaimedNfts = (
-			await this.prisma.systemNft.findMany({
-				where: {
-					userId: authContext.userId,
-				},
-				select: {
-					tokenAddress: true,
-				},
-			})
-		).map((nft) => nft.tokenAddress);
+		
+		// Allow multiple claims for test user
+		const testUserId = '7eaa002d-3991-491b-bca0-d2133683d582';
+		if (authContext.userId !== testUserId) {
+			const userClaimedNfts = (
+				await this.prisma.systemNft.findMany({
+					where: {
+						userId: authContext.userId,
+					},
+					select: {
+						tokenAddress: true,
+					},
+				})
+			).map((nft) => nft.tokenAddress);
 
-		if (userClaimedNfts.includes(tokenAddress)) {
-			throw new BadRequestException(ErrorCodes.FREE_NFT_ALREADY_CLAIMED);
+			if (userClaimedNfts.includes(tokenAddress)) {
+				throw new BadRequestException(ErrorCodes.FREE_NFT_ALREADY_CLAIMED);
+			}
 		}
 
 		// Get all user wallets
