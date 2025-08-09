@@ -23,7 +23,7 @@ export class AuthService {
 	) {
 		setTimeout(() => {
 			this.jwtService
-				.signAsync({ userId: '217e5a68-8e15-4f2b-8679-a30de7699cec' })
+				.signAsync({ userId: '7eaa002d-3991-491b-bca0-d2133683d582' })
 				.then(token => {
 					console.log('Test Token:', token);
 				});
