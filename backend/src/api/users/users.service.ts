@@ -44,22 +44,23 @@ export class UsersService {
 			throw new BadRequestException(ErrorCodes.USER_DOES_NOT_EXIST);
 		}
 
-		if (!userProfile.chatAccessToken) {
-			const chatAccessToken = await this.sendbirdService.createUser({
-				userId: authContext.userId,
-				nickname: userProfile.nickName || 'user',
-			});
+		// Sendbird disabled - commenting out chatAccessToken generation
+		// if (!userProfile.chatAccessToken) {
+		// 	const chatAccessToken = await this.sendbirdService.createUser({
+		// 		userId: authContext.userId,
+		// 		nickname: userProfile.nickName || 'user',
+		// 	});
 
-			await this.prisma.user.update({
-				where: {
-					id: authContext.userId,
-				},
-				data: {
-					chatAccessToken,
-				},
-			});
-			userProfile.chatAccessToken = chatAccessToken;
-		}
+		// 	await this.prisma.user.update({
+		// 		where: {
+		// 			id: authContext.userId,
+		// 		},
+		// 		data: {
+		// 			chatAccessToken,
+		// 		},
+		// 	});
+		// 	userProfile.chatAccessToken = chatAccessToken;
+		// }
 
 		const { pfpNft, ...rest } = userProfile;
 

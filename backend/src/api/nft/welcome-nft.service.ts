@@ -317,17 +317,44 @@ export class WelcomeNftService {
 		const tokenId = systemNft.lastMintedTokenId + 1;
 
 		const tokenName = `${systemNft.name} #${tokenId}`;
-		const nftMetadata = {
-			attributes: [],
-			description: systemNft.description || systemNft.name,
-			image: this.mediaService.getUrl(systemNft.image),
-			name: tokenName,
-			sendable: false,
-		};
+		
+		// For test user, check if metadata already exists
+		let uploadedMetadata;
+		const testUserId = '7eaa002d-3991-491b-bca0-d2133683d582';
+		
+		if (authContext.userId === testUserId) {
+			// Try to find existing systemNft to reuse metadata
+			const existingSystemNft = await this.prisma.systemNft.findFirst({
+				where: {
+					tokenAddress,
+					tokenId,
+				},
+				select: {
+					tokenFileId: true,
+				},
+			});
+			
+			if (existingSystemNft && existingSystemNft.tokenFileId) {
+				uploadedMetadata = await this.prisma.mediaFile.findUnique({
+					where: { id: existingSystemNft.tokenFileId },
+				});
+			}
+		}
+		
+		// If no existing metadata, create new one
+		if (!uploadedMetadata) {
+			const nftMetadata = {
+				attributes: [],
+				description: systemNft.description || systemNft.name,
+				image: this.mediaService.getUrl(systemNft.image),
+				name: tokenName,
+				sendable: false,
+			};
 
-		const uploadedMetadata = await this.mediaService.uploadJson(
-			JSON.stringify(nftMetadata),
-		);
+			uploadedMetadata = await this.mediaService.uploadJson(
+				JSON.stringify(nftMetadata),
+			);
+		}
 
 		var mintRes: any;
 		if (systemNft.contractType === "KIP-17") {
