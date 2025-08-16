@@ -24,6 +24,7 @@ import {
 } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { SpaceLocationService } from '@/api/space/space-location.service';
+import { SpaceCheckInService } from '@/api/space/space-checkin.service';
 import { UserLocationService } from '@/api/users/user-location.service';
 import { CACHE_TTL } from '@/constants';
 import { MediaService } from '@/modules/media/media.service';
@@ -50,6 +51,7 @@ export class SpaceService {
 		private systemConfig: SystemConfigService,
 		private spaceLocationService: SpaceLocationService,
 		private notificationService: NotificationService,
+		private spaceCheckInService: SpaceCheckInService,
 	) {}
 
 	async redeemBenefit({
@@ -316,6 +318,10 @@ export class SpaceService {
 				sortedSpaces.map((space) => space.id),
 			);
 
+		const checkInCounts = await this.spaceCheckInService.getCheckInCountsForSpaces(
+			sortedSpaces.map((space) => space.id),
+		);
+
 		return sortedSpaces.map(({ SpaceBenefit, SpaceEventCategory, ...rest }) => ({
 			...rest,
 			SpaceEventCategory,
@@ -327,10 +333,11 @@ export class SpaceService {
 				mostPointsSpace?.spaceId === rest.id
 					? mostPointsSpace?.points
 					: undefined,
+			checkInCount: checkInCounts[rest.id] || 0,
 		}));
 	}
 
-	async getSpace({ spaceId }: { request: Request; spaceId: string }) {
+	async getSpace({ spaceId, request }: { request: Request; spaceId: string }) {
 		const space = await this.prisma.space.findFirst({
 			where: {
 				id: spaceId,
@@ -410,11 +417,25 @@ export class SpaceService {
 		const now = new Date();
 		const spaceOpen = now > spaceOpenTime && now < spaceCloseTime;
 
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const checkInCount = await this.spaceCheckInService.getCheckInCountForSpace(spaceId);
+		const isUserCheckedIn = await this.spaceCheckInService.isUserCheckedIn(
+			authContext.userId,
+			spaceId,
+		);
+
+		const checkInUsers = await this.spaceCheckInService.getCheckInUsers({ spaceId });
+		const currentGroup = await this.spaceCheckInService.getCurrentGroup({ spaceId });
+
 		return {
 			...space,
 			hidingCount: hidingUsers[spaceId],
 			image: space.image ? this.mediaService.getUrl(space.image as any) : null,
 			spaceOpen,
+			checkInCount,
+			isUserCheckedIn,
+			currentGroupProgress: currentGroup?.progress,
+			checkedInUsers: checkInUsers.users.slice(0, 5),
 		};
 	}
 

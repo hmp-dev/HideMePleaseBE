@@ -34,6 +34,7 @@ model User {
   pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id])
   UserLastKnownSpace        UserLastKnownSpace[]
   Wallets                   Wallet[]
+  SpaceCheckIn              SpaceCheckIn[]
 }
 
 model Announcements {
@@ -206,6 +207,8 @@ model Space {
   SystemNftCollection       SystemNftCollection[]
   SystemNftCollectionSpace  SystemNftCollectionSpace[]
   UserLastKnownSpace        UserLastKnownSpace[]
+  SpaceCheckIn              SpaceCheckIn[]
+  SpaceCheckInGroup         SpaceCheckInGroup[]
 }
 
 model SpaceUser {
@@ -881,4 +884,41 @@ enum DayOfWeek {
   FRIDAY
   SATURDAY
   SUNDAY
+}
+
+model SpaceCheckIn {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+  userId       String             @db.Uuid
+  spaceId      String             @db.Uuid
+  checkedInAt  DateTime           @default(now())
+  isActive     Boolean            @default(true)
+  groupId      String?            @db.Uuid
+  latitude     Float
+  longitude    Float
+  pointsEarned Int                @default(0)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space        Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  group        SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, spaceId, isActive])
+  @@index([spaceId, isActive])
+  @@index([userId, isActive])
+}
+
+model SpaceCheckInGroup {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+  spaceId         String         @db.Uuid
+  isCompleted     Boolean        @default(false)
+  completedAt     DateTime?
+  bonusAwarded    Boolean        @default(false)
+  bonusPoints     Int            @default(10)
+  requiredMembers Int            @default(5)
+  space           Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  checkIns        SpaceCheckIn[]
+
+  @@index([spaceId, isCompleted])
 }
