@@ -8,7 +8,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { GeoPosition } from 'geo-position.ts';
 
 import { CheckInDTO, CheckOutDTO, CheckInUserInfo, CurrentGroupResponse } from '@/api/space/space-checkin.dto';
-import { NftPointService } from '@/api/nft/nft-point.service';
 import { NotificationService } from '@/api/notification/notification.service';
 import { NotificationType } from '@/api/notification/notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -19,7 +18,6 @@ import { ErrorCodes } from '@/utils/errorCodes';
 const DEFAULT_CHECK_IN_POINTS = 5;
 const GROUP_BONUS_POINTS = 10;
 const GROUP_SIZE = 5;
-const CHECK_IN_RESET_HOUR = 6;
 
 @Injectable()
 export class SpaceCheckInService {
@@ -27,7 +25,6 @@ export class SpaceCheckInService {
 
 	constructor(
 		private prisma: PrismaService,
-		private nftPointService: NftPointService,
 		private systemConfig: SystemConfigService,
 		private notificationService: NotificationService,
 	) {}
@@ -168,7 +165,6 @@ export class SpaceCheckInService {
 
 	async checkOut({
 		spaceId,
-		checkOutDTO,
 		request,
 	}: {
 		spaceId: string;

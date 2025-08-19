@@ -1,8 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import * as fs from 'fs';
 import * as path from 'path';
-
-import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
 interface NftMetadata {
@@ -19,10 +16,7 @@ interface NftMetadata {
 
 @Injectable()
 export class PublicNftService {
-	constructor(
-		private prisma: PrismaService,
-		private mediaService: MediaService,
-	) {}
+	constructor(private prisma: PrismaService) {}
 
 	async getUserNftMetadata(userId: string): Promise<NftMetadata> {
 		const user = await this.prisma.user.findFirst({

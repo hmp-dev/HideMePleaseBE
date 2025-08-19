@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsNumber } from 'class-validator';
 
 export class CheckInDTO {
 	@ApiProperty()

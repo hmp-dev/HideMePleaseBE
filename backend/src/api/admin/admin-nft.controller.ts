@@ -32,19 +32,19 @@ import {
 	SetUserImageDTO,
 } from '@/api/admin/admin-nft.dto';
 import { AuthGuard } from '@/api/auth/auth.guard';
-import { UserPermissionGuard } from '@/api/auth/user-permission.guard';
+import { UserPermissionsGuard } from '@/api/auth/user-permission.guard';
 import { SetAccessRoles } from '@/api/auth/role.decorator';
 
 const multerOptions = {
 	storage: diskStorage({
 		destination: './uploads/profiles',
-		filename: (req, file, callback) => {
+		filename: (_req, file, callback) => {
 			const fileExtName = path.extname(file.originalname);
 			const fileName = `${uuidv4()}${fileExtName}`;
 			callback(null, fileName);
 		},
 	}),
-	fileFilter: (req: any, file: any, callback: any) => {
+	fileFilter: (_req: any, file: any, callback: any) => {
 		if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
 			return callback(new Error('Only image files are allowed'), false);
 		}
@@ -58,7 +58,7 @@ const multerOptions = {
 @ApiTags('Admin NFT')
 @ApiBearerAuth()
 @Controller('admin/nft')
-@UseGuards(AuthGuard, UserPermissionGuard)
+@UseGuards(AuthGuard, UserPermissionsGuard)
 export class AdminNftController {
 	constructor(private adminNftService: AdminNftService) {}
 

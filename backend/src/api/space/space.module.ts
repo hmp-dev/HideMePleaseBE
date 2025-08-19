@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { AuthModule } from '@/api/auth/auth.module';
