@@ -102,15 +102,11 @@ export class PublicNftController {
 			throw new NotFoundException('User not found');
 		}
 
-		// 이미지 URL이 없는 경우 기본 이미지 반환
-		if (!imageInfo.imageUrl && !imageInfo.imagePath) {
-			const defaultPath = this.publicNftService.getDefaultImagePath();
-			if (fs.existsSync(defaultPath)) {
-				response.setHeader('Content-Type', 'image/svg+xml');
-				response.setHeader('Cache-Control', 'public, max-age=3600');
-				return response.sendFile(path.resolve(defaultPath));
-			}
-			throw new NotFoundException('Default image not found');
+		// If we have an image buffer (generated from parts), return it directly
+		if (imageInfo.imageBuffer) {
+			response.setHeader('Content-Type', imageInfo.mimeType || 'image/png');
+			response.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+			return response.send(imageInfo.imageBuffer);
 		}
 
 		// URL인 경우 리다이렉트
@@ -130,7 +126,7 @@ export class PublicNftController {
 			}
 		}
 
-		// 파일을 찾을 수 없는 경우 기본 이미지
+		// 이미지가 없는 경우 기본 이미지 반환
 		const defaultPath = this.publicNftService.getDefaultImagePath();
 		if (fs.existsSync(defaultPath)) {
 			response.setHeader('Content-Type', 'image/svg+xml');

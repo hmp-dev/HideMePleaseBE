@@ -22,3 +22,6 @@ tools
 .env
 .next
 .registry
+
+# Profile image cache
+backend/uploads/profile-cache/

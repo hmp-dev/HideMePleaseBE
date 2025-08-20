@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as path from 'path';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { ProfileImageGeneratorService } from '@/modules/profile-image/profile-image-generator.service';
+import { ProfileImageCacheService } from '@/modules/profile-image/profile-image-cache.service';
 
 interface NftMetadata {
 	name: string;
@@ -16,7 +18,11 @@ interface NftMetadata {
 
 @Injectable()
 export class PublicNftService {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private profileImageGenerator: ProfileImageGeneratorService,
+		private profileImageCache: ProfileImageCacheService,
+	) {}
 
 	async getUserNftMetadata(userId: string): Promise<NftMetadata> {
 		const user = await this.prisma.user.findFirst({
@@ -79,8 +85,10 @@ export class PublicNftService {
 	async getUserImageInfo(userId: string): Promise<{
 		imageUrl?: string;
 		imagePath?: string;
+		imageBuffer?: Buffer;
 		mimeType?: string;
 		exists: boolean;
+		profilePartsString?: string;
 	}> {
 		const user = await this.prisma.user.findFirst({
 			where: {
@@ -89,6 +97,7 @@ export class PublicNftService {
 			},
 			select: {
 				finalProfileImageUrl: true,
+				profilePartsString: true,
 			},
 		});
 
@@ -96,24 +105,52 @@ export class PublicNftService {
 			return { exists: false };
 		}
 
-		if (!user.finalProfileImageUrl) {
-			return { exists: true };
-		}
+		// If user has finalProfileImageUrl, use it
+		if (user.finalProfileImageUrl) {
+			// URL인 경우
+			if (user.finalProfileImageUrl.startsWith('http')) {
+				return {
+					imageUrl: user.finalProfileImageUrl,
+					exists: true,
+				};
+			}
 
-		// URL인 경우
-		if (user.finalProfileImageUrl.startsWith('http')) {
+			// 로컬 경로인 경우
 			return {
-				imageUrl: user.finalProfileImageUrl,
+				imagePath: user.finalProfileImageUrl,
+				mimeType: this.getMimeTypeFromPath(user.finalProfileImageUrl),
 				exists: true,
 			};
 		}
 
-		// 로컬 경로인 경우
-		return {
-			imagePath: user.finalProfileImageUrl,
-			mimeType: this.getMimeTypeFromPath(user.finalProfileImageUrl),
-			exists: true,
-		};
+		// If no finalProfileImageUrl but has profilePartsString, generate image
+		if (user.profilePartsString) {
+			const parts = this.profileImageGenerator.parseProfileParts(user.profilePartsString);
+			if (parts) {
+				const partsHash = this.profileImageGenerator.generatePartsHash(parts);
+				const cacheKey = this.profileImageCache.getCacheKey(userId, partsHash);
+
+				// Check cache first
+				let imageBuffer = await this.profileImageCache.get(cacheKey);
+
+				if (!imageBuffer) {
+					// Generate new image
+					imageBuffer = await this.profileImageGenerator.generateImageWithFallback(parts);
+					// Store in cache
+					await this.profileImageCache.set(cacheKey, imageBuffer);
+				}
+
+				return {
+					imageBuffer,
+					mimeType: 'image/png',
+					exists: true,
+					profilePartsString: user.profilePartsString,
+				};
+			}
+		}
+
+		// No image available
+		return { exists: true };
 	}
 
 	getDefaultImagePath(): string {
