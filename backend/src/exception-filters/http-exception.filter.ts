@@ -5,13 +5,14 @@ import {
 	HttpException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { I18nService } from 'nestjs-i18n';
+// import { I18nService } from 'nestjs-i18n';
 
 import { ErrorCodes } from '@/utils/errorCodes';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
-	constructor(private i18n: I18nService) {}
+	// constructor(private i18n: I18nService) {}
+	constructor() {}
 
 	catch(exception: HttpException, host: ArgumentsHost) {
 		const ctx = host.switchToHttp();
@@ -20,9 +21,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
 		const code = exception.message as unknown as ErrorCodes;
 
-		const message = this.i18n.t(`error.${code}`, {
-			defaultValue: '',
-		});
+		// const message = this.i18n.t(`error.${code}`, {
+		// 	defaultValue: '',
+		// });
+		const message = '';
 
 		const exceptionResponse = exception.getResponse();
 		let fallbackMessage: string | string[];

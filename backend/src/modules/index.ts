@@ -3,12 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 //import * as redisStore from 'cache-manager-redis-store';
-import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
+// import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import { LoggerModule } from 'nestjs-pino';
-import path from 'path';
+// import path from 'path';
 import { Options } from 'pino-http';
 
-import { GLOBAL_LANG } from '@/constants';
+// import { GLOBAL_LANG } from '@/constants';
 import { KlaytnModule } from '@/modules/klaytn/klaytn.module';
 import { MediaModule } from '@/modules/media/media.module';
 import { validateEnv } from '@/utils/env';
@@ -33,14 +33,14 @@ const DEFAULT_MODULES = [
 
 	PrismaModule,
 
-	I18nModule.forRoot({
-		fallbackLanguage: GLOBAL_LANG,
-		loaderOptions: {
-			path: path.join(__dirname, '..', '/i18n/'),
-			watch: true,
-		},
-		resolvers: [AcceptLanguageResolver],
-	}),
+	// I18nModule.forRoot({
+	// 	fallbackLanguage: GLOBAL_LANG,
+	// 	loaderOptions: {
+	// 		path: path.join(__dirname, '..', '/i18n/'),
+	// 		watch: true,
+	// 	},
+	// 	resolvers: [AcceptLanguageResolver],
+	// }),
 	ScheduleModule.forRoot(),
 	MediaModule,
 	KlaytnModule,

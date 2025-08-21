@@ -83,7 +83,13 @@ export class ProfileImageGeneratorService {
 			const compositeInputs = [];
 			for (const layerPath of layers) {
 				if (!layerPath) continue; // Skip undefined/null values
-				const fullPath = path.join(this.assetsBasePath, layerPath);
+				
+				// Remove 'assets/' prefix if it exists since assetsBasePath already includes it
+				const cleanPath = layerPath.startsWith('assets/') 
+					? layerPath.substring(7) // Remove 'assets/' prefix
+					: layerPath;
+				
+				const fullPath = path.join(this.assetsBasePath, cleanPath);
 				
 				// Check if file exists
 				try {

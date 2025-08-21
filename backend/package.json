@@ -6,6 +6,7 @@
 	"scripts": {
 		"build": "nest build",
 		"prebuild": "rimraf dist",
+		"postbuild": "cp -r src/assets dist/",
 		"start": "nest start",
 		"start:debug": "nest start --debug --watch",
 		"start:dev": "nest start --watch",

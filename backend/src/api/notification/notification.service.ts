@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PromisePool } from '@supercharge/promise-pool';
-import { I18nService } from 'nestjs-i18n';
+// import { I18nService } from 'nestjs-i18n';
 
 import {
 	AdminNotification,
@@ -23,7 +23,7 @@ export class NotificationService {
 	private COMMUNITY_RANK_NOTIFICATIONS_ENABLED = false;
 
 	constructor(
-		private i18n: I18nService,
+		// private i18n: I18nService,
 		private prisma: PrismaService,
 		private firebaseService: FirebaseService,
 	) {}
@@ -140,15 +140,17 @@ export class NotificationService {
 			}
 		}
 
-		const title = this.i18n.t('notification.communityRankUpdate', {
-			args: { community: allUsersInCommunity[0].name },
-		});
-		const body = this.i18n.t('notification.userRankChanged', {
-			args: {
-				nickName: user?.nickName || '',
-				newRank: getNumberWithOrdinal(newRank),
-			},
-		});
+		// const title = this.i18n.t('notification.communityRankUpdate', {
+		// 	args: { community: allUsersInCommunity[0].name },
+		// });
+		const title = `Community Rank Update: ${allUsersInCommunity[0].name}`;
+		// const body = this.i18n.t('notification.userRankChanged', {
+		// 	args: {
+		// 		nickName: user?.nickName || '',
+		// 		newRank: getNumberWithOrdinal(newRank),
+		// 	},
+		// });
+		const body = `${user?.nickName || 'User'}'s rank changed to ${getNumberWithOrdinal(newRank)}`;
 
 		await Promise.all(
 			allUsersInCommunity.map((communityUser) =>
@@ -212,15 +214,17 @@ export class NotificationService {
 			},
 		});
 
-		const title = this.i18n.t('notification.userRankingDrop', {
-			args: { community: nftCollection?.name || '' },
-		});
-		const body = this.i18n.t('notification.userRankChanged', {
-			args: {
-				oldRank: getNumberWithOrdinal(oldRank),
-				newRank: getNumberWithOrdinal(newRank),
-			},
-		});
+		// const title = this.i18n.t('notification.userRankingDrop', {
+		// 	args: { community: nftCollection?.name || '' },
+		// });
+		const title = `Ranking Drop: ${nftCollection?.name || 'Community'}`;
+		// const body = this.i18n.t('notification.userRankChanged', {
+		// 	args: {
+		// 		oldRank: getNumberWithOrdinal(oldRank),
+		// 		newRank: getNumberWithOrdinal(newRank),
+		// 	},
+		// });
+		const body = `Your rank changed from ${getNumberWithOrdinal(oldRank)} to ${getNumberWithOrdinal(newRank)}`;
 
 		await Promise.all([
 			this.prisma.notification.create({
