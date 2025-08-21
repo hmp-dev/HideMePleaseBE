@@ -58,6 +58,11 @@ export class ProfileImageGeneratorService {
 	 */
 	async generateImage(parts: ProfileParts): Promise<Buffer> {
 		try {
+			// Log base paths for debugging
+			this.logger.debug(`__dirname: ${__dirname}`);
+			this.logger.debug(`assetsBasePath: ${this.assetsBasePath}`);
+			this.logger.debug(`process.cwd(): ${process.cwd()}`);
+
 			// Define layer order (bottom to top)
 			const layers = [
 				parts.background,
@@ -81,6 +86,9 @@ export class ProfileImageGeneratorService {
 
 			// Prepare composite layers
 			const compositeInputs = [];
+			let successCount = 0;
+			let failedLayers = [];
+			
 			for (const layerPath of layers) {
 				if (!layerPath) continue; // Skip undefined/null values
 				
@@ -91,18 +99,32 @@ export class ProfileImageGeneratorService {
 				
 				const fullPath = path.join(this.assetsBasePath, cleanPath);
 				
+				// Log path transformation
+				this.logger.debug(`Layer path transformation:`);
+				this.logger.debug(`  Original: ${layerPath}`);
+				this.logger.debug(`  Clean: ${cleanPath}`);
+				this.logger.debug(`  Full: ${fullPath}`);
+				
 				// Check if file exists
 				try {
 					await fs.access(fullPath);
+					this.logger.debug(`  ✓ File exists: ${fullPath}`);
 					compositeInputs.push({
 						input: fullPath,
 						top: 0,
 						left: 0,
 					});
+					successCount++;
 				} catch (error) {
-					this.logger.warn(`Asset file not found: ${fullPath}`);
+					this.logger.warn(`  ✗ Asset file not found: ${fullPath}`);
+					failedLayers.push(fullPath);
 					// Continue with other layers if one is missing
 				}
+			}
+
+			this.logger.debug(`Layer loading summary: ${successCount} success, ${failedLayers.length} failed`);
+			if (failedLayers.length > 0) {
+				this.logger.warn(`Failed layers: ${failedLayers.join(', ')}`);
 			}
 
 			// If no valid layers found, throw error
