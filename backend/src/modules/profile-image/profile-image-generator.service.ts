@@ -109,8 +109,17 @@ export class ProfileImageGeneratorService {
 				try {
 					await fs.access(fullPath);
 					this.logger.debug(`  ✓ File exists: ${fullPath}`);
+					
+					// Resize image to fit within base dimensions if needed
+					const resizedBuffer = await sharp(fullPath)
+						.resize(this.imageSize.width, this.imageSize.height, {
+							fit: 'contain',
+							background: { r: 0, g: 0, b: 0, alpha: 0 }
+						})
+						.toBuffer();
+					
 					compositeInputs.push({
-						input: fullPath,
+						input: resizedBuffer,
 						top: 0,
 						left: 0,
 					});
