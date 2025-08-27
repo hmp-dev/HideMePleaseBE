@@ -10,6 +10,8 @@ import { GeoPosition } from 'geo-position.ts';
 import { CheckInDTO, CheckOutDTO, CheckInUserInfo, CurrentGroupResponse } from '@/api/space/space-checkin.dto';
 import { NotificationService } from '@/api/notification/notification.service';
 import { NotificationType } from '@/api/notification/notification.types';
+import { PointService } from '@/api/points/point.service';
+import { PointSource, PointTransactionType } from '@/api/points/point.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
@@ -27,6 +29,7 @@ export class SpaceCheckInService {
 		private prisma: PrismaService,
 		private systemConfig: SystemConfigService,
 		private notificationService: NotificationService,
+		private pointService: PointService,
 	) {}
 
 	async checkIn({
@@ -46,6 +49,10 @@ export class SpaceCheckInService {
 		
 		if (!space) {
 			throw new NotFoundException(ErrorCodes.ENTITY_NOT_FOUND);
+		}
+
+		if (!space.checkInEnabled) {
+			throw new BadRequestException('이 공간은 현재 체크인이 불가능합니다');
 		}
 
 		const userPosition = new GeoPosition(
@@ -75,6 +82,39 @@ export class SpaceCheckInService {
 		if (existingCheckIn) {
 			throw new BadRequestException('이미 체크인한 상태입니다');
 		}
+
+		if (space.maxCheckInCapacity) {
+			const currentCheckInCount = await this.prisma.spaceCheckIn.count({
+				where: {
+					spaceId,
+					isActive: true,
+				},
+			});
+
+			if (currentCheckInCount >= space.maxCheckInCapacity) {
+				throw new BadRequestException('체크인 최대 인원수를 초과했습니다');
+			}
+		}
+
+		if (space.dailyCheckInLimit) {
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+
+			const todayCheckInCount = await this.prisma.spaceCheckIn.count({
+				where: {
+					spaceId,
+					checkedInAt: {
+						gte: today,
+					},
+				},
+			});
+
+			if (todayCheckInCount >= space.dailyCheckInLimit) {
+				throw new BadRequestException('오늘의 체크인 제한 인원수를 초과했습니다');
+			}
+		}
+
+		const checkInPoints = space.checkInPointsOverride || DEFAULT_CHECK_IN_POINTS;
 
 		let currentGroup = await this.prisma.spaceCheckInGroup.findFirst({
 			where: {
@@ -106,8 +146,18 @@ export class SpaceCheckInService {
 				groupId: currentGroup.id,
 				latitude: checkInDTO.latitude,
 				longitude: checkInDTO.longitude,
-				pointsEarned: DEFAULT_CHECK_IN_POINTS,
+				pointsEarned: checkInPoints,
 			},
+		});
+
+		await this.pointService.earnPoints({
+			userId: authContext.userId,
+			amount: checkInPoints,
+			type: PointTransactionType.EARNED,
+			source: PointSource.CHECK_IN,
+			description: `${space.name} 체크인`,
+			referenceId: checkIn.id,
+			referenceType: 'space_checkin',
 		});
 
 		const updatedGroup = await this.prisma.spaceCheckInGroup.findFirst({
@@ -138,6 +188,16 @@ export class SpaceCheckInService {
 						},
 					});
 
+					await this.pointService.earnPoints({
+						userId: checkIn.userId,
+						amount: GROUP_BONUS_POINTS,
+						type: PointTransactionType.EARNED,
+						source: PointSource.GROUP_BONUS,
+						description: `${space.name} 그룹 체크인 보너스`,
+						referenceId: updatedGroup.id,
+						referenceType: 'group_checkin',
+					});
+
 					void this.notificationService.sendNotification({
 						type: NotificationType.Admin,
 						userId: checkIn.userId,
@@ -152,14 +212,14 @@ export class SpaceCheckInService {
 			type: NotificationType.Admin,
 			userId: authContext.userId,
 			title: '체크인 완료',
-			body: `${space.name}에 체크인하여 ${DEFAULT_CHECK_IN_POINTS} SAV를 획득했습니다.`,
+			body: `${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`,
 		});
 
 		return {
 			success: true,
 			checkInId: checkIn.id,
 			groupProgress: `${updatedGroup?.checkIns.length || 1}/${GROUP_SIZE}`,
-			earnedPoints: DEFAULT_CHECK_IN_POINTS,
+			earnedPoints: checkInPoints,
 		};
 	}
 

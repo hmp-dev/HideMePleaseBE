@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { AuthModule } from '@/api/auth/auth.module';
 import { NftModule } from '@/api/nft/nft.module';
+import { PointModule } from '@/api/points/point.module';
 import { SpaceController } from '@/api/space/space.controller';
 import { SpaceService } from '@/api/space/space.service';
 import { SpaceCheckInService } from '@/api/space/space-checkin.service';
@@ -20,6 +21,7 @@ import { NotificationModule } from '../notification/notification.module';
 		SystemConfigModule,
 		SpaceLocationModuleModule,
 		NotificationModule,
+		PointModule,
 		ScheduleModule.forRoot(),
 	],
 	controllers: [SpaceController],

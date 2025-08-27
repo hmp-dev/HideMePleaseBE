@@ -10,31 +10,29 @@ datasource db {
 model User {
   createdAt                 DateTime                    @default(now())
   deleted                   Boolean                     @default(false)
-  firebaseId                String?                     @unique
+  firebaseId                String?                     @unique(map: "User_firebaseId_key_1")
   updatedAt                 DateTime                    @default(now()) @updatedAt
-  wldNullifierHash          String?                     @unique
-  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  wldNullifierHash          String?
+  id                        String                      @id(map: "User_pkey_1") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   introduction              String                      @default("")
   locationPublic            Boolean                     @default(true)
   nickName                  String?
   pfpNftId                  String?
   notificationsEnabled      Boolean                     @default(true)
   fcmToken                  String?
-  profilePartsString        String?
-  finalProfileImageUrl      String?
   loginType                 LoginType
   email                     String?
   chatAccessToken           String?
+  profilePartsString        String?
+  finalProfileImageUrl      String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
   ScheduleNotification      ScheduleNotification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
+  SpaceCheckIn              SpaceCheckIn[]
   SpaceUser                 SpaceUser[]
   SystemNft                 SystemNft[]
-  pfpNft                    Nft?                        @relation(fields: [pfpNftId], references: [id])
   UserLastKnownSpace        UserLastKnownSpace[]
-  Wallets                   Wallet[]
-  SpaceCheckIn              SpaceCheckIn[]
 }
 
 model Announcements {
@@ -106,7 +104,7 @@ model SystemNft {
   userId           String              @db.Uuid
   nftCollection    SystemNftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
   tokenFile        MediaFile           @relation(fields: [tokenFileId], references: [id])
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NftCollectionPoints {
@@ -131,7 +129,7 @@ model NftCollectionMemberPoints {
   tokenAddress     String
   userId           String        @db.Uuid
   nftCollection    NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade)
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Nft {
@@ -150,7 +148,6 @@ model Nft {
   videoUrl           String?
   ownedWallet        Wallet        @relation(fields: [ownedWalletAddress], references: [publicAddress])
   nftCollection      NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
-  User              User[]
 }
 
 model Wallet {
@@ -161,7 +158,6 @@ model Wallet {
   publicAddress String         @id @unique
   provider      WalletProvider
   Nft           Nft[]
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model MediaFile {
@@ -197,18 +193,23 @@ model Space {
   isTemporarilyClosed       Boolean                     @default(false)
   temporaryClosureReason    String?
   temporaryClosureEndDate   DateTime?
+  checkInEnabled            Boolean                     @default(true)
+  checkInPointsOverride     Int?
+  checkInRequirements       Json?
+  dailyCheckInLimit         Int?
+  maxCheckInCapacity        Int?
   NftCollectionAllowedSpace NftCollectionAllowedSpace[]
   image                     directus_files              @relation(fields: [imageId], references: [id])
   SpaceBenefit              SpaceBenefit[]
   SpaceBusinessHours        SpaceBusinessHours[]
+  SpaceCheckIn              SpaceCheckIn[]
+  SpaceCheckInGroup         SpaceCheckInGroup[]
   SpaceUser                 SpaceUser[]
   SpaceUserInvites          SpaceUserInvites[]
   SpaceEventCategory        SpaceEventCategory[]
   SystemNftCollection       SystemNftCollection[]
   SystemNftCollectionSpace  SystemNftCollectionSpace[]
   UserLastKnownSpace        UserLastKnownSpace[]
-  SpaceCheckIn              SpaceCheckIn[]
-  SpaceCheckInGroup         SpaceCheckInGroup[]
 }
 
 model SpaceUser {
@@ -220,7 +221,7 @@ model SpaceUser {
   userId    String        @db.Uuid
   role      SpaceUserRole @default(SPACE_ADMIN)
   space     Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, userId])
 }
@@ -259,7 +260,7 @@ model UserLastKnownSpace {
   spaceId   String   @db.Uuid
   userId    String   @db.Uuid
   space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SpaceBenefitUsage {
@@ -273,7 +274,7 @@ model SpaceBenefitUsage {
   tokenAddress  String
   benefit       SpaceBenefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   nftCollection NftCollection @relation(fields: [tokenAddress], references: [tokenAddress], onDelete: Cascade, onUpdate: NoAction)
-  user          User         @relation("user", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user          User          @relation("user", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model BenefitLevelPointCap {
@@ -308,7 +309,7 @@ model Notification {
   params    Json?
   sent      Boolean  @default(false)
   userId    String   @db.Uuid
-  User      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ScheduleNotification {
@@ -320,7 +321,7 @@ model ScheduleNotification {
   sent         Boolean  @default(false)
   scheduleTime DateTime @default(now())
   userId       String?  @db.Uuid
-  User         User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SolanaGroups {
@@ -829,6 +830,143 @@ model SpaceEventCategory {
   @@map("Space_EventCategory")
 }
 
+model SpaceCheckIn {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+  userId       String             @db.Uuid
+  spaceId      String             @db.Uuid
+  checkedInAt  DateTime           @default(now())
+  isActive     Boolean            @default(true)
+  groupId      String?            @db.Uuid
+  latitude     Float
+  longitude    Float
+  pointsEarned Int                @default(0)
+  group        SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
+  space        Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spaceId, isActive])
+  @@index([spaceId, isActive])
+  @@index([userId, isActive])
+}
+
+model SpaceCheckInGroup {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+  spaceId         String         @db.Uuid
+  isCompleted     Boolean        @default(false)
+  completedAt     DateTime?
+  bonusAwarded    Boolean        @default(false)
+  bonusPoints     Int            @default(10)
+  requiredMembers Int            @default(5)
+  checkIns        SpaceCheckIn[]
+  space           Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, isCompleted])
+}
+
+model User2 {
+  createdAt            DateTime  @default(now())
+  deleted              Boolean   @default(false)
+  firebaseId           String?   @unique(map: "User_firebaseId_key")
+  updatedAt            DateTime  @default(now())
+  wldNullifierHash     String?
+  id                   String    @id(map: "User_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  introduction         String    @default("")
+  locationPublic       Boolean   @default(true)
+  nickName             String?
+  pfpNftId             String?
+  notificationsEnabled Boolean   @default(true)
+  fcmToken             String?
+  profilePartsString   String?
+  finalProfileImageUrl String?
+  loginType            LoginType
+  email                String?
+  chatAccessToken      String?
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model directus_collections_backup_20250108 {
+  collection              String?  @db.VarChar(64)
+  icon                    String?  @db.VarChar(30)
+  note                    String?
+  display_template        String?  @db.VarChar(255)
+  hidden                  Boolean?
+  singleton               Boolean?
+  translations            Json?    @db.Json
+  archive_field           String?  @db.VarChar(64)
+  archive_app_filter      Boolean?
+  archive_value           String?  @db.VarChar(255)
+  unarchive_value         String?  @db.VarChar(255)
+  sort_field              String?  @db.VarChar(64)
+  accountability          String?  @db.VarChar(255)
+  color                   String?  @db.VarChar(255)
+  item_duplication_fields Json?    @db.Json
+  sort                    Int?
+  group                   String?  @db.VarChar(64)
+  collapse                String?  @db.VarChar(255)
+  preview_url             String?  @db.VarChar(255)
+  versioning              Boolean?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model directus_fields_backup_20250108 {
+  id                 Int?
+  collection         String?  @db.VarChar(64)
+  field              String?  @db.VarChar(64)
+  special            String?  @db.VarChar(64)
+  interface          String?  @db.VarChar(64)
+  options            Json?    @db.Json
+  display            String?  @db.VarChar(64)
+  display_options    Json?    @db.Json
+  readonly           Boolean?
+  hidden             Boolean?
+  sort               Int?
+  width              String?  @db.VarChar(30)
+  translations       Json?    @db.Json
+  note               String?
+  conditions         Json?    @db.Json
+  required           Boolean?
+  group              String?  @db.VarChar(64)
+  validation         Json?    @db.Json
+  validation_message String?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model directus_permissions_backup_20250108 {
+  id          Int?
+  role        String? @db.Uuid
+  collection  String? @db.VarChar(64)
+  action      String? @db.VarChar(10)
+  permissions Json?   @db.Json
+  validation  Json?   @db.Json
+  presets     Json?   @db.Json
+  fields      String?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model directus_relations_backup_20250108 {
+  id                      Int?
+  many_collection         String? @db.VarChar(64)
+  many_field              String? @db.VarChar(64)
+  one_collection          String? @db.VarChar(64)
+  one_field               String? @db.VarChar(64)
+  one_collection_field    String? @db.VarChar(64)
+  one_allowed_collections String?
+  junction_field          String? @db.VarChar(64)
+  sort_field              String? @db.VarChar(64)
+  one_deselect_action     String? @db.VarChar(255)
+
+  @@ignore
+}
 
 enum LoginType {
   FIREBASE
@@ -886,39 +1024,26 @@ enum DayOfWeek {
   SUNDAY
 }
 
-model SpaceCheckIn {
-  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @default(now()) @updatedAt
-  userId       String             @db.Uuid
-  spaceId      String             @db.Uuid
-  checkedInAt  DateTime           @default(now())
-  isActive     Boolean            @default(true)
-  groupId      String?            @db.Uuid
-  latitude     Float
-  longitude    Float
-  pointsEarned Int                @default(0)
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  space        Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  group        SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
-
-  @@unique([userId, spaceId, isActive])
-  @@index([spaceId, isActive])
-  @@index([userId, isActive])
+enum PointTransactionType {
+  EARNED
+  SPENT
+  REFUND
+  ADJUSTMENT
+  LOCKED
+  UNLOCKED
 }
 
-model SpaceCheckInGroup {
-  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @default(now()) @updatedAt
-  spaceId         String         @db.Uuid
-  isCompleted     Boolean        @default(false)
-  completedAt     DateTime?
-  bonusAwarded    Boolean        @default(false)
-  bonusPoints     Int            @default(10)
-  requiredMembers Int            @default(5)
-  space           Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  checkIns        SpaceCheckIn[]
-
-  @@index([spaceId, isCompleted])
+enum PointSource {
+  CHECK_IN
+  GROUP_BONUS
+  PURCHASE
+  REWARD
+  REFERRAL
+  EVENT
+  ADMIN_GRANT
+  ADMIN_DEDUCT
+  TRANSFER_IN
+  TRANSFER_OUT
+  REFUND
+  OTHER
 }
