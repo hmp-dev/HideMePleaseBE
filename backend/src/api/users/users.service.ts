@@ -31,12 +31,7 @@ export class UsersService {
 				locationPublic: true,
 				notificationsEnabled: true,
 				chatAccessToken: true,
-				pfpNft: {
-					select: {
-						id: true,
-						imageUrl: true,
-					},
-				},
+				pfpNftId: true,
 			},
 		});
 
@@ -62,12 +57,9 @@ export class UsersService {
 		// 	userProfile.chatAccessToken = chatAccessToken;
 		// }
 
-		const { pfpNft, ...rest } = userProfile;
-
 		return {
-			...rest,
-			pfpNftId: pfpNft?.id,
-			pfpImageUrl: pfpNft?.imageUrl,
+			...userProfile,
+			pfpImageUrl: undefined,
 			chatAppId: this.configService.get<string>('SENDBIRD_APP_ID'),
 		};
 	}
@@ -145,11 +137,6 @@ export class UsersService {
 				firebaseId: true,
 				wldNullifierHash: true,
 				nickName: true,
-				Wallets: {
-					select: {
-						publicAddress: true,
-					},
-				},
 				SpaceBenefitUsageUser: {
 					select: {
 						id: true,
@@ -162,8 +149,18 @@ export class UsersService {
 			return;
 		}
 
+		// Get wallets separately
+		const wallets = await this.prisma.wallet.findMany({
+			where: {
+				userId: authContext.userId,
+			},
+			select: {
+				publicAddress: true,
+			},
+		});
+
 		await Promise.all(
-			user.Wallets.map((wallet) =>
+			wallets.map((wallet) =>
 				this.walletService.deleteWalletByPublicAddress(
 					wallet.publicAddress,
 				),

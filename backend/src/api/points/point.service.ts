@@ -4,7 +4,6 @@ import {
 	Logger,
 	NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';

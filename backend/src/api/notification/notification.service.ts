@@ -103,18 +103,8 @@ export class NotificationService {
 				where: {
 					tokenAddress,
 				},
-				select: {
-					name: true,
-					ownedWallet: {
-						select: {
-							user: {
-								select: {
-									id: true,
-									fcmToken: true,
-								},
-							},
-						},
-					},
+				include: {
+					ownedWallet: true,
 				},
 			}),
 			this.prisma.user.findFirst({
@@ -132,11 +122,26 @@ export class NotificationService {
 			return;
 		}
 
+		// Get users for each wallet
+		const walletUserIds = allUsersInCommunity.map(nft => nft.ownedWallet.userId);
+		const users = await this.prisma.user.findMany({
+			where: {
+				id: {
+					in: walletUserIds,
+				},
+			},
+			select: {
+				id: true,
+				fcmToken: true,
+			},
+		});
+
+		const userMap = new Map(users.map(u => [u.id, u]));
 		const communityFcmTokens = new Set<string>();
 		for (const nft of allUsersInCommunity) {
-			const fcmToken = nft.ownedWallet.user.fcmToken;
-			if (fcmToken) {
-				communityFcmTokens.add(fcmToken);
+			const user = userMap.get(nft.ownedWallet.userId);
+			if (user?.fcmToken) {
+				communityFcmTokens.add(user.fcmToken);
 			}
 		}
 
@@ -160,7 +165,7 @@ export class NotificationService {
 						body,
 						type,
 						sent: true,
-						userId: communityUser.ownedWallet.user.id,
+						userId: communityUser.ownedWallet.userId,
 					},
 				}),
 			),

@@ -707,22 +707,8 @@ export class NftBenefitsService {
 				where: {
 					tokenAddress,
 				},
-				select: {
-					user: {
-						select: {
-							id: true,
-							nickName: true,
-							introduction: true,
-							pfpNft: {
-								select: {
-									imageUrl: true,
-								},
-							},
-						},
-					},
-					totalPoints: true,
-					pointFluctuation: true,
-					memberRank: true,
+				include: {
+					user: true,
 				},
 				take: NFT_MEMBERS_PAGE_SIZE,
 				skip: NFT_MEMBERS_PAGE_SIZE * (currentPage - 1),
@@ -739,12 +725,13 @@ export class NftBenefitsService {
 
 		return {
 			members: nftMembers.map((nftMember) => ({
-				...nftMember,
-				user: undefined,
+				totalPoints: nftMember.totalPoints,
+				pointFluctuation: nftMember.pointFluctuation,
+				memberRank: nftMember.memberRank,
 				userId: nftMember.user.id,
 				name: nftMember.user.nickName || '',
 				introduction: nftMember.user.introduction,
-				pfpImage: nftMember.user.pfpNft?.imageUrl,
+				pfpImage: nftMember.user.pfpNftId,
 			})),
 			nftMemberCount,
 		};
