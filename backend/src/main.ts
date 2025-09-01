@@ -10,6 +10,7 @@ import {
 	SwaggerModule,
 } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import * as path from 'path';
 
 import { ApiVersions } from '@/constants';
 import { PrismaExceptionFilter } from '@/exception-filters/prisma-exception';
@@ -30,6 +31,11 @@ import { setupValidationPipe } from './utils/configuration';
 		defaultVersion: ApiVersions.V1,
 	});
 	app.enableCors();
+
+	// Static files serving for character images
+	app.useStaticAssets(path.join(__dirname, 'assets'), {
+		prefix: '/assets/',
+	});
 
 	const config = new DocumentBuilder()
 		.setTitle('Hidemeplease API')
