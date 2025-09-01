@@ -49,8 +49,8 @@ export class PublicNftService {
 		const metadata: NftMetadata = {
 			name: `HideMe Profile - ${user.nickName || user.id}`,
 			description: `HideMe User Profile NFT for ${user.nickName || 'User'}`,
-			image: imageUrl,
-			external_url: `https://hideme.plus/user/${userId}`,
+			image: user.finalProfileImageUrl || imageUrl,
+			external_url: user.finalProfileImageUrl || `https://hideme.plus/user/${userId}`,
 			attributes: [
 				{
 					trait_type: 'User ID',
