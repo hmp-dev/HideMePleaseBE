@@ -43,7 +43,7 @@ export class PublicNftService {
 			throw new NotFoundException('User not found');
 		}
 
-		const baseUrl = process.env.API_BASE_URL || 'https://api.hideme.plus';
+		const baseUrl = process.env.API_BASE_URL || 'https://dev-api.hidemeplease.xyz/v1';
 		const imageUrl = `${baseUrl}/public/nft/user/${userId}/image`;
 
 		const metadata: NftMetadata = {
