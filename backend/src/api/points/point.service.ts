@@ -63,21 +63,20 @@ export class PointService {
 			const newAvailableBalance = currentBalance.availableBalance + dto.amount;
 			const newLifetimeEarned = currentBalance.lifetimeEarned + dto.amount;
 
-			// PointTransaction 테이블이 없으므로 주석 처리
-			// await prisma.pointTransaction.create({
-			// 	data: {
-			// 		userId: dto.userId,
-			// 		amount: dto.amount,
-			// 		type: PointTransactionType.EARNED,
-			// 		source: dto.source,
-			// 		description: dto.description,
-			// 		referenceId: dto.referenceId,
-			// 		referenceType: dto.referenceType,
-			// 		balanceBefore: currentBalance.totalBalance,
-			// 		balanceAfter: newTotalBalance,
-			// 		metadata: dto.metadata,
-			// 	},
-			// });
+			await prisma.pointTransaction.create({
+				data: {
+					userId: dto.userId,
+					amount: dto.amount,
+					type: dto.type || PointTransactionType.EARNED,
+					source: dto.source,
+					description: dto.description,
+					referenceId: dto.referenceId,
+					referenceType: dto.referenceType,
+					balanceBefore: currentBalance.totalBalance,
+					balanceAfter: newTotalBalance,
+					metadata: dto.metadata,
+				},
+			});
 
 			const updatedBalance = await prisma.userPointBalance.update({
 				where: { userId: dto.userId },
@@ -109,7 +108,7 @@ export class PointService {
 		}
 
 		return await this.prisma.$transaction(async (tx) => {
-			const currentBalance = await this.getOrCreateBalance(dto.userId);
+			const currentBalance = await this.getOrCreateBalance(dto.userId, tx);
 			
 			if (currentBalance.availableBalance < dto.amount) {
 				throw new BadRequestException('포인트가 부족합니다');
@@ -119,7 +118,7 @@ export class PointService {
 			const newAvailableBalance = currentBalance.availableBalance - dto.amount;
 			const newLifetimeSpent = currentBalance.lifetimeSpent + dto.amount;
 
-			await (tx as any).pointTransaction.create({
+			await tx.pointTransaction.create({
 				data: {
 					userId: dto.userId,
 					amount: -dto.amount,
@@ -134,7 +133,7 @@ export class PointService {
 				},
 			});
 
-			const updatedBalance = await (tx as any).userPointBalance.update({
+			const updatedBalance = await tx.userPointBalance.update({
 				where: { userId: dto.userId },
 				data: {
 					totalBalance: newTotalBalance,
@@ -157,7 +156,7 @@ export class PointService {
 		}
 
 		return await this.prisma.$transaction(async (tx) => {
-			const currentBalance = await this.getOrCreateBalance(userId);
+			const currentBalance = await this.getOrCreateBalance(userId, tx);
 			
 			if (currentBalance.availableBalance < amount) {
 				throw new BadRequestException('잠금할 포인트가 부족합니다');
@@ -166,7 +165,7 @@ export class PointService {
 			const newAvailableBalance = currentBalance.availableBalance - amount;
 			const newLockedBalance = currentBalance.lockedBalance + amount;
 
-			await (tx as any).pointTransaction.create({
+			await tx.pointTransaction.create({
 				data: {
 					userId,
 					amount: 0,
@@ -178,7 +177,7 @@ export class PointService {
 				},
 			});
 
-			return await (tx as any).userPointBalance.update({
+			return await tx.userPointBalance.update({
 				where: { userId },
 				data: {
 					availableBalance: newAvailableBalance,
@@ -194,7 +193,7 @@ export class PointService {
 		}
 
 		return await this.prisma.$transaction(async (tx) => {
-			const currentBalance = await this.getOrCreateBalance(userId);
+			const currentBalance = await this.getOrCreateBalance(userId, tx);
 			
 			if (currentBalance.lockedBalance < amount) {
 				throw new BadRequestException('해제할 포인트가 부족합니다');
@@ -203,7 +202,7 @@ export class PointService {
 			const newAvailableBalance = currentBalance.availableBalance + amount;
 			const newLockedBalance = currentBalance.lockedBalance - amount;
 
-			await (tx as any).pointTransaction.create({
+			await tx.pointTransaction.create({
 				data: {
 					userId,
 					amount: 0,
@@ -215,7 +214,7 @@ export class PointService {
 				},
 			});
 
-			return await (tx as any).userPointBalance.update({
+			return await tx.userPointBalance.update({
 				where: { userId },
 				data: {
 					availableBalance: newAvailableBalance,
@@ -232,22 +231,18 @@ export class PointService {
 		source?: PointSource,
 		type?: PointTransactionType,
 	) {
-		const skip = (page - 1) * limit;
-
-		const where: any = {
-			userId,
-			...(source && { source }),
-			...(type && { type }),
-		};
+		const where: any = { userId };
+		if (source) where.source = source;
+		if (type) where.type = type;
 
 		const [transactions, total] = await Promise.all([
-			(this.prisma as any).pointTransaction.findMany({
+			this.prisma.pointTransaction.findMany({
 				where,
 				orderBy: { createdAt: 'desc' },
-				skip,
 				take: limit,
+				skip: (page - 1) * limit,
 			}),
-			(this.prisma as any).pointTransaction.count({ where }),
+			this.prisma.pointTransaction.count({ where }),
 		]);
 
 		return {
@@ -264,43 +259,40 @@ export class PointService {
 	async getPointSummary(userId: string) {
 		const balance = await this.getOrCreateBalance(userId);
 
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
+		const now = new Date();
+		const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-		const thisMonth = new Date();
-		thisMonth.setDate(1);
-		thisMonth.setHours(0, 0, 0, 0);
-
-		const [todayEarned, monthlyEarned, todaySpent, monthlySpent] = await Promise.all([
-			(this.prisma as any).pointTransaction.aggregate({
+		const [todayEarned, todaySpent, monthEarned, monthSpent] = await Promise.all([
+			this.prisma.pointTransaction.aggregate({
 				where: {
 					userId,
 					type: PointTransactionType.EARNED,
-					createdAt: { gte: today },
+					createdAt: { gte: startOfDay },
 				},
 				_sum: { amount: true },
 			}),
-			(this.prisma as any).pointTransaction.aggregate({
+			this.prisma.pointTransaction.aggregate({
+				where: {
+					userId,
+					type: PointTransactionType.SPENT,
+					createdAt: { gte: startOfDay },
+				},
+				_sum: { amount: true },
+			}),
+			this.prisma.pointTransaction.aggregate({
 				where: {
 					userId,
 					type: PointTransactionType.EARNED,
-					createdAt: { gte: thisMonth },
+					createdAt: { gte: startOfMonth },
 				},
 				_sum: { amount: true },
 			}),
-			(this.prisma as any).pointTransaction.aggregate({
+			this.prisma.pointTransaction.aggregate({
 				where: {
 					userId,
 					type: PointTransactionType.SPENT,
-					createdAt: { gte: today },
-				},
-				_sum: { amount: true },
-			}),
-			(this.prisma as any).pointTransaction.aggregate({
-				where: {
-					userId,
-					type: PointTransactionType.SPENT,
-					createdAt: { gte: thisMonth },
+					createdAt: { gte: startOfMonth },
 				},
 				_sum: { amount: true },
 			}),
@@ -313,8 +305,8 @@ export class PointService {
 				spent: Math.abs(todaySpent._sum.amount || 0),
 			},
 			thisMonth: {
-				earned: monthlyEarned._sum.amount || 0,
-				spent: Math.abs(monthlySpent._sum.amount || 0),
+				earned: monthEarned._sum.amount || 0,
+				spent: Math.abs(monthSpent._sum.amount || 0),
 			},
 		};
 	}
@@ -324,7 +316,7 @@ export class PointService {
 		originalTransactionId: string,
 		reason: string,
 	): Promise<PointBalanceDto> {
-		const originalTransaction = await (this.prisma as any).pointTransaction.findUnique({
+		const originalTransaction = await this.prisma.pointTransaction.findUnique({
 			where: { id: originalTransactionId },
 		});
 

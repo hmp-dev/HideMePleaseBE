@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { PointService } from '@/api/points/point.service';
 import { WalletService } from '@/api/wallet/wallet.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 // import { SendbirdService } from '@/modules/sendbird/sendbird.service';
@@ -15,6 +16,7 @@ export class UsersService {
 	constructor(
 		private prisma: PrismaService,
 		private walletService: WalletService,
+		private pointService: PointService,
 		// private sendbirdService: SendbirdService,
 		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
@@ -57,10 +59,33 @@ export class UsersService {
 		// 	userProfile.chatAccessToken = chatAccessToken;
 		// }
 
+		// 포인트 정보 조회
+		let pointBalance;
+		try {
+			pointBalance = await this.pointService.getOrCreateBalance(authContext.userId);
+		} catch (error) {
+			// 포인트 조회 실패 시 기본값 설정
+			console.error('Failed to fetch point balance:', error);
+			pointBalance = {
+				totalBalance: 0,
+				availableBalance: 0,
+				lockedBalance: 0,
+				lifetimeEarned: 0,
+				lifetimeSpent: 0,
+			};
+		}
+
 		return {
 			...userProfile,
 			pfpImageUrl: undefined,
 			chatAppId: this.configService.get<string>('SENDBIRD_APP_ID'),
+			pointBalance: {
+				totalBalance: pointBalance.totalBalance,
+				availableBalance: pointBalance.availableBalance,
+				lockedBalance: pointBalance.lockedBalance,
+				lifetimeEarned: pointBalance.lifetimeEarned,
+				lifetimeSpent: pointBalance.lifetimeSpent,
+			},
 		};
 	}
 

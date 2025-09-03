@@ -27,6 +27,7 @@ model User {
   finalProfileImageUrl      String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
+  PointTransaction          PointTransaction[]
   ScheduleNotification      ScheduleNotification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceCheckIn              SpaceCheckIn[]
@@ -878,8 +879,7 @@ model UserPointBalance {
   lockedBalance    Int      @default(0)
   lifetimeEarned   Int      @default(0)
   lifetimeSpent    Int      @default(0)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -983,6 +983,26 @@ model directus_relations_backup_20250108 {
   one_deselect_action     String? @db.VarChar(255)
 
   @@ignore
+}
+
+model PointTransaction {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime             @default(now())
+  userId        String               @db.Uuid
+  amount        Int
+  type          PointTransactionType
+  source        PointSource
+  description   String
+  referenceId   String?
+  referenceType String?
+  balanceBefore Int
+  balanceAfter  Int
+  metadata      Json?
+  User          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([referenceId, referenceType])
+  @@index([source])
+  @@index([userId, createdAt])
 }
 
 enum LoginType {

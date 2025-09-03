@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/api/auth/auth.module';
 import { NftModule } from '@/api/nft/nft.module';
+import { PointModule } from '@/api/points/point.module';
 import { UserLocationService } from '@/api/users/user-location.service';
 import { UserNftService } from '@/api/users/user-nft.service';
 import { UsersController } from '@/api/users/users.controller';
@@ -22,6 +23,7 @@ import { UserController } from './user.controller';
 		AuthModule,
 		MoralisModule,
 		NftModule,
+		PointModule,
 		CovalentModule,
 		UnifiedNftModule,
 		SystemConfigModule,
