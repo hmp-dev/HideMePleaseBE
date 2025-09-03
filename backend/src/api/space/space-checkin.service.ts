@@ -43,9 +43,8 @@ export class SpaceCheckInService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		
-		return await this.prisma.$transaction(async (tx) => {
-		
-		const space = await tx.space.findFirst({
+		// 트랜잭션 시작 전에 기본 검증 수행
+		const space = await this.prisma.space.findFirst({
 			where: { id: spaceId },
 		});
 		
@@ -57,6 +56,7 @@ export class SpaceCheckInService {
 			throw new BadRequestException('이 공간은 현재 체크인이 불가능합니다');
 		}
 
+		// 거리 체크를 트랜잭션 밖에서 먼저 수행
 		const userPosition = new GeoPosition(
 			checkInDTO.latitude,
 			checkInDTO.longitude,
@@ -70,21 +70,14 @@ export class SpaceCheckInService {
 		const distance = Number(userPosition.Distance(spacePosition).toFixed(0));
 		
 		if (distance > maxDistance) {
+			this.logger.log(`거리 체크 실패 - 사용자: ${authContext.userId}, 거리: ${distance}m, 최대: ${maxDistance}m`);
 			throw new BadRequestException(ErrorCodes.SPACE_OUT_OF_RANGE);
 		}
 
-		const existingCheckIn = await tx.spaceCheckIn.findFirst({
-			where: {
-				userId: authContext.userId,
-				spaceId,
-				isActive: true,
-			},
-		});
+		// 모든 검증 통과 후 트랜잭션 시작
+		return await this.prisma.$transaction(async (tx) => {
 
-		if (existingCheckIn) {
-			throw new BadRequestException('이미 체크인한 상태입니다');
-		}
-
+		// 먼저 어디든 체크인되어 있는지 확인
 		const existingActiveCheckIn = await tx.spaceCheckIn.findFirst({
 			where: {
 				userId: authContext.userId,
@@ -99,6 +92,12 @@ export class SpaceCheckInService {
 			},
 		});
 
+		// 같은 스페이스에 이미 체크인되어 있는 경우
+		if (existingActiveCheckIn && existingActiveCheckIn.spaceId === spaceId) {
+			throw new BadRequestException('이미 체크인한 상태입니다');
+		}
+
+		// 다른 스페이스에 체크인되어 있는 경우 자동 체크아웃
 		if (existingActiveCheckIn && existingActiveCheckIn.spaceId !== spaceId) {
 			await tx.spaceCheckIn.update({
 				where: { id: existingActiveCheckIn.id },
@@ -182,15 +181,22 @@ export class SpaceCheckInService {
 			},
 		});
 
-		await this.pointService.earnPoints({
-			userId: authContext.userId,
-			amount: checkInPoints,
-			type: PointTransactionType.EARNED,
-			source: PointSource.CHECK_IN,
-			description: `${space.name} 체크인`,
-			referenceId: checkIn.id,
-			referenceType: 'space_checkin',
-		});
+		// 같은 트랜잭션을 사용하여 포인트 적립
+		try {
+			await this.pointService.earnPoints({
+				userId: authContext.userId,
+				amount: checkInPoints,
+				type: PointTransactionType.EARNED,
+				source: PointSource.CHECK_IN,
+				description: `${space.name} 체크인`,
+				referenceId: checkIn.id,
+				referenceType: 'space_checkin',
+			}, tx);
+		} catch (error) {
+			this.logger.error('포인트 적립 실패:', error);
+			// 포인트 실패 시 전체 트랜잭션 롤백
+			throw error;
+		}
 
 		const updatedGroup = await tx.spaceCheckInGroup.findFirst({
 			where: { id: currentGroup.id },
@@ -220,6 +226,7 @@ export class SpaceCheckInService {
 						},
 					});
 
+					// 같은 트랜잭션으로 그룹 보너스 포인트 적립
 					await this.pointService.earnPoints({
 						userId: checkIn.userId,
 						amount: GROUP_BONUS_POINTS,
@@ -228,7 +235,7 @@ export class SpaceCheckInService {
 						description: `${space.name} 그룹 체크인 보너스`,
 						referenceId: updatedGroup.id,
 						referenceType: 'group_checkin',
-					});
+					}, tx);
 
 					void this.notificationService.sendNotification({
 						type: NotificationType.Admin,

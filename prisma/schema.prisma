@@ -847,7 +847,7 @@ model SpaceCheckIn {
   space        Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, spaceId, isActive])
+  @@index([userId, spaceId, isActive])
   @@index([spaceId, isActive])
   @@index([userId, isActive])
 }

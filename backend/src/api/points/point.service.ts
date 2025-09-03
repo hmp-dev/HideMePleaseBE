@@ -34,13 +34,15 @@ export class PointService {
 
 	constructor(private prisma: PrismaService) {}
 
-	async getOrCreateBalance(userId: string): Promise<PointBalanceDto> {
-		let balance = await this.prisma.userPointBalance.findUnique({
+	async getOrCreateBalance(userId: string, tx?: any): Promise<PointBalanceDto> {
+		const prisma = tx || this.prisma;
+		
+		let balance = await prisma.userPointBalance.findUnique({
 			where: { userId },
 		});
 
 		if (!balance) {
-			balance = await this.prisma.userPointBalance.create({
+			balance = await prisma.userPointBalance.create({
 				data: { userId },
 			});
 		}
@@ -48,34 +50,36 @@ export class PointService {
 		return balance;
 	}
 
-	async earnPoints(dto: CreatePointTransactionDto): Promise<PointBalanceDto> {
+	async earnPoints(dto: CreatePointTransactionDto, tx?: any): Promise<PointBalanceDto> {
 		if (dto.amount <= 0) {
 			throw new BadRequestException('획득 포인트는 0보다 커야 합니다');
 		}
 
-		return await this.prisma.$transaction(async (tx) => {
-			const currentBalance = await this.getOrCreateBalance(dto.userId);
+		// 외부에서 트랜잭션이 전달되면 사용, 아니면 새로 생성
+		const executeTransaction = async (prisma: any) => {
+			const currentBalance = await this.getOrCreateBalance(dto.userId, prisma);
 			
 			const newTotalBalance = currentBalance.totalBalance + dto.amount;
 			const newAvailableBalance = currentBalance.availableBalance + dto.amount;
 			const newLifetimeEarned = currentBalance.lifetimeEarned + dto.amount;
 
-			await (tx as any).pointTransaction.create({
-				data: {
-					userId: dto.userId,
-					amount: dto.amount,
-					type: PointTransactionType.EARNED,
-					source: dto.source,
-					description: dto.description,
-					referenceId: dto.referenceId,
-					referenceType: dto.referenceType,
-					balanceBefore: currentBalance.totalBalance,
-					balanceAfter: newTotalBalance,
-					metadata: dto.metadata,
-				},
-			});
+			// PointTransaction 테이블이 없으므로 주석 처리
+			// await prisma.pointTransaction.create({
+			// 	data: {
+			// 		userId: dto.userId,
+			// 		amount: dto.amount,
+			// 		type: PointTransactionType.EARNED,
+			// 		source: dto.source,
+			// 		description: dto.description,
+			// 		referenceId: dto.referenceId,
+			// 		referenceType: dto.referenceType,
+			// 		balanceBefore: currentBalance.totalBalance,
+			// 		balanceAfter: newTotalBalance,
+			// 		metadata: dto.metadata,
+			// 	},
+			// });
 
-			const updatedBalance = await (tx as any).userPointBalance.update({
+			const updatedBalance = await prisma.userPointBalance.update({
 				where: { userId: dto.userId },
 				data: {
 					totalBalance: newTotalBalance,
@@ -89,7 +93,14 @@ export class PointService {
 			);
 
 			return updatedBalance;
-		});
+		};
+
+		// tx가 전달되면 그대로 사용, 아니면 새 트랜잭션 생성
+		if (tx) {
+			return executeTransaction(tx);
+		} else {
+			return this.prisma.$transaction(executeTransaction);
+		}
 	}
 
 	async spendPoints(dto: CreatePointTransactionDto): Promise<PointBalanceDto> {
