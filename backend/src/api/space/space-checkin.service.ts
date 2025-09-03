@@ -43,7 +43,9 @@ export class SpaceCheckInService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		
-		const space = await this.prisma.space.findFirst({
+		return await this.prisma.$transaction(async (tx) => {
+		
+		const space = await tx.space.findFirst({
 			where: { id: spaceId },
 		});
 		
@@ -71,7 +73,7 @@ export class SpaceCheckInService {
 			throw new BadRequestException(ErrorCodes.SPACE_OUT_OF_RANGE);
 		}
 
-		const existingCheckIn = await this.prisma.spaceCheckIn.findFirst({
+		const existingCheckIn = await tx.spaceCheckIn.findFirst({
 			where: {
 				userId: authContext.userId,
 				spaceId,
@@ -83,8 +85,38 @@ export class SpaceCheckInService {
 			throw new BadRequestException('이미 체크인한 상태입니다');
 		}
 
+		const existingActiveCheckIn = await tx.spaceCheckIn.findFirst({
+			where: {
+				userId: authContext.userId,
+				isActive: true,
+			},
+			include: {
+				space: {
+					select: {
+						name: true,
+					},
+				},
+			},
+		});
+
+		if (existingActiveCheckIn && existingActiveCheckIn.spaceId !== spaceId) {
+			await tx.spaceCheckIn.update({
+				where: { id: existingActiveCheckIn.id },
+				data: { isActive: false },
+			});
+
+			this.logger.log(`사용자 ${authContext.userId} 자동 체크아웃 - 이전 공간: ${existingActiveCheckIn.space.name} (${existingActiveCheckIn.spaceId})`);
+
+			void this.notificationService.sendNotification({
+				type: NotificationType.Admin,
+				userId: authContext.userId,
+				title: '자동 체크아웃',
+				body: `${existingActiveCheckIn.space.name}에서 자동으로 체크아웃되었습니다.`,
+			});
+		}
+
 		if (space.maxCheckInCapacity) {
-			const currentCheckInCount = await this.prisma.spaceCheckIn.count({
+			const currentCheckInCount = await tx.spaceCheckIn.count({
 				where: {
 					spaceId,
 					isActive: true,
@@ -100,7 +132,7 @@ export class SpaceCheckInService {
 			const today = new Date();
 			today.setHours(0, 0, 0, 0);
 
-			const todayCheckInCount = await this.prisma.spaceCheckIn.count({
+			const todayCheckInCount = await tx.spaceCheckIn.count({
 				where: {
 					spaceId,
 					checkedInAt: {
@@ -116,7 +148,7 @@ export class SpaceCheckInService {
 
 		const checkInPoints = space.checkInPointsOverride || DEFAULT_CHECK_IN_POINTS;
 
-		let currentGroup = await this.prisma.spaceCheckInGroup.findFirst({
+		let currentGroup = await tx.spaceCheckInGroup.findFirst({
 			where: {
 				spaceId,
 				isCompleted: false,
@@ -127,7 +159,7 @@ export class SpaceCheckInService {
 		});
 
 		if (!currentGroup || currentGroup.checkIns.length >= GROUP_SIZE) {
-			currentGroup = await this.prisma.spaceCheckInGroup.create({
+			currentGroup = await tx.spaceCheckInGroup.create({
 				data: {
 					spaceId,
 					requiredMembers: GROUP_SIZE,
@@ -139,7 +171,7 @@ export class SpaceCheckInService {
 			});
 		}
 
-		const checkIn = await this.prisma.spaceCheckIn.create({
+		const checkIn = await tx.spaceCheckIn.create({
 			data: {
 				userId: authContext.userId,
 				spaceId,
@@ -160,7 +192,7 @@ export class SpaceCheckInService {
 			referenceType: 'space_checkin',
 		});
 
-		const updatedGroup = await this.prisma.spaceCheckInGroup.findFirst({
+		const updatedGroup = await tx.spaceCheckInGroup.findFirst({
 			where: { id: currentGroup.id },
 			include: {
 				checkIns: {
@@ -170,7 +202,7 @@ export class SpaceCheckInService {
 		});
 
 		if (updatedGroup && updatedGroup.checkIns.length === GROUP_SIZE && !updatedGroup.isCompleted) {
-			await this.prisma.spaceCheckInGroup.update({
+			await tx.spaceCheckInGroup.update({
 				where: { id: updatedGroup.id },
 				data: {
 					isCompleted: true,
@@ -181,7 +213,7 @@ export class SpaceCheckInService {
 
 			await Promise.all(
 				updatedGroup.checkIns.map(async (checkIn) => {
-					await this.prisma.spaceCheckIn.update({
+					await tx.spaceCheckIn.update({
 						where: { id: checkIn.id },
 						data: {
 							pointsEarned: checkIn.pointsEarned + GROUP_BONUS_POINTS,
@@ -221,6 +253,7 @@ export class SpaceCheckInService {
 			groupProgress: `${updatedGroup?.checkIns.length || 1}/${GROUP_SIZE}`,
 			earnedPoints: checkInPoints,
 		};
+		});
 	}
 
 	async checkOut({

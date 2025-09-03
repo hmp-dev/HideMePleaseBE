@@ -195,7 +195,7 @@ export class SpaceController {
 
 	@ApiOperation({
 		summary: 'Check in to a space',
-		description: '매장에 체크인합니다. 200m 이내에 있어야 하며, 5명이 모이면 보너스 포인트를 받습니다.',
+		description: '매장에 체크인합니다. 200m 이내에 있어야 하며, 5명이 모이면 보너스 포인트를 받습니다. 다른 매장에 이미 체크인되어 있는 경우 자동으로 체크아웃한 후 새로운 매장에 체크인됩니다.',
 	})
 	@ApiParam({
 		name: 'spaceId',
@@ -220,7 +220,7 @@ export class SpaceController {
 	})
 	@ApiResponse({
 		status: 400,
-		description: '이미 체크인한 상태이거나 거리가 너무 멀 때',
+		description: '같은 매장에 이미 체크인한 상태이거나 거리가 너무 멀 때, 또는 체크인 제한에 걸릴 때',
 	})
 	@ApiResponse({
 		status: 404,

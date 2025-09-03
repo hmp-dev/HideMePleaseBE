@@ -35,12 +35,12 @@ export class PointService {
 	constructor(private prisma: PrismaService) {}
 
 	async getOrCreateBalance(userId: string): Promise<PointBalanceDto> {
-		let balance = await (this.prisma as any).userPointBalance.findUnique({
+		let balance = await this.prisma.userPointBalance.findUnique({
 			where: { userId },
 		});
 
 		if (!balance) {
-			balance = await (this.prisma as any).userPointBalance.create({
+			balance = await this.prisma.userPointBalance.create({
 				data: { userId },
 			});
 		}

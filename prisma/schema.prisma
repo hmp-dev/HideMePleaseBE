@@ -33,6 +33,7 @@ model User {
   SpaceUser                 SpaceUser[]
   SystemNft                 SystemNft[]
   UserLastKnownSpace        UserLastKnownSpace[]
+  UserPointBalance          UserPointBalance?
 }
 
 model Announcements {
@@ -865,6 +866,22 @@ model SpaceCheckInGroup {
   space           Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 
   @@index([spaceId, isCompleted])
+}
+
+model UserPointBalance {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+  userId           String   @unique @db.Uuid
+  totalBalance     Int      @default(0)
+  availableBalance Int      @default(0)
+  lockedBalance    Int      @default(0)
+  lifetimeEarned   Int      @default(0)
+  lifetimeSpent    Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User2 {
