@@ -17,8 +17,8 @@ import { SystemConfigService } from '@/modules/system-config/system-config.servi
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 
-const DEFAULT_CHECK_IN_POINTS = 5;
-const GROUP_BONUS_POINTS = 10;
+const DEFAULT_CHECK_IN_POINTS = 1;
+const GROUP_BONUS_POINTS = 3;
 const GROUP_SIZE = 5;
 
 @Injectable()
@@ -146,6 +146,11 @@ export class SpaceCheckInService {
 		}
 
 		const checkInPoints = space.checkInPointsOverride || DEFAULT_CHECK_IN_POINTS;
+		
+		// 그룹 사이즈 결정: null이거나 5보다 크면 5, 아니면 입력값 사용
+		const groupSize = !space.maxCheckInCapacity || space.maxCheckInCapacity > 5 
+			? GROUP_SIZE 
+			: space.maxCheckInCapacity;
 
 		let currentGroup = await tx.spaceCheckInGroup.findFirst({
 			where: {
@@ -157,11 +162,11 @@ export class SpaceCheckInService {
 			},
 		});
 
-		if (!currentGroup || currentGroup.checkIns.length >= GROUP_SIZE) {
+		if (!currentGroup || currentGroup.checkIns.length >= groupSize) {
 			currentGroup = await tx.spaceCheckInGroup.create({
 				data: {
 					spaceId,
-					requiredMembers: GROUP_SIZE,
+					requiredMembers: groupSize,
 					bonusPoints: GROUP_BONUS_POINTS,
 				},
 				include: {
@@ -207,7 +212,7 @@ export class SpaceCheckInService {
 			},
 		});
 
-		if (updatedGroup && updatedGroup.checkIns.length === GROUP_SIZE && !updatedGroup.isCompleted) {
+		if (updatedGroup && updatedGroup.checkIns.length === groupSize && !updatedGroup.isCompleted) {
 			await tx.spaceCheckInGroup.update({
 				where: { id: updatedGroup.id },
 				data: {
@@ -241,7 +246,7 @@ export class SpaceCheckInService {
 						type: NotificationType.Admin,
 						userId: checkIn.userId,
 						title: '그룹 체크인 완료!',
-						body: `5명이 모여 보너스 ${GROUP_BONUS_POINTS} SAV를 획득했습니다!`,
+						body: `${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트를 획득했습니다!`,
 					});
 				}),
 			);
