@@ -30,7 +30,8 @@ import {
 	CheckOutDTO, 
 	CheckInStatusResponse, 
 	CheckInUsersResponse, 
-	CurrentGroupResponse 
+	CurrentGroupResponse,
+	CheckOutAllUsersResponse 
 } from '@/api/space/space-checkin.dto';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
@@ -344,5 +345,35 @@ export class SpaceController {
 	@Get(':spaceId/current-group')
 	getCurrentGroup(@Param('spaceId') spaceId: string) {
 		return this.spaceCheckInService.getCurrentGroup({ spaceId });
+	}
+
+	@ApiOperation({
+		summary: 'Check out all users from a space',
+		description: '매장에 체크인된 모든 사용자를 관리자 권한으로 체크아웃시킵니다.',
+	})
+	@ApiParam({
+		name: 'spaceId',
+		type: 'string',
+		description: '체크아웃할 매장 ID',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '전체 체크아웃 성공',
+		type: CheckOutAllUsersResponse,
+	})
+	@ApiResponse({
+		status: 404,
+		description: '매장을 찾을 수 없음',
+	})
+	@UseGuards(AuthGuard)
+	@Delete(':spaceId/check-out-all')
+	checkOutAllUsers(
+		@Req() request: Request,
+		@Param('spaceId') spaceId: string,
+	) {
+		return this.spaceCheckInService.checkOutAllUsers({
+			spaceId,
+			request,
+		});
 	}
 }

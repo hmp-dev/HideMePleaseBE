@@ -79,3 +79,14 @@ export class CheckInUsersResponse {
 	@ApiProperty({ required: false })
 	currentGroup?: CurrentGroupResponse;
 }
+
+export class CheckOutAllUsersResponse {
+	@ApiProperty()
+	success!: boolean;
+
+	@ApiProperty()
+	checkedOutCount!: number;
+
+	@ApiProperty()
+	spaceName!: string;
+}

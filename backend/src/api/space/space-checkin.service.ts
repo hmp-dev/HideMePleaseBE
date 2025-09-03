@@ -492,6 +492,81 @@ export class SpaceCheckInService {
 		return !!checkIn;
 	}
 
+	async checkOutAllUsers({
+		spaceId,
+		request,
+	}: {
+		spaceId: string;
+		request: Request;
+	}): Promise<{
+		success: boolean;
+		checkedOutCount: number;
+		spaceName: string;
+	}> {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		return await this.prisma.$transaction(async (tx) => {
+			// 스페이스 존재 여부 확인
+			const space = await tx.space.findFirst({
+				where: { id: spaceId },
+				select: {
+					name: true,
+				},
+			});
+
+			if (!space) {
+				throw new NotFoundException(ErrorCodes.ENTITY_NOT_FOUND);
+			}
+
+			// 현재 체크인된 사용자들 조회
+			const activeCheckIns = await tx.spaceCheckIn.findMany({
+				where: {
+					spaceId,
+					isActive: true,
+				},
+				include: {
+					user: {
+						select: {
+							id: true,
+							nickName: true,
+						},
+					},
+				},
+			});
+
+			if (activeCheckIns.length === 0) {
+				return {
+					success: true,
+					checkedOutCount: 0,
+					spaceName: space.name,
+				};
+			}
+
+			// 모든 체크인을 비활성화
+			await tx.spaceCheckIn.updateMany({
+				where: {
+					spaceId,
+					isActive: true,
+				},
+				data: {
+					isActive: false,
+				},
+			});
+
+			// 알림은 발송하지 않음 (관리자 요청에 따라)
+
+			this.logger.log(
+				`관리자 ${authContext.userId}가 ${space.name}(${spaceId})의 모든 사용자 체크아웃 처리 - 대상: ${activeCheckIns.length}명`
+			);
+
+			return {
+				success: true,
+				checkedOutCount: activeCheckIns.length,
+				spaceName: space.name,
+			};
+		});
+	}
+
 	@Cron(CronExpression.EVERY_DAY_AT_6AM)
 	async resetDailyCheckIns() {
 		this.logger.log('매일 오전 6시 체크인 리셋 시작');
