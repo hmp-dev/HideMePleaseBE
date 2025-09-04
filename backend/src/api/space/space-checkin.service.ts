@@ -321,6 +321,7 @@ export class SpaceCheckInService {
 						},
 					},
 				},
+				space: true,
 			},
 		});
 
@@ -330,10 +331,15 @@ export class SpaceCheckInService {
 			};
 		}
 
+		// 그룹 사이즈 결정
+		const groupSize = !checkIn.space.maxCheckInCapacity || checkIn.space.maxCheckInCapacity > 5 
+			? GROUP_SIZE 
+			: checkIn.space.maxCheckInCapacity;
+
 		return {
 			isCheckedIn: true,
 			checkedInAt: checkIn.checkedInAt,
-			groupProgress: `${checkIn.group?.checkIns.length || 0}/${GROUP_SIZE}`,
+			groupProgress: `${checkIn.group?.checkIns.length || 0}/${checkIn.group?.requiredMembers || groupSize}`,
 			earnedPoints: checkIn.pointsEarned,
 			groupId: checkIn.groupId,
 		};
@@ -423,6 +429,20 @@ export class SpaceCheckInService {
 	}: {
 		spaceId: string;
 	}): Promise<CurrentGroupResponse | null> {
+		// 먼저 스페이스 정보 가져오기
+		const space = await this.prisma.space.findFirst({
+			where: { id: spaceId },
+		});
+
+		if (!space) {
+			return null;
+		}
+
+		// 그룹 사이즈 결정
+		const groupSize = !space.maxCheckInCapacity || space.maxCheckInCapacity > 5 
+			? GROUP_SIZE 
+			: space.maxCheckInCapacity;
+
 		const group = await this.prisma.spaceCheckInGroup.findFirst({
 			where: {
 				spaceId,
@@ -445,12 +465,19 @@ export class SpaceCheckInService {
 		});
 
 		if (!group) {
-			return null;
+			// 그룹이 없어도 0/5 형태로 반환
+			return {
+				groupId: '',
+				progress: `0/${groupSize}`,
+				isCompleted: false,
+				members: [],
+				bonusPoints: GROUP_BONUS_POINTS,
+			};
 		}
 
 		return {
 			groupId: group.id,
-			progress: `${group.checkIns.length}/${GROUP_SIZE}`,
+			progress: `${group.checkIns.length}/${group.requiredMembers || groupSize}`,
 			isCompleted: group.isCompleted,
 			members: group.checkIns.map((checkIn) => ({
 				userId: checkIn.user.id,
