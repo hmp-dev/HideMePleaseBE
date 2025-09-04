@@ -451,10 +451,16 @@ export class SpaceCheckInService {
 			? GROUP_SIZE 
 			: space.maxCheckInCapacity;
 
-		const group = await this.prisma.spaceCheckInGroup.findFirst({
+		// 먼저 활성 체크인이 있는 미완료 그룹을 찾기
+		let group = await this.prisma.spaceCheckInGroup.findFirst({
 			where: {
 				spaceId,
 				isCompleted: false,
+				checkIns: {
+					some: {
+						isActive: true,
+					},
+				},
 			},
 			include: {
 				checkIns: {
@@ -470,7 +476,37 @@ export class SpaceCheckInService {
 					},
 				},
 			},
+			orderBy: {
+				createdAt: 'desc',
+			},
 		});
+
+		// 활성 체크인이 있는 그룹이 없으면, 가장 최근의 미완료 그룹 찾기
+		if (!group) {
+			group = await this.prisma.spaceCheckInGroup.findFirst({
+				where: {
+					spaceId,
+					isCompleted: false,
+				},
+				include: {
+					checkIns: {
+						where: { isActive: true },
+						include: {
+							user: {
+								select: {
+									id: true,
+									nickName: true,
+									finalProfileImageUrl: true,
+								},
+							},
+						},
+					},
+				},
+				orderBy: {
+					createdAt: 'desc',
+				},
+			});
+		}
 
 		if (!group) {
 			// 그룹이 없어도 0/5 형태로 반환
