@@ -314,13 +314,6 @@ export class SpaceCheckInService {
 				isActive: true,
 			},
 			include: {
-				group: {
-					include: {
-						checkIns: {
-							where: { isActive: true },
-						},
-					},
-				},
 				space: true,
 			},
 		});
@@ -336,10 +329,25 @@ export class SpaceCheckInService {
 			? GROUP_SIZE 
 			: checkIn.space.maxCheckInCapacity;
 
+		// 현재 활성 그룹을 직접 조회
+		const currentGroup = await this.prisma.spaceCheckInGroup.findFirst({
+			where: {
+				spaceId,
+				isCompleted: false,
+			},
+			include: {
+				checkIns: {
+					where: { isActive: true },
+				},
+			},
+		});
+
 		return {
 			isCheckedIn: true,
 			checkedInAt: checkIn.checkedInAt,
-			groupProgress: `${checkIn.group?.checkIns.length || 0}/${checkIn.group?.requiredMembers || groupSize}`,
+			groupProgress: currentGroup 
+				? `${currentGroup.checkIns.length}/${currentGroup.requiredMembers || groupSize}`
+				: `0/${groupSize}`,
 			earnedPoints: checkIn.pointsEarned,
 			groupId: checkIn.groupId,
 		};
