@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import { EnvironmentVariables } from '@/utils/env';
-import { SBT_ABI, SBT_BYTECODE } from './abi';
+import { SBT_ABI, SBT_BYTECODE, PFP_ABI } from './abi';
 
 @Injectable()
 export class AvalancheNftService {
@@ -77,5 +77,40 @@ export class AvalancheNftService {
         await tx.wait();
 
         return tx;
+    }
+
+    async mintPfpToken({
+        contractAddress,
+        destinationWalletAddress,
+        tokenUri,
+        isSBT = true
+    }: {
+        contractAddress: string;
+        destinationWalletAddress: string;
+        tokenUri: string;
+        isSBT?: boolean;
+    }) {
+        const contract = new ethers.Contract(
+            contractAddress,
+            PFP_ABI,
+            this.wallet
+        );
+
+        const tx = await contract.mintNFT(
+            destinationWalletAddress,
+            tokenUri,
+            isSBT // Use the isSBT parameter (default true for PFP)
+        );
+        
+        const receipt = await tx.wait();
+        
+        return {
+            hash: tx.hash,
+            transactionHash: tx.hash,
+            from: tx.from,
+            to: tx.to,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed.toString(),
+        };
     }
 } 

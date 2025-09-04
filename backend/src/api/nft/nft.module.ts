@@ -8,6 +8,7 @@ import { NftLevelService } from '@/api/nft/nft-level.service';
 import { NftOwnershipService } from '@/api/nft/nft-ownership.service';
 import { NftPointService } from '@/api/nft/nft-point.service';
 import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
+import { PfpNftService } from '@/api/nft/pfp-nft.service';
 import { NotificationModule } from '@/api/notification/notification.module';
 import { SpaceLocationModuleModule } from '@/api/space/space-location.module';
 import { KlaytnModule } from '@/modules/klaytn/klaytn.module';
@@ -31,6 +32,7 @@ import { AvalancheNftService } from '@/modules/avalanche/avalanche-nft.service';
 	controllers: [NftController],
 	providers: [
 		WelcomeNftService,
+		PfpNftService,
 		NftBenefitsService,
 		NftOwnershipService,
 		NftPointService,
@@ -40,6 +42,7 @@ import { AvalancheNftService } from '@/modules/avalanche/avalanche-nft.service';
 	],
 	exports: [
 		WelcomeNftService,
+		PfpNftService,
 		NftPointService,
 		NftBenefitsService,
 		NftOwnershipService,

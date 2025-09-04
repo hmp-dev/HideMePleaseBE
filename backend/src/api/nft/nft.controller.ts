@@ -7,18 +7,23 @@ import {
 	Query,
 	Req,
 	UseGuards,
+	Body,
 } from '@nestjs/common';
 import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiQuery,
 	ApiTags,
+	ApiResponse,
+	ApiBody,
 } from '@nestjs/swagger';
 
 import { NftCommunitySortOrder } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
 import { NftCommunityService } from '@/api/nft/nft-community.service';
 import { WelcomeNftService } from '@/api/nft/welcome-nft.service';
+import { PfpNftService } from '@/api/nft/pfp-nft.service';
+import { MintPfpNftDto, PfpNftResponseDto, GetPfpNftResponseDto } from '@/api/nft/pfp-nft.dto';
 
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -30,6 +35,7 @@ export class NftController {
 		private nftService: WelcomeNftService,
 		private nftBenefitsService: NftBenefitsService,
 		private nftCommunityService: NftCommunityService,
+		private pfpNftService: PfpNftService,
 	) {}
 
 	@ApiOperation({
@@ -69,6 +75,53 @@ export class NftController {
 		@Param('tokenAddress') tokenAddress: string,
 	) {
 		return this.nftService.consumeWelcomeNft({ request, tokenAddress });
+	}
+
+	@ApiOperation({
+		summary: 'Mint PFP NFT',
+		description: 'PFP(Profile Picture) NFT를 민팅합니다. 지갑 주소, 이미지 URL, 메타데이터 URL이 필요합니다.',
+	})
+	@ApiBody({ type: MintPfpNftDto })
+	@ApiResponse({
+		status: 201,
+		description: 'PFP NFT 민팅 성공',
+		type: PfpNftResponseDto,
+	})
+	@ApiResponse({
+		status: 400,
+		description: '잘못된 요청 (지갑이 연결되지 않음)',
+	})
+	@ApiResponse({
+		status: 500,
+		description: '서버 오류',
+	})
+	@UseGuards(AuthGuard)
+	@Post('/pfp/mint')
+	mintPfpNft(
+		@Req() request: Request,
+		@Body() mintPfpNftDto: MintPfpNftDto,
+	) {
+		return this.pfpNftService.mintPfpNft({ request, mintPfpNftDto });
+	}
+
+	@ApiOperation({
+		summary: 'Get user PFP NFT',
+		description: '사용자의 현재 PFP NFT 정보를 조회합니다.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'PFP NFT 조회 성공',
+		type: GetPfpNftResponseDto,
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'PFP NFT가 설정되지 않음',
+	})
+	@UseGuards(AuthGuard)
+	@Get('/pfp')
+	getUserPfpNft(@Req() request: Request) {
+		const authContext = Reflect.get(request, 'authContext') as any;
+		return this.pfpNftService.getUserPfpNft({ userId: authContext.userId });
 	}
 
 	@ApiOperation({
