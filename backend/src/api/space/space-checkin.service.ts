@@ -262,7 +262,7 @@ export class SpaceCheckInService {
 		return {
 			success: true,
 			checkInId: checkIn.id,
-			groupProgress: `${updatedGroup?.checkIns.length || 1}/${GROUP_SIZE}`,
+			groupProgress: `${updatedGroup?.checkIns.length || 1}/${updatedGroup?.requiredMembers || groupSize}`,
 			earnedPoints: checkInPoints,
 		};
 		});
@@ -381,6 +381,16 @@ export class SpaceCheckInService {
 			},
 		});
 
+		// Get space info to determine group size
+		const space = await this.prisma.space.findFirst({
+			where: { id: spaceId },
+		});
+
+		// 그룹 사이즈 결정 (다른 메소드와 동일한 로직)
+		const groupSize = !space?.maxCheckInCapacity || space.maxCheckInCapacity > 5 
+			? GROUP_SIZE 
+			: space.maxCheckInCapacity;
+
 		const currentGroup = await this.prisma.spaceCheckInGroup.findFirst({
 			where: {
 				spaceId,
@@ -413,7 +423,7 @@ export class SpaceCheckInService {
 		if (currentGroup) {
 			currentGroupResponse = {
 				groupId: currentGroup.id,
-				progress: `${currentGroup.checkIns.length}/${GROUP_SIZE}`,
+				progress: `${currentGroup.checkIns.length}/${currentGroup.requiredMembers || groupSize}`,
 				isCompleted: currentGroup.isCompleted,
 				members: currentGroup.checkIns.map((checkIn) => ({
 					userId: checkIn.user.id,
