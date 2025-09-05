@@ -322,19 +322,42 @@ export class SpaceService {
 			sortedSpaces.map((space) => space.id),
 		);
 
-		return sortedSpaces.map(({ SpaceBenefit, SpaceEventCategory, ...rest }) => ({
-			...rest,
-			SpaceEventCategory,
-			benefitDescription: SpaceBenefit[0]?.description,
-			image: rest.image ? this.mediaService.getUrl(rest.image as any) : null,
-			hidingCount: hidingUsers[rest.id],
-			hot: mostPointsSpace?.spaceId === rest.id,
-			hotPoints:
-				mostPointsSpace?.spaceId === rest.id
-					? mostPointsSpace?.points
-					: undefined,
-			checkInCount: checkInCounts[rest.id] || 0,
-		}));
+		// Get group progress and checked-in users for each space
+		const spacesWithGroupInfo = await Promise.all(
+			sortedSpaces.map(async (space) => {
+				const checkInUsers = await this.spaceCheckInService.getCheckInUsers({ 
+					spaceId: space.id 
+				});
+				const currentGroup = await this.spaceCheckInService.getCurrentGroup({ 
+					spaceId: space.id 
+				});
+				
+				return {
+					space,
+					currentGroupProgress: currentGroup?.progress,
+					checkedInUsers: checkInUsers.users.slice(0, 5)
+				};
+			})
+		);
+
+		return spacesWithGroupInfo.map(({ space, currentGroupProgress, checkedInUsers }) => {
+			const { SpaceBenefit, SpaceEventCategory, ...rest } = space;
+			return {
+				...rest,
+				SpaceEventCategory,
+				benefitDescription: SpaceBenefit[0]?.description,
+				image: rest.image ? this.mediaService.getUrl(rest.image as any) : null,
+				hidingCount: hidingUsers[rest.id],
+				hot: mostPointsSpace?.spaceId === rest.id,
+				hotPoints:
+					mostPointsSpace?.spaceId === rest.id
+						? mostPointsSpace?.points
+						: undefined,
+				checkInCount: checkInCounts[rest.id] || 0,
+				currentGroupProgress,
+				checkedInUsers,
+			};
+		});
 	}
 
 	async getSpace({ spaceId, request }: { request: Request; spaceId: string }) {
