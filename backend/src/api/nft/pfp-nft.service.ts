@@ -4,6 +4,7 @@ import {
 	InternalServerErrorException,
 	Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SupportedChains } from '@prisma/client';
 
 import { getCompositeTokenId } from '@/api/nft/nft.utils';
@@ -11,6 +12,7 @@ import { MintPfpNftDto } from '@/api/nft/pfp-nft.dto';
 import { AvalancheNftService } from '@/modules/avalanche/avalanche-nft.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
+import { EnvironmentVariables } from '@/utils/env';
 
 @Injectable()
 export class PfpNftService {
@@ -20,6 +22,7 @@ export class PfpNftService {
 	constructor(
 		private prisma: PrismaService,
 		private avalancheNftService: AvalancheNftService,
+		private configService: ConfigService<EnvironmentVariables, true>,
 	) {}
 
 	async mintPfpNft({
@@ -68,6 +71,32 @@ export class PfpNftService {
 		const tokenName = name || `PFP #${nextTokenId}`;
 		this.logger.log(`Next token ID: ${nextTokenId}, Token name: ${tokenName}`);
 
+		// Update finalProfileImageUrl before minting to ensure metadata endpoint returns correct data
+		this.logger.log(`Updating user profile image before minting: ${imageUrl}`);
+		await this.prisma.user.update({
+			where: {
+				id: authContext.userId,
+			},
+			data: {
+				finalProfileImageUrl: imageUrl,
+			},
+		});
+
+		// Validate and fix metadataUrl
+		const baseUrl = this.configService.get('API_BASE_URL');
+		let validMetadataUrl = metadataUrl;
+		
+		// Check for invalid URLs (example.com, empty, or missing proper path)
+		if (!metadataUrl || 
+			metadataUrl.includes('example.com') || 
+			metadataUrl.includes('localhost') ||
+			!metadataUrl.includes('/public/nft/user/')) {
+			validMetadataUrl = `${baseUrl}/public/nft/user/${authContext.userId}/metadata`;
+			this.logger.warn(`Invalid metadataUrl received: "${metadataUrl}", using server-generated: "${validMetadataUrl}"`);
+		} else {
+			this.logger.log(`Using client-provided metadataUrl: ${validMetadataUrl}`);
+		}
+
 		let retryCount = 0;
 		const maxRetries = 3;
 		let lastError: any;
@@ -76,12 +105,12 @@ export class PfpNftService {
 			try {
 				// Mint PFP NFT on Avalanche as SBT
 				this.logger.log(`Minting attempt ${retryCount + 1}/${maxRetries} - PFP on Avalanche for user ${authContext.userId}`);
-				this.logger.log(`Mint parameters: contractAddress=${collectionAddress}, destinationWallet=${walletAddress}, tokenUri=${metadataUrl}, isSBT=true`);
+				this.logger.log(`Mint parameters: contractAddress=${collectionAddress}, destinationWallet=${walletAddress}, tokenUri=${validMetadataUrl}, isSBT=true`);
 				
 				const mintRes = await this.avalancheNftService.mintPfpToken({
 					contractAddress: collectionAddress,
 					destinationWalletAddress: walletAddress,
-					tokenUri: metadataUrl,
+					tokenUri: validMetadataUrl,
 					isSBT: true, // Set as Soul Bound Token
 				});
 
@@ -104,17 +133,16 @@ export class PfpNftService {
 				});
 				this.logger.log(`NFT record created with ID: ${nftId}`);
 
-				// Update user profile with PFP
+				// Update user profile with PFP NFT ID (image URL was already updated before minting)
 				await this.prisma.user.update({
 					where: {
 						id: authContext.userId,
 					},
 					data: {
 						pfpNftId: nftId,
-						finalProfileImageUrl: imageUrl,
 					},
 				});
-				this.logger.log(`User profile updated with PFP NFT`);
+				this.logger.log(`User profile updated with PFP NFT ID`);
 
 				// Ensure collection exists
 				const existingCollection = await this.prisma.nftCollection.findFirst({

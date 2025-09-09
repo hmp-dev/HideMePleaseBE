@@ -119,6 +119,10 @@ export class EnvironmentVariables {
 
 	@IsNotEmpty()
 	@IsString()
+	API_BASE_URL!: string;
+
+	@IsNotEmpty()
+	@IsString()
 	SBT_ABI!: string;
 
 	@IsNotEmpty()
