@@ -90,27 +90,89 @@ export class AvalancheNftService {
         tokenUri: string;
         isSBT?: boolean;
     }) {
-        const contract = new ethers.Contract(
-            contractAddress,
-            PFP_ABI,
-            this.wallet
-        );
-
-        const tx = await contract.mintNFT(
-            destinationWalletAddress,
-            tokenUri,
-            isSBT // Use the isSBT parameter (default true for PFP)
-        );
-        
-        const receipt = await tx.wait();
-        
-        return {
-            hash: tx.hash,
-            transactionHash: tx.hash,
-            from: tx.from,
-            to: tx.to,
-            blockNumber: receipt.blockNumber,
-            gasUsed: receipt.gasUsed.toString(),
-        };
+        try {
+            // Check wallet balance first
+            const balance = await this.provider.getBalance(this.wallet.address);
+            console.log(`Minting wallet balance: ${ethers.formatEther(balance)} AVAX`);
+            
+            if (balance < ethers.parseEther("0.01")) {
+                throw new Error(`insufficient funds: wallet has ${ethers.formatEther(balance)} AVAX, need at least 0.01 AVAX for gas`);
+            }
+            
+            // Verify contract exists
+            const code = await this.provider.getCode(contractAddress);
+            if (code === '0x') {
+                throw new Error(`contract not found at address ${contractAddress}`);
+            }
+            
+            const contract = new ethers.Contract(
+                contractAddress,
+                PFP_ABI,
+                this.wallet
+            );
+            
+            console.log(`Calling mintNFT on contract ${contractAddress}`);
+            console.log(`Parameters: recipient=${destinationWalletAddress}, tokenUri=${tokenUri}, isSBT=${isSBT}`);
+            
+            // Estimate gas first
+            let gasEstimate;
+            try {
+                gasEstimate = await contract.mintNFT.estimateGas(
+                    destinationWalletAddress,
+                    tokenUri,
+                    isSBT
+                );
+                console.log(`Gas estimate: ${gasEstimate.toString()}`);
+            } catch (estimateError: any) {
+                console.error(`Gas estimation failed: ${estimateError.message}`);
+                // If gas estimation fails, it usually means the transaction will fail
+                throw new Error(`Transaction will fail: ${estimateError.reason || estimateError.message}`);
+            }
+            
+            // Add 20% buffer to gas estimate
+            const gasLimit = gasEstimate * 120n / 100n;
+            
+            const tx = await contract.mintNFT(
+                destinationWalletAddress,
+                tokenUri,
+                isSBT,
+                { gasLimit }
+            );
+            
+            console.log(`Transaction sent: ${tx.hash}`);
+            console.log(`Waiting for confirmation...`);
+            
+            const receipt = await tx.wait();
+            
+            console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
+            
+            return {
+                hash: tx.hash,
+                transactionHash: tx.hash,
+                from: tx.from,
+                to: tx.to,
+                blockNumber: receipt.blockNumber,
+                gasUsed: receipt.gasUsed.toString(),
+            };
+        } catch (error: any) {
+            console.error(`mintPfpToken failed: ${error.message}`);
+            console.error(`Full error:`, error);
+            
+            // Re-throw with more context
+            if (error.message?.includes('insufficient funds')) {
+                throw error;
+            }
+            if (error.message?.includes('contract not found')) {
+                throw error;
+            }
+            if (error.code === 'NONCE_EXPIRED' || error.message?.includes('nonce')) {
+                throw new Error(`nonce error: ${error.message}`);
+            }
+            if (error.code === 'REPLACEMENT_UNDERPRICED') {
+                throw new Error(`gas price too low: ${error.message}`);
+            }
+            
+            throw new Error(`Minting failed: ${error.reason || error.message || 'Unknown error'}`);
+        }
     }
 } 

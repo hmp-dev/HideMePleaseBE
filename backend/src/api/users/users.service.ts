@@ -75,6 +75,66 @@ export class UsersService {
 			};
 		}
 
+		// 체크인 통계 조회
+		const now = new Date();
+		const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+		const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+		// 전체 체크인 횟수
+		const totalCheckIns = await this.prisma.spaceCheckIn.count({
+			where: {
+				userId: authContext.userId,
+			},
+		});
+
+		// 오늘 체크인 횟수
+		const todayCheckIns = await this.prisma.spaceCheckIn.count({
+			where: {
+				userId: authContext.userId,
+				checkedInAt: {
+					gte: todayStart,
+				},
+			},
+		});
+
+		// 이번 주 체크인 횟수
+		const weekCheckIns = await this.prisma.spaceCheckIn.count({
+			where: {
+				userId: authContext.userId,
+				checkedInAt: {
+					gte: weekStart,
+				},
+			},
+		});
+
+		// 이번 달 체크인 횟수
+		const monthCheckIns = await this.prisma.spaceCheckIn.count({
+			where: {
+				userId: authContext.userId,
+				checkedInAt: {
+					gte: monthStart,
+				},
+			},
+		});
+
+		// 현재 활성 체크인 정보
+		const activeCheckIn = await this.prisma.spaceCheckIn.findFirst({
+			where: {
+				userId: authContext.userId,
+				isActive: true,
+			},
+			select: {
+				spaceId: true,
+				checkedInAt: true,
+				space: {
+					select: {
+						name: true,
+					},
+				},
+			},
+		});
+
 		return {
 			...userProfile,
 			pfpImageUrl: undefined,
@@ -85,6 +145,17 @@ export class UsersService {
 				lockedBalance: pointBalance.lockedBalance,
 				lifetimeEarned: pointBalance.lifetimeEarned,
 				lifetimeSpent: pointBalance.lifetimeSpent,
+			},
+			checkInStats: {
+				totalCheckIns,
+				todayCheckIns,
+				weekCheckIns,
+				monthCheckIns,
+				activeCheckIn: activeCheckIn ? {
+					spaceId: activeCheckIn.spaceId,
+					spaceName: activeCheckIn.space.name,
+					checkedInAt: activeCheckIn.checkedInAt,
+				} : null,
 			},
 		};
 	}

@@ -32,6 +32,8 @@ export class PfpNftService {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		const { walletAddress, imageUrl, metadataUrl, name } = mintPfpNftDto;
 
+		this.logger.log(`Starting PFP mint for user ${authContext.userId}, wallet: ${walletAddress}`);
+
 		// Validate wallet ownership
 		const wallet = await this.prisma.wallet.findFirst({
 			where: {
@@ -41,11 +43,13 @@ export class PfpNftService {
 		});
 
 		if (!wallet) {
+			this.logger.error(`Wallet not found for user ${authContext.userId}: ${walletAddress}`);
 			throw new BadRequestException('지갑이 사용자 계정에 연결되어 있지 않습니다.');
 		}
 
 		// Use hardcoded PFP collection address
 		const collectionAddress = this.PFP_COLLECTION_ADDRESS;
+		this.logger.log(`Using PFP collection address: ${collectionAddress}`);
 
 		// Get next token ID for PFP collection
 		const lastPfpNft = await this.prisma.nft.findFirst({
@@ -62,82 +66,130 @@ export class PfpNftService {
 
 		const nextTokenId = lastPfpNft ? (parseInt(lastPfpNft.tokenId) + 1) : 1;
 		const tokenName = name || `PFP #${nextTokenId}`;
+		this.logger.log(`Next token ID: ${nextTokenId}, Token name: ${tokenName}`);
 
-		try {
-			// Mint PFP NFT on Avalanche as SBT
-			this.logger.log(`Minting PFP on Avalanche for user ${authContext.userId}`);
-			const mintRes = await this.avalancheNftService.mintPfpToken({
-				contractAddress: collectionAddress,
-				destinationWalletAddress: walletAddress,
-				tokenUri: metadataUrl,
-				isSBT: true, // Set as Soul Bound Token
-			});
+		let retryCount = 0;
+		const maxRetries = 3;
+		let lastError: any;
 
-			this.logger.log(`PFP mint result: ${JSON.stringify(mintRes)}`);
+		while (retryCount < maxRetries) {
+			try {
+				// Mint PFP NFT on Avalanche as SBT
+				this.logger.log(`Minting attempt ${retryCount + 1}/${maxRetries} - PFP on Avalanche for user ${authContext.userId}`);
+				this.logger.log(`Mint parameters: contractAddress=${collectionAddress}, destinationWallet=${walletAddress}, tokenUri=${metadataUrl}, isSBT=true`);
+				
+				const mintRes = await this.avalancheNftService.mintPfpToken({
+					contractAddress: collectionAddress,
+					destinationWalletAddress: walletAddress,
+					tokenUri: metadataUrl,
+					isSBT: true, // Set as Soul Bound Token
+				});
 
-			// Create NFT record
-			const nftId = getCompositeTokenId(collectionAddress, nextTokenId);
-			await this.prisma.nft.create({
-				data: {
-					id: nftId,
-					name: tokenName,
-					tokenId: nextTokenId.toString(),
-					tokenAddress: collectionAddress,
-					imageUrl: imageUrl,
-					ownedWalletAddress: walletAddress.toLowerCase(),
-					lastOwnershipCheck: new Date(),
-					tokenUpdatedAt: new Date(),
-					order: 0,
-				},
-			});
+				this.logger.log(`PFP mint successful: ${JSON.stringify(mintRes)}`);
 
-			// Update user profile with PFP
-			await this.prisma.user.update({
-				where: {
-					id: authContext.userId,
-				},
-				data: {
-					pfpNftId: nftId,
-					finalProfileImageUrl: imageUrl,
-				},
-			});
-
-			// Ensure collection exists
-			const existingCollection = await this.prisma.nftCollection.findFirst({
-				where: {
-					tokenAddress: collectionAddress,
-				},
-			});
-
-			if (!existingCollection) {
-				await this.prisma.nftCollection.create({
+				// Create NFT record
+				const nftId = getCompositeTokenId(collectionAddress, nextTokenId);
+				await this.prisma.nft.create({
 					data: {
-						name: 'PFP Collection',
-						symbol: 'PFP',
+						id: nftId,
+						name: tokenName,
+						tokenId: nextTokenId.toString(),
 						tokenAddress: collectionAddress,
-						contractType: 'AVAX',
-						collectionLogo: imageUrl,
-						chain: SupportedChains.AVALANCHE,
-						category: null, // PFP is not in SpaceCategory enum
+						imageUrl: imageUrl,
+						ownedWalletAddress: walletAddress.toLowerCase(),
+						lastOwnershipCheck: new Date(),
+						tokenUpdatedAt: new Date(),
+						order: 0,
 					},
 				});
+				this.logger.log(`NFT record created with ID: ${nftId}`);
+
+				// Update user profile with PFP
+				await this.prisma.user.update({
+					where: {
+						id: authContext.userId,
+					},
+					data: {
+						pfpNftId: nftId,
+						finalProfileImageUrl: imageUrl,
+					},
+				});
+				this.logger.log(`User profile updated with PFP NFT`);
+
+				// Ensure collection exists
+				const existingCollection = await this.prisma.nftCollection.findFirst({
+					where: {
+						tokenAddress: collectionAddress,
+					},
+				});
+
+				if (!existingCollection) {
+					await this.prisma.nftCollection.create({
+						data: {
+							name: 'PFP Collection',
+							symbol: 'PFP',
+							tokenAddress: collectionAddress,
+							contractType: 'AVAX',
+							collectionLogo: imageUrl,
+							chain: SupportedChains.AVALANCHE,
+							category: null, // PFP is not in SpaceCategory enum
+						},
+					});
+					this.logger.log(`PFP collection record created`);
+				}
+
+				return {
+					success: true,
+					nftId: nftId,
+					tokenId: nextTokenId,
+					tokenAddress: collectionAddress,
+					transactionHash: mintRes?.transactionHash || mintRes?.hash,
+					imageUrl: imageUrl,
+					chain: 'AVALANCHE',
+					message: 'PFP NFT가 성공적으로 민팅되었습니다.',
+				};
+
+			} catch (error: any) {
+				lastError = error;
+				retryCount++;
+				
+				this.logger.error(`PFP minting attempt ${retryCount} failed:`, error);
+				this.logger.error(`Error message: ${error.message}`);
+				this.logger.error(`Error stack: ${error.stack}`);
+				
+				if (error.code) {
+					this.logger.error(`Error code: ${error.code}`);
+				}
+				
+				if (error.reason) {
+					this.logger.error(`Error reason: ${error.reason}`);
+				}
+				
+				// Check for specific error types
+				if (error.message?.includes('insufficient funds')) {
+					throw new BadRequestException('가스비가 부족합니다. 지갑에 AVAX를 충전해주세요.');
+				}
+				
+				if (error.message?.includes('contract not found') || error.message?.includes('no contract code')) {
+					throw new BadRequestException('PFP 컨트랙트가 배포되지 않았습니다. 관리자에게 문의해주세요.');
+				}
+				
+				if (error.message?.includes('nonce')) {
+					this.logger.warn(`Nonce error detected, waiting before retry...`);
+					await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+					continue;
+				}
+				
+				if (retryCount < maxRetries) {
+					this.logger.warn(`Retrying in ${retryCount} seconds...`);
+					await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+				}
 			}
-
-			return {
-				success: true,
-				nftId: nftId,
-				tokenId: nextTokenId,
-				tokenAddress: collectionAddress,
-				transactionHash: mintRes?.transactionHash || mintRes?.hash,
-				imageUrl: imageUrl,
-				chain: 'AVALANCHE',
-				message: 'PFP NFT가 성공적으로 민팅되었습니다.',
-			};
-
-		} catch (error) {
-			this.logger.error('PFP minting failed:', error);
-			throw new InternalServerErrorException('PFP NFT 민팅 중 오류가 발생했습니다.');
 		}
+		
+		// All retries failed
+		this.logger.error(`All ${maxRetries} minting attempts failed for user ${authContext.userId}`);
+		throw new InternalServerErrorException(`PFP NFT 민팅 중 오류가 발생했습니다: ${lastError?.message || '알 수 없는 오류'}`);
 	}
 
 	async getUserPfpNft({ userId }: { userId: string }) {
