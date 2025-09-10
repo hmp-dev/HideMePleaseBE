@@ -833,24 +833,27 @@ model SpaceEventCategory {
 }
 
 model SpaceCheckIn {
-  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @default(now()) @updatedAt
-  userId       String             @db.Uuid
-  spaceId      String             @db.Uuid
-  checkedInAt  DateTime           @default(now())
-  isActive     Boolean            @default(true)
-  groupId      String?            @db.Uuid
-  latitude     Float
-  longitude    Float
-  pointsEarned Int                @default(0)
-  group        SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
-  space        Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now()) @updatedAt
+  userId           String             @db.Uuid
+  spaceId          String             @db.Uuid
+  checkedInAt      DateTime           @default(now())
+  isActive         Boolean            @default(true)
+  groupId          String?            @db.Uuid
+  latitude         Float
+  longitude        Float
+  pointsEarned     Int                @default(0)
+  lastActivityTime DateTime           @default(now())
+  autoCheckedOut   Boolean            @default(false)
+  group            SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
+  space            Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, spaceId, isActive])
   @@index([spaceId, isActive])
   @@index([userId, isActive])
+  @@index([lastActivityTime, isActive])
 }
 
 model SpaceCheckInGroup {

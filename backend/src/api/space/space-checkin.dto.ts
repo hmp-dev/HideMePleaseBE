@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber } from 'class-validator';
+import { IsNumber, IsString, IsOptional, IsDateString } from 'class-validator';
 
 export class CheckInDTO {
 	@ApiProperty()
@@ -9,6 +9,34 @@ export class CheckInDTO {
 	@ApiProperty()
 	@IsNumber()
 	longitude!: number;
+}
+
+export class HeartbeatDTO {
+	@ApiProperty({
+		description: '체크인한 공간 ID',
+	})
+	@IsString()
+	spaceId!: string;
+
+	@ApiProperty({
+		description: '현재 위치 위도',
+	})
+	@IsNumber()
+	latitude!: number;
+
+	@ApiProperty({
+		description: '현재 위치 경도',
+	})
+	@IsNumber()
+	longitude!: number;
+
+	@ApiProperty({
+		description: '타임스탬프',
+		required: false,
+	})
+	@IsOptional()
+	@IsDateString()
+	timestamp?: string;
 }
 
 export class CheckOutDTO {
@@ -89,4 +117,42 @@ export class CheckOutAllUsersResponse {
 
 	@ApiProperty()
 	spaceName!: string;
+}
+
+export class HeartbeatResponse {
+	@ApiProperty({
+		description: '성공 여부',
+	})
+	success!: boolean;
+
+	@ApiProperty({
+		description: '체크인 상태 (active, expired, invalid)',
+		enum: ['active', 'expired', 'invalid'],
+	})
+	checkinStatus!: 'active' | 'expired' | 'invalid';
+
+	@ApiProperty({
+		description: '마지막 활동 시간',
+	})
+	lastActivityTime!: Date;
+}
+
+export class CheckInStatusDTO {
+	@ApiProperty({
+		description: '활성 체크인 여부',
+	})
+	hasActiveCheckin!: boolean;
+
+	@ApiProperty({
+		description: '체크인 정보',
+		required: false,
+	})
+	checkin?: {
+		spaceId: string;
+		spaceName: string;
+		checkinTime: Date;
+		lastActivityTime: Date;
+		latitude: number;
+		longitude: number;
+	};
 }

@@ -7,7 +7,13 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { GeoPosition } from 'geo-position.ts';
 
-import { CheckInDTO, CheckOutDTO, CheckInUserInfo, CurrentGroupResponse } from '@/api/space/space-checkin.dto';
+import { 
+	CheckInDTO, 
+	CheckOutDTO, 
+	CheckInUserInfo, 
+	CurrentGroupResponse,
+	HeartbeatDTO
+} from '@/api/space/space-checkin.dto';
 import { NotificationService } from '@/api/notification/notification.service';
 import { NotificationType } from '@/api/notification/notification.types';
 import { PointService } from '@/api/points/point.service';
@@ -183,6 +189,7 @@ export class SpaceCheckInService {
 				latitude: checkInDTO.latitude,
 				longitude: checkInDTO.longitude,
 				pointsEarned: checkInPoints,
+				lastActivityTime: new Date(),
 			},
 		});
 
@@ -296,6 +303,127 @@ export class SpaceCheckInService {
 		});
 
 		return { success: true };
+	}
+
+	async heartbeat({
+		heartbeatDTO,
+		request,
+	}: {
+		heartbeatDTO: HeartbeatDTO;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const { spaceId, latitude, longitude } = heartbeatDTO;
+
+		// 활성 체크인 확인
+		const checkIn = await this.prisma.spaceCheckIn.findFirst({
+			where: {
+				userId: authContext.userId,
+				spaceId,
+				isActive: true,
+			},
+			include: {
+				space: {
+					select: {
+						latitude: true,
+						longitude: true,
+					},
+				},
+			},
+		});
+
+		if (!checkIn) {
+			return {
+				success: false,
+				checkinStatus: 'invalid' as const,
+				lastActivityTime: new Date(),
+			};
+		}
+
+		// 10분 이상 비활성 체크
+		const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+		if (checkIn.lastActivityTime < tenMinutesAgo) {
+			// 자동 체크아웃 처리
+			await this.prisma.spaceCheckIn.update({
+				where: { id: checkIn.id },
+				data: {
+					isActive: false,
+					autoCheckedOut: true,
+				},
+			});
+
+			return {
+				success: false,
+				checkinStatus: 'expired' as const,
+				lastActivityTime: checkIn.lastActivityTime,
+			};
+		}
+
+		// 위치 검증 (선택적)
+		const maxDistance = (await this.systemConfig.get()).maxDistanceFromSpace;
+		const userPosition = new GeoPosition(latitude, longitude);
+		const spacePosition = new GeoPosition(
+			checkIn.space.latitude,
+			checkIn.space.longitude,
+		);
+		const distance = Number(userPosition.Distance(spacePosition).toFixed(0));
+
+		if (distance > maxDistance) {
+			this.logger.warn(
+				`Heartbeat 위치 검증 실패 - 사용자: ${authContext.userId}, 거리: ${distance}m, 최대: ${maxDistance}m`,
+			);
+			// 위치가 벗어났지만 체크아웃하지 않고 경고만 로그
+		}
+
+		// lastActivityTime 업데이트
+		await this.prisma.spaceCheckIn.update({
+			where: { id: checkIn.id },
+			data: {
+				lastActivityTime: new Date(),
+			},
+		});
+
+		return {
+			success: true,
+			checkinStatus: 'active' as const,
+			lastActivityTime: new Date(),
+		};
+	}
+
+	async getCurrentCheckInStatus({ request }: { request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const checkIn = await this.prisma.spaceCheckIn.findFirst({
+			where: {
+				userId: authContext.userId,
+				isActive: true,
+			},
+			include: {
+				space: {
+					select: {
+						name: true,
+					},
+				},
+			},
+		});
+
+		if (!checkIn) {
+			return {
+				hasActiveCheckin: false,
+			};
+		}
+
+		return {
+			hasActiveCheckin: true,
+			checkin: {
+				spaceId: checkIn.spaceId,
+				spaceName: checkIn.space.name,
+				checkinTime: checkIn.checkedInAt,
+				lastActivityTime: checkIn.lastActivityTime,
+				latitude: checkIn.latitude,
+				longitude: checkIn.longitude,
+			},
+		};
 	}
 
 	async getCheckInStatus({
@@ -762,6 +890,78 @@ export class SpaceCheckInService {
 			}
 		} catch (error) {
 			this.logger.error('위치 확인 실패:', error);
+		}
+	}
+
+	@Cron(CronExpression.EVERY_5_MINUTES)
+	async autoCheckOutInactiveUsers() {
+		this.logger.log('자동 체크아웃 크론잡 시작');
+		
+		try {
+			const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+			
+			// 10분 이상 비활성 체크인 찾기
+			const inactiveCheckIns = await this.prisma.spaceCheckIn.findMany({
+				where: {
+					isActive: true,
+					lastActivityTime: {
+						lt: tenMinutesAgo,
+					},
+				},
+				include: {
+					space: {
+						select: {
+							name: true,
+						},
+					},
+					user: {
+						select: {
+							id: true,
+							nickName: true,
+						},
+					},
+				},
+			});
+
+			if (inactiveCheckIns.length === 0) {
+				this.logger.log('비활성 체크인 없음');
+				return;
+			}
+
+			// 자동 체크아웃 처리
+			for (const checkIn of inactiveCheckIns) {
+				await this.prisma.spaceCheckIn.update({
+					where: { id: checkIn.id },
+					data: {
+						isActive: false,
+						autoCheckedOut: true,
+					},
+				});
+
+				// 로깅
+				this.logger.log(
+					`자동 체크아웃: ${checkIn.user.nickName || checkIn.user.id} - ${checkIn.space.name}`,
+				);
+
+				// 알림 전송
+				try {
+					await this.notificationService.sendNotification({
+						type: NotificationType.Admin,
+						userId: checkIn.userId,
+						title: '자동 체크아웃',
+						body: `${checkIn.space.name}에서 자동으로 체크아웃되었습니다. (10분 이상 비활성)`,
+					});
+				} catch (notificationError) {
+					this.logger.error(
+						`알림 전송 실패 - 사용자: ${checkIn.userId}`,
+						notificationError,
+					);
+				}
+			}
+
+			this.logger.log(`총 ${inactiveCheckIns.length}명 자동 체크아웃 완료`);
+		} catch (error) {
+			this.logger.error('자동 체크아웃 크론잡 실패:', error);
 		}
 	}
 }

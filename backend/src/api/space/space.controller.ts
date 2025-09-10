@@ -31,7 +31,10 @@ import {
 	CheckInStatusResponse, 
 	CheckInUsersResponse, 
 	CurrentGroupResponse,
-	CheckOutAllUsersResponse 
+	CheckOutAllUsersResponse,
+	HeartbeatDTO,
+	HeartbeatResponse,
+	CheckInStatusDTO
 } from '@/api/space/space-checkin.dto';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
@@ -375,5 +378,53 @@ export class SpaceController {
 			spaceId,
 			request,
 		});
+	}
+
+	@ApiOperation({
+		summary: 'Send heartbeat for active check-in',
+		description: '활성 체크인에 대한 하트비트를 전송합니다. 3분마다 호출해야 합니다.',
+	})
+	@ApiBody({
+		type: HeartbeatDTO,
+		description: '하트비트 정보',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '하트비트 처리 성공',
+		type: HeartbeatResponse,
+	})
+	@ApiResponse({
+		status: 401,
+		description: '인증 실패',
+	})
+	@UseGuards(AuthGuard)
+	@Post('checkin/heartbeat')
+	heartbeat(
+		@Req() request: Request,
+		@Body() heartbeatDTO: HeartbeatDTO,
+	) {
+		return this.spaceCheckInService.heartbeat({
+			heartbeatDTO,
+			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: 'Get current check-in status',
+		description: '현재 사용자의 활성 체크인 상태를 조회합니다.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '체크인 상태 조회 성공',
+		type: CheckInStatusDTO,
+	})
+	@ApiResponse({
+		status: 401,
+		description: '인증 실패',
+	})
+	@UseGuards(AuthGuard)
+	@Get('checkin/status')
+	getCurrentCheckInStatus(@Req() request: Request) {
+		return this.spaceCheckInService.getCurrentCheckInStatus({ request });
 	}
 }
