@@ -9,6 +9,14 @@ export class CheckInDTO {
 	@ApiProperty()
 	@IsNumber()
 	longitude!: number;
+
+	@ApiProperty({
+		description: '사용할 혜택 ID',
+		required: false,
+	})
+	@IsOptional()
+	@IsString()
+	benefitId?: string;
 }
 
 export class HeartbeatDTO {
@@ -37,6 +45,14 @@ export class HeartbeatDTO {
 	@IsOptional()
 	@IsDateString()
 	timestamp?: string;
+
+	@ApiProperty({
+		description: '사용 중인 혜택 ID',
+		required: false,
+	})
+	@IsOptional()
+	@IsString()
+	benefitId?: string;
 }
 
 export class CheckOutDTO {
@@ -154,5 +170,7 @@ export class CheckInStatusDTO {
 		lastActivityTime: Date;
 		latitude: number;
 		longitude: number;
+		benefitId?: string;
+		benefitDescription?: string;
 	};
 }

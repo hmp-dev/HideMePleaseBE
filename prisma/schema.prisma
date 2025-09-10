@@ -252,6 +252,7 @@ model SpaceBenefit {
   space                     Space                       @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   SpaceBenefitNftCollection SpaceBenefitNftCollection[]
   SpaceBenefitUsage         SpaceBenefitUsage[]
+  SpaceCheckIn              SpaceCheckIn[]
 }
 
 model UserLastKnownSpace {
@@ -833,22 +834,25 @@ model SpaceEventCategory {
 }
 
 model SpaceCheckIn {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @default(now()) @updatedAt
-  userId           String             @db.Uuid
-  spaceId          String             @db.Uuid
-  checkedInAt      DateTime           @default(now())
-  isActive         Boolean            @default(true)
-  groupId          String?            @db.Uuid
-  latitude         Float
-  longitude        Float
-  pointsEarned     Int                @default(0)
-  lastActivityTime DateTime           @default(now())
-  autoCheckedOut   Boolean            @default(false)
-  group            SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
-  space            Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+  userId              String             @db.Uuid
+  spaceId             String             @db.Uuid
+  checkedInAt         DateTime           @default(now())
+  isActive            Boolean            @default(true)
+  groupId             String?            @db.Uuid
+  latitude            Float
+  longitude           Float
+  pointsEarned        Int                @default(0)
+  lastActivityTime    DateTime           @default(now())
+  autoCheckedOut      Boolean            @default(false)
+  benefitId           String?            @db.Uuid
+  benefitDescription  String?
+  group               SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
+  space               Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  benefit             SpaceBenefit?      @relation(fields: [benefitId], references: [id])
 
   @@index([userId, spaceId, isActive])
   @@index([spaceId, isActive])

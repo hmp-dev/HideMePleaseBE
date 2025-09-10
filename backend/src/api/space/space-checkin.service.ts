@@ -181,6 +181,52 @@ export class SpaceCheckInService {
 			});
 		}
 
+		// 혜택 정보 처리
+		let benefitDescription: string | undefined;
+		if (checkInDTO.benefitId) {
+			const benefit = await tx.spaceBenefit.findFirst({
+				where: {
+					id: checkInDTO.benefitId,
+					spaceId,
+					active: true,
+					deleted: false,
+				},
+			});
+
+			if (benefit) {
+				benefitDescription = benefit.description;
+
+				// 혜택 사용 기록 - PFP NFT 컬렉션 주소 사용
+				const PFP_COLLECTION_ADDRESS = '0x765339b4Dd866c72f3b8fb77251330744F34D1D0';
+				
+				// PFP 컬렉션이 존재하는지 확인
+				const pfpCollection = await tx.nftCollection.findFirst({
+					where: {
+						tokenAddress: PFP_COLLECTION_ADDRESS,
+					},
+				});
+
+				// 컬렉션이 존재할 때만 사용 기록 생성
+				if (pfpCollection) {
+					await tx.spaceBenefitUsage.create({
+						data: {
+							benefitId: benefit.id,
+							userId: authContext.userId,
+							tokenAddress: PFP_COLLECTION_ADDRESS,
+						},
+					});
+				}
+
+				// 단일 사용 혜택인 경우 비활성화
+				if (benefit.singleUse) {
+					await tx.spaceBenefit.update({
+						where: { id: benefit.id },
+						data: { active: false },
+					});
+				}
+			}
+		}
+
 		const checkIn = await tx.spaceCheckIn.create({
 			data: {
 				userId: authContext.userId,
@@ -190,6 +236,8 @@ export class SpaceCheckInService {
 				longitude: checkInDTO.longitude,
 				pointsEarned: checkInPoints,
 				lastActivityTime: new Date(),
+				benefitId: checkInDTO.benefitId,
+				benefitDescription,
 			},
 		});
 
@@ -422,6 +470,8 @@ export class SpaceCheckInService {
 				lastActivityTime: checkIn.lastActivityTime,
 				latitude: checkIn.latitude,
 				longitude: checkIn.longitude,
+				benefitId: checkIn.benefitId || undefined,
+				benefitDescription: checkIn.benefitDescription || undefined,
 			},
 		};
 	}
