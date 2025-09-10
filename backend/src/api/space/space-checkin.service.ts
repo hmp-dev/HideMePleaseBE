@@ -104,20 +104,15 @@ export class SpaceCheckInService {
 		}
 
 		// 다른 스페이스에 체크인되어 있는 경우 자동 체크아웃
+		let previousSpaceName: string | null = null;
 		if (existingActiveCheckIn && existingActiveCheckIn.spaceId !== spaceId) {
 			await tx.spaceCheckIn.update({
 				where: { id: existingActiveCheckIn.id },
 				data: { isActive: false },
 			});
 
-			this.logger.log(`사용자 ${authContext.userId} 자동 체크아웃 - 이전 공간: ${existingActiveCheckIn.space.name} (${existingActiveCheckIn.spaceId})`);
-
-			void this.notificationService.sendNotification({
-				type: NotificationType.Admin,
-				userId: authContext.userId,
-				title: '자동 체크아웃',
-				body: `${existingActiveCheckIn.space.name}에서 자동으로 체크아웃되었습니다.`,
-			});
+			previousSpaceName = existingActiveCheckIn.space.name;
+			this.logger.log(`사용자 ${authContext.userId} 자동 체크아웃 - 이전 공간: ${previousSpaceName} (${existingActiveCheckIn.spaceId})`);
 		}
 
 		if (space.maxCheckInCapacity) {
@@ -307,12 +302,22 @@ export class SpaceCheckInService {
 			);
 		}
 
-		void this.notificationService.sendNotification({
-			type: NotificationType.Admin,
-			userId: authContext.userId,
-			title: '체크인 완료',
-			body: `${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`,
-		});
+		// 알림 발송 - 자동 체크아웃이 있었다면 통합 메시지로
+		if (previousSpaceName) {
+			void this.notificationService.sendNotification({
+				type: NotificationType.Admin,
+				userId: authContext.userId,
+				title: '체크인 완료',
+				body: `${previousSpaceName}에서 체크아웃되고 ${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`,
+			});
+		} else {
+			void this.notificationService.sendNotification({
+				type: NotificationType.Admin,
+				userId: authContext.userId,
+				title: '체크인 완료',
+				body: `${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`,
+			});
+		}
 
 		return {
 			success: true,
