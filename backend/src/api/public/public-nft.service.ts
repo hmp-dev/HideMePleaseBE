@@ -107,20 +107,39 @@ export class PublicNftService {
 
 		// If user has finalProfileImageUrl, use it
 		if (user.finalProfileImageUrl) {
-			// URL인 경우
-			if (user.finalProfileImageUrl.startsWith('http')) {
+			// 자기 참조 체크 - 자신의 NFT 이미지 URL인지 확인
+			const baseUrl = process.env.API_BASE_URL || 'https://dev-api.hidemeplease.xyz/v1';
+			const selfReferenceUrls = [
+				`${baseUrl}/public/nft/user/${userId}/image`,
+				`https://dev-api.hidemeplease.xyz/v1/public/nft/user/${userId}/image`,
+				`https://api.hidemeplease.xyz/v1/public/nft/user/${userId}/image`,
+			];
+			
+			// 자기 참조인 경우 finalProfileImageUrl을 무시하고 profilePartsString으로 처리
+			if (selfReferenceUrls.includes(user.finalProfileImageUrl)) {
+				// profilePartsString이 있으면 이미지 생성으로 넘어감
+				if (user.profilePartsString) {
+					// 아래 profilePartsString 처리 로직으로 진행
+				} else {
+					// profilePartsString도 없으면 기본 이미지
+					return { exists: true };
+				}
+			} else {
+				// URL인 경우 (자기 참조가 아닌 경우)
+				if (user.finalProfileImageUrl.startsWith('http')) {
+					return {
+						imageUrl: user.finalProfileImageUrl,
+						exists: true,
+					};
+				}
+
+				// 로컬 경로인 경우
 				return {
-					imageUrl: user.finalProfileImageUrl,
+					imagePath: user.finalProfileImageUrl,
+					mimeType: this.getMimeTypeFromPath(user.finalProfileImageUrl),
 					exists: true,
 				};
 			}
-
-			// 로컬 경로인 경우
-			return {
-				imagePath: user.finalProfileImageUrl,
-				mimeType: this.getMimeTypeFromPath(user.finalProfileImageUrl),
-				exists: true,
-			};
 		}
 
 		// If no finalProfileImageUrl but has profilePartsString, generate image
