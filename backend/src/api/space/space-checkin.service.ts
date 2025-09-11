@@ -115,18 +115,7 @@ export class SpaceCheckInService {
 			this.logger.log(`사용자 ${authContext.userId} 자동 체크아웃 - 이전 공간: ${previousSpaceName} (${existingActiveCheckIn.spaceId})`);
 		}
 
-		if (space.maxCheckInCapacity) {
-			const currentCheckInCount = await tx.spaceCheckIn.count({
-				where: {
-					spaceId,
-					isActive: true,
-				},
-			});
-
-			if (currentCheckInCount >= space.maxCheckInCapacity) {
-				throw new BadRequestException('체크인 최대 인원수를 초과했습니다');
-			}
-		}
+		// maxCheckInCapacity 체크는 체크인 생성 후로 이동 (아래에서 처리)
 
 		if (space.dailyCheckInLimit) {
 			const today = new Date();
@@ -236,7 +225,25 @@ export class SpaceCheckInService {
 			},
 		});
 
-		// 같은 트랜잭션을 사용하여 포인트 적립
+		// 체크인 생성 후 maxCheckInCapacity 재확인
+		if (space.maxCheckInCapacity) {
+			const currentCheckInCount = await tx.spaceCheckIn.count({
+				where: {
+					spaceId,
+					isActive: true,
+				},
+			});
+
+			if (currentCheckInCount > space.maxCheckInCapacity) {
+				// 방금 생성한 체크인을 삭제 (롤백 효과)
+				await tx.spaceCheckIn.delete({
+					where: { id: checkIn.id },
+				});
+				throw new BadRequestException('체크인 최대 인원수를 초과했습니다');
+			}
+		}
+
+		// 같은 트랜잭션을 사용하여 포인트 적립 (실패해도 체크인은 진행)
 		try {
 			await this.pointService.earnPoints({
 				userId: authContext.userId,
@@ -248,11 +255,11 @@ export class SpaceCheckInService {
 				referenceType: 'space_checkin',
 			}, tx);
 		} catch (error) {
-			this.logger.error('포인트 적립 실패:', error);
-			// 포인트 실패 시 전체 트랜잭션 롤백
-			throw error;
+			this.logger.error(`포인트 적립 실패 (체크인은 성공): userId=${authContext.userId}, checkInId=${checkIn.id}`, error);
+			// 포인트 적립 실패해도 체크인은 계속 진행
 		}
 
+		// 체크인 생성 후 그룹을 다시 조회하여 정확한 카운트 얻기
 		const updatedGroup = await tx.spaceCheckInGroup.findFirst({
 			where: { id: currentGroup.id },
 			include: {
@@ -262,9 +269,16 @@ export class SpaceCheckInService {
 			},
 		});
 
+		// 그룹 완성 여부 추적
+		let isGroupCompleted = false;
+		
 		if (updatedGroup && updatedGroup.checkIns.length === groupSize && !updatedGroup.isCompleted) {
-			await tx.spaceCheckInGroup.update({
-				where: { id: updatedGroup.id },
+			// 원자적으로 그룹 완성 처리 (동시성 문제 방지)
+			const completedGroup = await tx.spaceCheckInGroup.updateMany({
+				where: { 
+					id: updatedGroup.id,
+					isCompleted: false, // 다시 한번 체크
+				},
 				data: {
 					isCompleted: true,
 					completedAt: new Date(),
@@ -272,52 +286,77 @@ export class SpaceCheckInService {
 				},
 			});
 
-			await Promise.all(
-				updatedGroup.checkIns.map(async (checkIn) => {
-					await tx.spaceCheckIn.update({
-						where: { id: checkIn.id },
-						data: {
-							pointsEarned: checkIn.pointsEarned + GROUP_BONUS_POINTS,
-						},
-					});
+			// updateMany의 count가 1이면 이 요청이 그룹을 완성시킨 것
+			if (completedGroup.count === 1) {
+				isGroupCompleted = true;
+				
+				await Promise.all(
+					updatedGroup.checkIns.map(async (checkInMember) => {
+						await tx.spaceCheckIn.update({
+							where: { id: checkInMember.id },
+							data: {
+								pointsEarned: checkInMember.pointsEarned + GROUP_BONUS_POINTS,
+							},
+						});
 
-					// 같은 트랜잭션으로 그룹 보너스 포인트 적립
-					await this.pointService.earnPoints({
-						userId: checkIn.userId,
-						amount: GROUP_BONUS_POINTS,
-						type: PointTransactionType.EARNED,
-						source: PointSource.GROUP_BONUS,
-						description: `${space.name} 그룹 체크인 보너스`,
-						referenceId: updatedGroup.id,
-						referenceType: 'group_checkin',
-					}, tx);
+						// 같은 트랜잭션으로 그룹 보너스 포인트 적립 (실패해도 진행)
+						try {
+							await this.pointService.earnPoints({
+								userId: checkInMember.userId,
+								amount: GROUP_BONUS_POINTS,
+								type: PointTransactionType.EARNED,
+								source: PointSource.GROUP_BONUS,
+								description: `${space.name} 그룹 체크인 보너스`,
+								referenceId: updatedGroup.id,
+								referenceType: 'group_checkin',
+							}, tx);
+						} catch (error) {
+							this.logger.error(`그룹 보너스 포인트 적립 실패: userId=${checkInMember.userId}, groupId=${updatedGroup.id}`, error);
+						}
 
-					void this.notificationService.sendNotification({
-						type: NotificationType.Admin,
-						userId: checkIn.userId,
-						title: '그룹 체크인 완료!',
-						body: `${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트를 획득했습니다!`,
-					});
-				}),
-			);
+						// 현재 체크인한 사용자가 아닌 경우에만 그룹 완성 알림 발송
+						if (checkInMember.userId !== authContext.userId) {
+							void this.notificationService.sendNotification({
+								type: NotificationType.Admin,
+								userId: checkInMember.userId,
+								title: '그룹 체크인 완료!',
+								body: `${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트를 획득했습니다!`,
+							});
+						}
+					}),
+				);
+			}
 		}
 
-		// 알림 발송 - 자동 체크아웃이 있었다면 통합 메시지로
-		if (previousSpaceName) {
-			void this.notificationService.sendNotification({
-				type: NotificationType.Admin,
-				userId: authContext.userId,
-				title: '체크인 완료',
-				body: `${previousSpaceName}에서 체크아웃되고 ${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`,
-			});
+		// 알림 발송 - 그룹 완성, 자동 체크아웃 등을 모두 고려한 통합 메시지
+		let notificationBody: string;
+		
+		if (isGroupCompleted) {
+			// 그룹을 완성시킨 경우
+			const totalPoints = checkInPoints + GROUP_BONUS_POINTS;
+			if (previousSpaceName) {
+				notificationBody = `${previousSpaceName}에서 체크아웃되고 ${space.name}에 체크인! ${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트도 획득! 총 ${totalPoints} SAV 획득`;
+			} else {
+				notificationBody = `${space.name}에 체크인하여 ${checkInPoints} SAV 획득! ${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트도 획득! 총 ${totalPoints} SAV`;
+			}
 		} else {
-			void this.notificationService.sendNotification({
-				type: NotificationType.Admin,
-				userId: authContext.userId,
-				title: '체크인 완료',
-				body: `${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`,
-			});
+			// 일반 체크인
+			if (previousSpaceName) {
+				notificationBody = `${previousSpaceName}에서 체크아웃되고 ${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`;
+			} else {
+				notificationBody = `${space.name}에 체크인하여 ${checkInPoints} SAV를 획득했습니다.`;
+			}
 		}
+
+		// 알림 발송 로그 추가 (디버깅용)
+		this.logger.log(`[알림 발송] userId: ${authContext.userId}, checkInId: ${checkIn.id}, isGroupCompleted: ${isGroupCompleted}, message: ${notificationBody}`);
+		
+		void this.notificationService.sendNotification({
+			type: NotificationType.Admin,
+			userId: authContext.userId,
+			title: '체크인 완료',
+			body: notificationBody,
+		});
 
 		return {
 			success: true,
