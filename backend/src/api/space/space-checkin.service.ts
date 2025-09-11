@@ -616,15 +616,7 @@ export class SpaceCheckInService {
 			},
 		});
 
-		// Get space info to determine group size
-		const space = await this.prisma.space.findFirst({
-			where: { id: spaceId },
-		});
-
-		// 그룹 사이즈 결정 (다른 메소드와 동일한 로직)
-		const groupSize = !space?.maxCheckInCapacity || space.maxCheckInCapacity > 5 
-			? GROUP_SIZE 
-			: space.maxCheckInCapacity;
+		// Remove groupSize calculation - will use requiredMembers from group
 
 		// 먼저 활성 체크인이 있는 미완료 그룹을 찾기
 		let currentGroup = await this.prisma.spaceCheckInGroup.findFirst({
@@ -694,7 +686,7 @@ export class SpaceCheckInService {
 		if (currentGroup) {
 			currentGroupResponse = {
 				groupId: currentGroup.id,
-				progress: `${currentGroup.checkIns.length}/${currentGroup.requiredMembers || groupSize}`,
+				progress: `${currentGroup.checkIns.length}/${currentGroup.requiredMembers}`,
 				isCompleted: currentGroup.isCompleted,
 				members: currentGroup.checkIns.map((checkIn) => ({
 					userId: checkIn.user.id,
@@ -718,19 +710,6 @@ export class SpaceCheckInService {
 	}: {
 		spaceId: string;
 	}): Promise<CurrentGroupResponse | null> {
-		// 먼저 스페이스 정보 가져오기
-		const space = await this.prisma.space.findFirst({
-			where: { id: spaceId },
-		});
-
-		if (!space) {
-			return null;
-		}
-
-		// 그룹 사이즈 결정
-		const groupSize = !space.maxCheckInCapacity || space.maxCheckInCapacity > 5 
-			? GROUP_SIZE 
-			: space.maxCheckInCapacity;
 
 		// 먼저 활성 체크인이 있는 미완료 그룹을 찾기
 		let group = await this.prisma.spaceCheckInGroup.findFirst({
@@ -790,7 +769,19 @@ export class SpaceCheckInService {
 		}
 
 		if (!group) {
-			// 그룹이 없어도 0/5 형태로 반환
+			// 그룹이 없으면 스페이스 정보로부터 groupSize 계산
+			const space = await this.prisma.space.findFirst({
+				where: { id: spaceId },
+			});
+			
+			if (!space) {
+				return null;
+			}
+			
+			const groupSize = !space.maxCheckInCapacity || space.maxCheckInCapacity > 5 
+				? GROUP_SIZE 
+				: space.maxCheckInCapacity;
+			
 			return {
 				groupId: '',
 				progress: `0/${groupSize}`,
@@ -802,7 +793,7 @@ export class SpaceCheckInService {
 
 		return {
 			groupId: group.id,
-			progress: `${group.checkIns.length}/${group.requiredMembers || groupSize}`,
+			progress: `${group.checkIns.length}/${group.requiredMembers}`,
 			isCompleted: group.isCompleted,
 			members: group.checkIns.map((checkIn) => ({
 				userId: checkIn.user.id,
