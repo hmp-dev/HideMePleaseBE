@@ -24,8 +24,18 @@ import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 
 const DEFAULT_CHECK_IN_POINTS = 1;
-const GROUP_BONUS_POINTS = 3;
 const GROUP_SIZE = 5;
+
+// 그룹 인원수에 따른 보너스 포인트 계산
+function getGroupBonusPoints(groupSize: number): number {
+	switch(groupSize) {
+		case 2: return 2;
+		case 3: return 3;
+		case 4: return 5;
+		case 5: return 7;
+		default: return 3; // 기본값
+	}
+}
 
 @Injectable()
 export class SpaceCheckInService {
@@ -164,7 +174,7 @@ export class SpaceCheckInService {
 				data: {
 					spaceId,
 					requiredMembers: groupSize,
-					bonusPoints: GROUP_BONUS_POINTS,
+					bonusPoints: getGroupBonusPoints(groupSize),
 				},
 				include: {
 					checkIns: {
@@ -308,7 +318,7 @@ export class SpaceCheckInService {
 						await tx.spaceCheckIn.update({
 							where: { id: checkInMember.id },
 							data: {
-								pointsEarned: checkInMember.pointsEarned + GROUP_BONUS_POINTS,
+								pointsEarned: checkInMember.pointsEarned + updatedGroup.bonusPoints,
 							},
 						});
 
@@ -316,7 +326,7 @@ export class SpaceCheckInService {
 						try {
 							await this.pointService.earnPoints({
 								userId: checkInMember.userId,
-								amount: GROUP_BONUS_POINTS,
+								amount: updatedGroup.bonusPoints,
 								type: PointTransactionType.EARNED,
 								source: PointSource.GROUP_BONUS,
 								description: `${space.name} 그룹 체크인 보너스`,
@@ -333,7 +343,7 @@ export class SpaceCheckInService {
 								type: NotificationType.Admin,
 								userId: checkInMember.userId,
 								title: '매칭 완료!',
-								body: `${space.name}에 ${groupSize}명이 모였으니,  ${GROUP_BONUS_POINTS} SAV를 줄게!`,
+								body: `${space.name}에 ${groupSize}명이 모였으니,  ${updatedGroup.bonusPoints} SAV를 줄게!`,
 							});
 						}
 					}),
@@ -346,11 +356,12 @@ export class SpaceCheckInService {
 		
 		if (isGroupCompleted) {
 			// 그룹을 완성시킨 경우
-			const totalPoints = checkInPoints + GROUP_BONUS_POINTS;
+			const bonusPoints = updatedGroup?.bonusPoints || getGroupBonusPoints(groupSize);
+			const totalPoints = checkInPoints + bonusPoints;
 			if (previousSpaceName) {
-				notificationBody = `${previousSpaceName}에서 체크아웃되고 ${space.name}에 체크인! ${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트도 획득! 총 ${totalPoints} SAV 획득`;
+				notificationBody = `${previousSpaceName}에서 체크아웃되고 ${space.name}에 체크인! ${groupSize}명이 모여 보너스 ${bonusPoints} 포인트도 획득! 총 ${totalPoints} SAV 획득`;
 			} else {
-				notificationBody = `${space.name}에 체크인하여 ${checkInPoints} SAV 획득! ${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트도 획득! 총 ${totalPoints} SAV`;
+				notificationBody = `${space.name}에 체크인하여 ${checkInPoints} SAV 획득! ${groupSize}명이 모여 보너스 ${bonusPoints} 포인트도 획득! 총 ${totalPoints} SAV`;
 			}
 		} else {
 			// 일반 체크인
@@ -787,7 +798,7 @@ export class SpaceCheckInService {
 				progress: `0/${groupSize}`,
 				isCompleted: false,
 				members: [],
-				bonusPoints: GROUP_BONUS_POINTS,
+				bonusPoints: getGroupBonusPoints(groupSize),
 			};
 		}
 
