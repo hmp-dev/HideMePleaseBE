@@ -148,11 +148,18 @@ export class SpaceCheckInService {
 				isCompleted: false,
 			},
 			include: {
-				checkIns: true,
+				checkIns: {
+					where: { isActive: true },
+				},
 			},
 		});
 
+		// 그룹 할당 디버깅 로그
+		this.logger.log(`[그룹 할당] 현재 그룹: ${currentGroup?.id || 'null'}, 활성 멤버 수: ${currentGroup?.checkIns.length || 0}/${groupSize}`);
+
 		if (!currentGroup || currentGroup.checkIns.length >= groupSize) {
+			this.logger.log(`[그룹 생성] 새 그룹 생성 - 이유: ${!currentGroup ? '기존 그룹 없음' : '그룹 가득참'}`);
+			
 			currentGroup = await tx.spaceCheckInGroup.create({
 				data: {
 					spaceId,
@@ -160,9 +167,15 @@ export class SpaceCheckInService {
 					bonusPoints: GROUP_BONUS_POINTS,
 				},
 				include: {
-					checkIns: true,
+					checkIns: {
+						where: { isActive: true },
+					},
 				},
 			});
+			
+			this.logger.log(`[그룹 생성] 새 그룹 ID: ${currentGroup.id}`);
+		} else {
+			this.logger.log(`[그룹 할당] 기존 그룹 사용: ${currentGroup.id}`);
 		}
 
 		// 혜택 정보 처리

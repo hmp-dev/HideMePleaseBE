@@ -3,7 +3,6 @@ import {
 	BadRequestException,
 	Inject,
 	Injectable,
-	Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SupportedChains } from '@prisma/client';
@@ -17,7 +16,7 @@ import { SelectedNftOrderDTO, SelectNftDTO } from '@/api/users/users.dto';
 import { PAGE_SIZES } from '@/constants';
 import { NftCollectionWithTokens } from '@/modules/moralis/moralis.constants';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { SendbirdService } from '@/modules/sendbird/sendbird.service';
+// import { SendbirdService } from '@/modules/sendbird/sendbird.service';
 import { UnifiedNftService } from '@/modules/unified-nft/unified-nft.service';
 import { isSolanaAddress } from '@/modules/web3/web3.utils';
 import { AuthContext } from '@/types';
@@ -25,14 +24,14 @@ import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class UserNftService {
-	private readonly logger = new Logger(UserNftService.name);
+	// private readonly logger = new Logger(UserNftService.name);
 
 	constructor(
 		private prisma: PrismaService,
 		private nftOwnershipService: NftOwnershipService,
 		private jwtService: JwtService,
 		private unifiedNftService: UnifiedNftService,
-		private sendbirdService: SendbirdService,
+		// private sendbirdService: SendbirdService,
 		private nftPointService: NftPointService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) {}
@@ -73,32 +72,33 @@ export class UserNftService {
 			},
 		});
 
-		await Promise.all([
-			selectedNfts.map(async (selectedNft) => {
-				try {
-					await this.sendbirdService.updateGroupChannelToSuper({
-						channelUrl: selectedNft.tokenAddress,
-					});
+		// Sendbird 비활성화
+		// await Promise.all([
+		// 	selectedNfts.map(async (selectedNft) => {
+		// 		try {
+		// 			await this.sendbirdService.updateGroupChannelToSuper({
+		// 				channelUrl: selectedNft.tokenAddress,
+		// 			});
 
-					const membershipCheck =
-						await this.sendbirdService.checkUserAddedToGroupChannel(
-							{
-								userId: authContext.userId,
-								channelUrl: selectedNft.tokenAddress,
-							},
-						);
+		// 			const membershipCheck =
+		// 				await this.sendbirdService.checkUserAddedToGroupChannel(
+		// 					{
+		// 						userId: authContext.userId,
+		// 						channelUrl: selectedNft.tokenAddress,
+		// 					},
+		// 				);
 
-					if (!membershipCheck.is_member) {
-						await this.sendbirdService.addUserToGroupChannel({
-							userId: authContext.userId,
-							channelUrl: selectedNft.tokenAddress,
-						});
-					}
-				} catch (e) {
-					this.logger.error(e);
-				}
-			}),
-		]);
+		// 			if (!membershipCheck.is_member) {
+		// 				await this.sendbirdService.addUserToGroupChannel({
+		// 					userId: authContext.userId,
+		// 					channelUrl: selectedNft.tokenAddress,
+		// 				});
+		// 			}
+		// 		} catch (e) {
+		// 			this.logger.error(e);
+		// 		}
+		// 	}),
+		// ]);
 
 		return selectedNfts.map((selectedNft) => ({
 			...selectedNft,
@@ -258,37 +258,39 @@ export class UserNftService {
 			);
 		}
 
-		if (selected && !collectionData.chatChannelCreated) {
-			const imageUrl = collectionData.collectionLogo || nft.imageUrl;
+		// Sendbird 비활성화
+		// if (selected && !collectionData.chatChannelCreated) {
+		// 	const imageUrl = collectionData.collectionLogo || nft.imageUrl;
 
-			try {
-				await this.sendbirdService.createGroupChannel({
-					channelUrl: nft.tokenAddress,
-					channelImageURl: imageUrl?.includes('data:')
-						? ''
-						: imageUrl,
-					name: collectionData.name || nft.name,
-					userIds: [authContext.userId],
-				});
-			} catch (e) {
-				this.logger.error(e);
-			}
-			await this.prisma.nftCollection.update({
-				where: {
-					tokenAddress: nft.tokenAddress,
-				},
-				data: {
-					chatChannelCreated: true,
-				},
-			});
-		}
+		// 	try {
+		// 		await this.sendbirdService.createGroupChannel({
+		// 			channelUrl: nft.tokenAddress,
+		// 			channelImageURl: imageUrl?.includes('data:')
+		// 				? ''
+		// 				: imageUrl,
+		// 			name: collectionData.name || nft.name,
+		// 			userIds: [authContext.userId],
+		// 		});
+		// 	} catch (e) {
+		// 		this.logger.error(e);
+		// 	}
+		// 	await this.prisma.nftCollection.update({
+		// 		where: {
+		// 			tokenAddress: nft.tokenAddress,
+		// 		},
+		// 		data: {
+		// 			chatChannelCreated: true,
+		// 		},
+		// 	});
+		// }
 
-		if (selected) {
-			await this.sendbirdService.addUserToGroupChannel({
-				userId: authContext.userId,
-				channelUrl: nft.tokenAddress,
-			});
-		} else {
+		// if (selected) {
+		// 	await this.sendbirdService.addUserToGroupChannel({
+		// 		userId: authContext.userId,
+		// 		channelUrl: nft.tokenAddress,
+		// 	});
+		// } else {
+		if (!selected) {
 			await this.setRandomPfpImage(authContext.userId, nftId);
 		}
 
