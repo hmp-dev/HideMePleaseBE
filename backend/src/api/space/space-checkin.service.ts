@@ -332,8 +332,8 @@ export class SpaceCheckInService {
 							void this.notificationService.sendNotification({
 								type: NotificationType.Admin,
 								userId: checkInMember.userId,
-								title: '그룹 체크인 완료!',
-								body: `${groupSize}명이 모여 보너스 ${GROUP_BONUS_POINTS} 포인트를 획득했습니다!`,
+								title: '매칭 완료!',
+								body: `${space.name}에 ${groupSize}명이 모였으니,  ${GROUP_BONUS_POINTS} SAV를 줄게!`,
 							});
 						}
 					}),
