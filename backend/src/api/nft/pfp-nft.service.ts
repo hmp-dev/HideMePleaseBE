@@ -116,35 +116,7 @@ export class PfpNftService {
 
 				this.logger.log(`PFP mint successful: ${JSON.stringify(mintRes)}`);
 
-				// Create NFT record
-				const nftId = getCompositeTokenId(collectionAddress, nextTokenId);
-				await this.prisma.nft.create({
-					data: {
-						id: nftId,
-						name: tokenName,
-						tokenId: nextTokenId.toString(),
-						tokenAddress: collectionAddress,
-						imageUrl: imageUrl,
-						ownedWalletAddress: walletAddress.toLowerCase(),
-						lastOwnershipCheck: new Date(),
-						tokenUpdatedAt: new Date(),
-						order: 0,
-					},
-				});
-				this.logger.log(`NFT record created with ID: ${nftId}`);
-
-				// Update user profile with PFP NFT ID (image URL was already updated before minting)
-				await this.prisma.user.update({
-					where: {
-						id: authContext.userId,
-					},
-					data: {
-						pfpNftId: nftId,
-					},
-				});
-				this.logger.log(`User profile updated with PFP NFT ID`);
-
-				// Ensure collection exists
+				// Ensure collection exists BEFORE creating NFT record
 				const existingCollection = await this.prisma.nftCollection.findFirst({
 					where: {
 						tokenAddress: collectionAddress,
@@ -152,6 +124,7 @@ export class PfpNftService {
 				});
 
 				if (!existingCollection) {
+					this.logger.log(`Creating PFP collection record for address: ${collectionAddress}`);
 					await this.prisma.nftCollection.create({
 						data: {
 							name: 'PFP Collection',
@@ -164,7 +137,53 @@ export class PfpNftService {
 						},
 					});
 					this.logger.log(`PFP collection record created`);
+				} else {
+					this.logger.log(`PFP collection already exists for address: ${collectionAddress}`);
 				}
+
+				// Create NFT record with explicit error handling
+				const nftId = getCompositeTokenId(collectionAddress, nextTokenId);
+				this.logger.log(`Creating NFT record with ID: ${nftId}`);
+
+				try {
+					const createdNft = await this.prisma.nft.create({
+						data: {
+							id: nftId,
+							name: tokenName,
+							tokenId: nextTokenId.toString(),
+							tokenAddress: collectionAddress,
+							imageUrl: imageUrl,
+							ownedWalletAddress: walletAddress.toLowerCase(),
+							lastOwnershipCheck: new Date(),
+							tokenUpdatedAt: new Date(),
+							order: 0,
+						},
+					});
+
+					if (!createdNft) {
+						throw new Error('NFT record creation returned null');
+					}
+
+					this.logger.log(`NFT record successfully created: ${JSON.stringify(createdNft)}`);
+				} catch (nftError: any) {
+					this.logger.error(`Failed to create NFT record: ${nftError.message}`);
+					this.logger.error(`NFT creation error stack: ${nftError.stack}`);
+					if (nftError.code) {
+						this.logger.error(`Prisma error code: ${nftError.code}`);
+					}
+					throw new InternalServerErrorException(`NFT 레코드 생성 실패: ${nftError.message}`);
+				}
+
+				// Update user profile with PFP NFT ID (image URL was already updated before minting)
+				await this.prisma.user.update({
+					where: {
+						id: authContext.userId,
+					},
+					data: {
+						pfpNftId: nftId,
+					},
+				});
+				this.logger.log(`User profile updated with PFP NFT ID`);
 
 				return {
 					success: true,
