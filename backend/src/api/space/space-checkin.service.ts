@@ -475,8 +475,8 @@ export class SpaceCheckInService {
 			};
 		}
 
-		// 위치 검증 (선택적)
-		const maxDistance = (await this.systemConfig.get()).maxDistanceFromSpace;
+		// 위치 검증 - 500m 이상 떨어지면 자동 체크아웃
+		const maxDistance = 500; // 500m 고정값
 		const userPosition = new GeoPosition(latitude, longitude);
 		const spacePosition = new GeoPosition(
 			checkIn.space.latitude,
@@ -485,10 +485,32 @@ export class SpaceCheckInService {
 		const distance = Number(userPosition.Distance(spacePosition).toFixed(0));
 
 		if (distance > maxDistance) {
-			this.logger.warn(
-				`Heartbeat 위치 검증 실패 - 사용자: ${authContext.userId}, 거리: ${distance}m, 최대: ${maxDistance}m`,
+			this.logger.log(
+				`Heartbeat 위치 초과 자동 체크아웃 - 사용자: ${authContext.userId}, 거리: ${distance}m, 최대: ${maxDistance}m`,
 			);
-			// 위치가 벗어났지만 체크아웃하지 않고 경고만 로그
+
+			// 자동 체크아웃 처리
+			await this.prisma.spaceCheckIn.update({
+				where: { id: checkIn.id },
+				data: {
+					isActive: false,
+					autoCheckedOut: true,
+				},
+			});
+
+			// 알림 전송
+			void this.notificationService.sendNotification({
+				type: NotificationType.Admin,
+				userId: authContext.userId,
+				title: '자동 체크아웃',
+				body: `매장에서 ${maxDistance}m 이상 떨어져 자동 체크아웃되었습니다.`,
+			});
+
+			return {
+				success: false,
+				checkinStatus: 'expired' as const,
+				lastActivityTime: checkIn.lastActivityTime,
+			};
 		}
 
 		// lastActivityTime 업데이트
@@ -953,54 +975,56 @@ export class SpaceCheckInService {
 		}
 	}
 
-	@Cron(CronExpression.EVERY_5_MINUTES)
-	async checkUserLocations() {
-		this.logger.debug('체크인 사용자 위치 확인 시작');
+	// 체크인 시점의 고정된 위치를 사용하므로 부정확한 체크아웃 유발 - 주석 처리
+	// heartbeat에서 실시간 위치로 체크하므로 이 크론잡은 불필요
+	// @Cron(CronExpression.EVERY_5_MINUTES)
+	// async checkUserLocations() {
+	// 	this.logger.debug('체크인 사용자 위치 확인 시작');
 
-		try {
-			const activeCheckIns = await this.prisma.spaceCheckIn.findMany({
-				where: {
-					isActive: true,
-				},
-				include: {
-					space: true,
-				},
-			});
+	// 	try {
+	// 		const activeCheckIns = await this.prisma.spaceCheckIn.findMany({
+	// 			where: {
+	// 				isActive: true,
+	// 			},
+	// 			include: {
+	// 				space: true,
+	// 			},
+	// 		});
 
-			const maxDistance = (await this.systemConfig.get()).maxDistanceFromSpace + 200;
+	// 		const maxDistance = (await this.systemConfig.get()).maxDistanceFromSpace + 200;
 
-			for (const checkIn of activeCheckIns) {
-				const checkInPosition = new GeoPosition(
-					checkIn.latitude,
-					checkIn.longitude,
-				);
-				const spacePosition = new GeoPosition(
-					checkIn.space.latitude,
-					checkIn.space.longitude,
-				);
+	// 		for (const checkIn of activeCheckIns) {
+	// 			const checkInPosition = new GeoPosition(
+	// 				checkIn.latitude,
+	// 				checkIn.longitude,
+	// 			);
+	// 			const spacePosition = new GeoPosition(
+	// 				checkIn.space.latitude,
+	// 				checkIn.space.longitude,
+	// 			);
 
-				const distance = Number(checkInPosition.Distance(spacePosition).toFixed(0));
+	// 			const distance = Number(checkInPosition.Distance(spacePosition).toFixed(0));
 
-				if (distance > maxDistance) {
-					await this.prisma.spaceCheckIn.update({
-						where: { id: checkIn.id },
-						data: { isActive: false },
-					});
+	// 			if (distance > maxDistance) {
+	// 				await this.prisma.spaceCheckIn.update({
+	// 					where: { id: checkIn.id },
+	// 					data: { isActive: false },
+	// 				});
 
-					void this.notificationService.sendNotification({
-						type: NotificationType.Admin,
-						userId: checkIn.userId,
-						title: '체크아웃',
-						body: `${checkIn.space.name}에서 200m 이상 벗어나 자동 체크아웃되었습니다.`,
-					});
+	// 				void this.notificationService.sendNotification({
+	// 					type: NotificationType.Admin,
+	// 					userId: checkIn.userId,
+	// 					title: '체크아웃',
+	// 					body: `${checkIn.space.name}에서 200m 이상 벗어나 자동 체크아웃되었습니다.`,
+	// 				});
 
-					this.logger.log(`사용자 ${checkIn.userId} 자동 체크아웃 - 거리: ${distance}m`);
-				}
-			}
-		} catch (error) {
-			this.logger.error('위치 확인 실패:', error);
-		}
-	}
+	// 				this.logger.log(`사용자 ${checkIn.userId} 자동 체크아웃 - 거리: ${distance}m`);
+	// 			}
+	// 		}
+	// 	} catch (error) {
+	// 		this.logger.error('위치 확인 실패:', error);
+	// 	}
+	// }
 
 	@Cron(CronExpression.EVERY_5_MINUTES)
 	async autoCheckOutInactiveUsers() {
