@@ -456,24 +456,13 @@ export class SpaceCheckInService {
 			};
 		}
 
-		// 10분 이상 비활성 체크
-		const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-		if (checkIn.lastActivityTime < tenMinutesAgo) {
-			// 자동 체크아웃 처리
-			await this.prisma.spaceCheckIn.update({
-				where: { id: checkIn.id },
-				data: {
-					isActive: false,
-					autoCheckedOut: true,
-				},
-			});
-
-			return {
-				success: false,
-				checkinStatus: 'expired' as const,
-				lastActivityTime: checkIn.lastActivityTime,
-			};
-		}
+		// 하트비트 수신 자체가 활동의 증거이므로 즉시 lastActivityTime 업데이트
+		await this.prisma.spaceCheckIn.update({
+			where: { id: checkIn.id },
+			data: {
+				lastActivityTime: new Date(),
+			},
+		});
 
 		// 위치 검증 - 500m 이상 떨어지면 자동 체크아웃
 		const maxDistance = 500; // 500m 고정값
@@ -512,14 +501,6 @@ export class SpaceCheckInService {
 				lastActivityTime: checkIn.lastActivityTime,
 			};
 		}
-
-		// lastActivityTime 업데이트
-		await this.prisma.spaceCheckIn.update({
-			where: { id: checkIn.id },
-			data: {
-				lastActivityTime: new Date(),
-			},
-		});
 
 		return {
 			success: true,
