@@ -253,6 +253,7 @@ export class SpaceService {
 				SpaceBenefit: {
 					select: {
 						description: true,
+						descriptionEn: true,
 					},
 					where: {
 						isRepresentative: true,
@@ -346,6 +347,7 @@ export class SpaceService {
 				...rest,
 				SpaceEventCategory,
 				benefitDescription: SpaceBenefit[0]?.description,
+				benefitDescriptionEn: SpaceBenefit[0]?.descriptionEn,
 				image: rest.image ? this.mediaService.getUrl(rest.image as any) : null,
 				hidingCount: hidingUsers[rest.id],
 				hot: mostPointsSpace?.spaceId === rest.id,
@@ -494,6 +496,7 @@ export class SpaceService {
 				select: {
 					id: true,
 					description: true,
+					descriptionEn: true,
 					singleUse: true,
 					space: {
 						select: {
@@ -726,6 +729,7 @@ export class SpaceService {
 				SpaceBenefit: {
 					select: {
 						description: true,
+						descriptionEn: true,
 						isRepresentative: true,
 					},
 					orderBy: {
@@ -770,6 +774,7 @@ export class SpaceService {
 			...space,
 			image: space.image ? this.mediaService.getUrl(space.image as any) : null,
 			mainBenefitDescription: SpaceBenefit[0]?.description,
+			mainBenefitDescriptionEn: SpaceBenefit[0]?.descriptionEn,
 			remainingBenefitCount: SpaceBenefit.length
 				? SpaceBenefit.length - 1
 				: SpaceBenefit.length,

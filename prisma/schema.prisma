@@ -246,6 +246,7 @@ model SpaceBenefit {
   spaceId                   String                      @db.Uuid
   active                    Boolean                     @default(true)
   description               String
+  descriptionEn             String?
   level                     BenefitLevel                @default(LEVEL1)
   singleUse                 Boolean                     @default(false)
   isRepresentative          Boolean                     @default(false)
