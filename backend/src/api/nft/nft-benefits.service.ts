@@ -331,6 +331,7 @@ export class NftBenefitsService {
 					id: true,
 					description: true,
 					descriptionEn: true,
+					level: true,
 					singleUse: true,
 					space: {
 						select: {
@@ -387,16 +388,19 @@ export class NftBenefitsService {
 			this.getNftTermsUrls(),
 		]);
 
-		// 기존 위치 기반 정렬 후 특수 혜택 정렬 적용
-		let sortedSpaceBenefits =
-			spaceIds.length > 1
-				? spaceBenefits.sort((benefitA, benefitB) =>
-						spaceIds.indexOf(benefitA.space.id) >
-						spaceIds.indexOf(benefitB.space.id)
-							? 1
-							: -1,
-					)
-				: spaceBenefits;
+		// LEVEL1을 우선 정렬한 후 위치 기반 정렬 적용
+		let sortedSpaceBenefits = spaceBenefits.sort((benefitA, benefitB) => {
+			// LEVEL1을 최우선으로 정렬
+			if (benefitA.level === 'LEVEL1' && benefitB.level !== 'LEVEL1') return -1;
+			if (benefitA.level !== 'LEVEL1' && benefitB.level === 'LEVEL1') return 1;
+
+			// 둘 다 같은 레벨이면 위치 기반 정렬 (spaceIds가 여러 개인 경우)
+			if (spaceIds.length > 1) {
+				return spaceIds.indexOf(benefitA.space.id) > spaceIds.indexOf(benefitB.space.id) ? 1 : -1;
+			}
+
+			return 0;
+		});
 
 		// 특수 사용자 혜택을 맨 위로 정렬
 		sortedSpaceBenefits = await this.sortBenefitsWithSpecialFirst(

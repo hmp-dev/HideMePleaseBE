@@ -497,6 +497,7 @@ export class SpaceService {
 					id: true,
 					description: true,
 					descriptionEn: true,
+					level: true,
 					singleUse: true,
 					space: {
 						select: {
@@ -514,8 +515,15 @@ export class SpaceService {
 				},
 			});
 
+			// LEVEL1 혜택을 먼저 정렬
+			const sortedBenefits = allSpaceBenefits.sort((a, b) => {
+				if (a.level === 'LEVEL1' && b.level !== 'LEVEL1') return -1;
+				if (a.level !== 'LEVEL1' && b.level === 'LEVEL1') return 1;
+				return 0;
+			});
+
 			return {
-				benefits: allSpaceBenefits.map(({ space, ...benefit }) => ({
+				benefits: sortedBenefits.map(({ space, ...benefit }) => ({
 					...benefit,
 					spaceId,
 					spaceName: space.name,
@@ -525,7 +533,7 @@ export class SpaceService {
 					tokenAddress: null,
 					nftCollectionName: space.name, // no nfts linked here
 				})),
-				benefitCount: allSpaceBenefits.length,
+				benefitCount: sortedBenefits.length,
 			};
 		}
 
