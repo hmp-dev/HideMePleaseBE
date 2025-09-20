@@ -558,9 +558,17 @@ export class SpaceService {
 
 		const benefits = results.map((benefit) => benefit.benefits).flat(1);
 
+		// 모든 NFT 컬렉션의 혜택들을 합친 후 LEVEL1 우선 정렬
+		const sortedBenefits = benefits.sort((a, b) => {
+			// LEVEL1을 무조건 최우선으로 정렬
+			if (a.level === 'LEVEL1' && b.level !== 'LEVEL1') return -1;
+			if (a.level !== 'LEVEL1' && b.level === 'LEVEL1') return 1;
+			return 0;
+		});
+
 		return {
-			benefits: benefits,
-			benefitCount: benefits.length,
+			benefits: sortedBenefits,
+			benefitCount: sortedBenefits.length,
 		};
 	}
 
