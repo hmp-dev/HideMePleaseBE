@@ -76,30 +76,6 @@ export class NftBenefitsService {
 		}
 	}
 
-	/**
-	 * 특정 혜택을 맨 위에 정렬하는 함수
-	 */
-	private async sortBenefitsWithSpecialFirst(benefits: any[], userId: string) {
-		if (!(await this.isSpecialUser(userId))) {
-			return benefits;
-		}
-
-		return benefits.sort((a, b) => {
-			// 특정 혜택들을 맨 위로
-			const aIsSpecial = this.SPECIAL_SPACE_BENEFIT_IDS.includes(a.id);
-			const bIsSpecial = this.SPECIAL_SPACE_BENEFIT_IDS.includes(b.id);
-			
-			if (aIsSpecial && !bIsSpecial) return -1;
-			if (!aIsSpecial && bIsSpecial) return 1;
-			
-			// 둘 다 특별한 혜택이면 원래 순서 유지
-			if (aIsSpecial && bIsSpecial) {
-				return this.SPECIAL_SPACE_BENEFIT_IDS.indexOf(a.id) - this.SPECIAL_SPACE_BENEFIT_IDS.indexOf(b.id);
-			}
-			
-			return 0;
-		});
-	}
 
 	async getCollectionBenefits({
 		tokenAddress,
@@ -388,25 +364,30 @@ export class NftBenefitsService {
 			this.getNftTermsUrls(),
 		]);
 
-		// LEVEL1을 우선 정렬한 후 위치 기반 정렬 적용
+		// LEVEL1을 최우선으로 정렬, 그 다음 특별 혜택, 그 다음 위치 기반 정렬
+		const isSpecialUser = await this.isSpecialUser(authContext.userId);
+
 		let sortedSpaceBenefits = spaceBenefits.sort((benefitA, benefitB) => {
-			// LEVEL1을 최우선으로 정렬
+			// 1. LEVEL1을 무조건 최우선으로 정렬
 			if (benefitA.level === 'LEVEL1' && benefitB.level !== 'LEVEL1') return -1;
 			if (benefitA.level !== 'LEVEL1' && benefitB.level === 'LEVEL1') return 1;
 
-			// 둘 다 같은 레벨이면 위치 기반 정렬 (spaceIds가 여러 개인 경우)
+			// 2. 둘 다 같은 레벨이면 특별 사용자 혜택 확인
+			if (isSpecialUser) {
+				const aIsSpecial = this.SPECIAL_SPACE_BENEFIT_IDS.includes(benefitA.id);
+				const bIsSpecial = this.SPECIAL_SPACE_BENEFIT_IDS.includes(benefitB.id);
+
+				if (aIsSpecial && !bIsSpecial) return -1;
+				if (!aIsSpecial && bIsSpecial) return 1;
+			}
+
+			// 3. 그 외에는 위치 기반 정렬 (spaceIds가 여러 개인 경우)
 			if (spaceIds.length > 1) {
 				return spaceIds.indexOf(benefitA.space.id) > spaceIds.indexOf(benefitB.space.id) ? 1 : -1;
 			}
 
 			return 0;
 		});
-
-		// 특수 사용자 혜택을 맨 위로 정렬
-		sortedSpaceBenefits = await this.sortBenefitsWithSpecialFirst(
-			sortedSpaceBenefits,
-			authContext.userId
-		);
 
 		return {
 			benefits: sortedSpaceBenefits.map(
