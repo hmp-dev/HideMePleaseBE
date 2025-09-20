@@ -330,6 +330,7 @@ export class NftBenefitsService {
 				select: {
 					id: true,
 					description: true,
+					descriptionEn: true,
 					singleUse: true,
 					space: {
 						select: {
