@@ -2,6 +2,7 @@ import { AdminModule } from '@/api/admin/admin.module';
 import { AuthModule } from '@/api/auth/auth.module';
 import { CmsModule } from '@/api/cms/cms.module';
 import { EventCategoryModule } from '@/api/event-category/event-category.module';
+import { FriendsModule } from '@/api/friends/friends.module';
 import { NftModule } from '@/api/nft/nft.module';
 import { PointModule } from '@/api/points/point.module';
 import { PublicModule } from '@/api/public/public.module';
@@ -20,4 +21,5 @@ export const API_MODULES = [
 	PublicModule,
 	AdminModule,
 	PointModule,
+	FriendsModule,
 ];

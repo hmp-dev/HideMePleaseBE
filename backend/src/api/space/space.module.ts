@@ -7,6 +7,8 @@ import { PointModule } from '@/api/points/point.module';
 import { SpaceController } from '@/api/space/space.controller';
 import { SpaceService } from '@/api/space/space.service';
 import { SpaceCheckInService } from '@/api/space/space-checkin.service';
+import { SirenController } from '@/api/space/siren.controller';
+import { SirenService } from '@/api/space/siren.service';
 import { SpaceLocationModuleModule } from '@/api/space/space-location.module';
 import { UsersModule } from '@/api/users/users.module';
 import { SystemConfigModule } from '@/modules/system-config/system-config.module';
@@ -24,8 +26,8 @@ import { NotificationModule } from '../notification/notification.module';
 		PointModule,
 		ScheduleModule.forRoot(),
 	],
-	controllers: [SpaceController],
-	providers: [SpaceService, SpaceCheckInService],
+	controllers: [SpaceController, SirenController],
+	providers: [SpaceService, SpaceCheckInService, SirenService],
 	exports: [SpaceCheckInService],
 })
 export class SpaceModule {}

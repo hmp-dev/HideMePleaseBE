@@ -19,5 +19,6 @@ export enum PointSource {
   TRANSFER_IN = 'TRANSFER_IN',
   TRANSFER_OUT = 'TRANSFER_OUT',
   REFUND = 'REFUND',
+  SIREN_POST = 'SIREN_POST',
   OTHER = 'OTHER'
 }

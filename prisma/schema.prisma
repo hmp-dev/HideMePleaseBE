@@ -31,10 +31,13 @@ model User {
   ScheduleNotification      ScheduleNotification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceCheckIn              SpaceCheckIn[]
+  SpaceSiren                SpaceSiren[]
   SpaceUser                 SpaceUser[]
   SystemNft                 SystemNft[]
   UserLastKnownSpace        UserLastKnownSpace[]
   UserPointBalance          UserPointBalance?
+  FriendshipRequester       Friendship[]                @relation("FriendshipRequester")
+  FriendshipAddressee       Friendship[]                @relation("FriendshipAddressee")
 }
 
 model Announcements {
@@ -206,6 +209,7 @@ model Space {
   SpaceBusinessHours        SpaceBusinessHours[]
   SpaceCheckIn              SpaceCheckIn[]
   SpaceCheckInGroup         SpaceCheckInGroup[]
+  SpaceSiren                SpaceSiren[]
   SpaceUser                 SpaceUser[]
   SpaceUserInvites          SpaceUserInvites[]
   SpaceEventCategory        SpaceEventCategory[]
@@ -877,6 +881,40 @@ model SpaceCheckInGroup {
   @@index([spaceId, isCompleted])
 }
 
+model SpaceSiren {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  deleted     Boolean  @default(false)
+  spaceId     String   @db.Uuid
+  userId      String   @db.Uuid
+  message     String   @db.VarChar(500)
+  expiresAt   DateTime
+  pointsSpent Int
+  isActive    Boolean  @default(true)
+  space       Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, isActive, expiresAt])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Friendship {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+  requesterId String           @db.Uuid
+  addresseeId String           @db.Uuid
+  status      FriendshipStatus @default(PENDING)
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId, status])
+  @@index([addresseeId, status])
+}
+
 model UserPointBalance {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt        DateTime @default(now())
@@ -1090,5 +1128,13 @@ enum PointSource {
   TRANSFER_IN
   TRANSFER_OUT
   REFUND
+  SIREN_POST
   OTHER
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  BLOCKED
 }

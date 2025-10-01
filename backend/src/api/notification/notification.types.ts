@@ -2,6 +2,8 @@ export enum NotificationType {
 	UserCommunityRankChange = 'UserCommunityRankChange',
 	UserCommunityRankFallen = 'UserCommunityRankFallen',
 	Admin = 'Admin',
+	FriendRequest = 'FriendRequest',
+	FriendAccepted = 'FriendAccepted',
 }
 
 export interface UserCommunityRankChangeNotification {
@@ -25,7 +27,23 @@ export interface AdminNotification {
 	body: string;
 }
 
+export interface FriendRequestNotification {
+	type: NotificationType.FriendRequest;
+	userId: string;
+	title: string;
+	body: string;
+}
+
+export interface FriendAcceptedNotification {
+	type: NotificationType.FriendAccepted;
+	userId: string;
+	title: string;
+	body: string;
+}
+
 export type UnifiedNotification =
 	| UserCommunityRankChangeNotification
 	| UserCommunityRankFallenNotification
-	| AdminNotification;
+	| AdminNotification
+	| FriendRequestNotification
+	| FriendAcceptedNotification;
