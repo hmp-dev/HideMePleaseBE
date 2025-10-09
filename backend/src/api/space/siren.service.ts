@@ -15,24 +15,31 @@ import { MediaService } from '@/modules/media/media.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 
-// 만료일에 따른 포인트 계산
+// 만료일에 따른 포인트 계산 (시간 단위)
 function calculatePointsForDuration(expiresAt: Date): number {
 	const now = new Date();
 	const diffInMs = expiresAt.getTime() - now.getTime();
-	const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+	const diffInHours = diffInMs / (1000 * 60 * 60);
+	const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
-	if (diffInDays < 1) {
-		throw new BadRequestException('만료일은 최소 1일 이후여야 합니다');
+	// 최소 3시간 체크
+	if (diffInHours < 3) {
+		throw new BadRequestException('만료일은 최소 3시간 이후여야 합니다');
 	}
 
-	// 만료 기간에 따른 포인트 정책
-	if (diffInDays <= 1) return 10;
-	if (diffInDays <= 3) return 25;
-	if (diffInDays <= 7) return 50;
-	if (diffInDays <= 14) return 90;
-	if (diffInDays <= 30) return 150;
+	// 최대 30일 체크
+	if (diffInDays > 30) {
+		throw new BadRequestException('만료일은 최대 30일까지만 설정할 수 있습니다');
+	}
 
-	throw new BadRequestException('만료일은 최대 30일까지만 설정할 수 있습니다');
+	// 시간 단위 포인트 정책
+	if (diffInHours <= 3) return 1;
+	if (diffInHours <= 9) return 2;
+	if (diffInHours <= 24) return 5;
+
+	// 24시간 초과: 일당 5포인트 (올림 처리)
+	const days = Math.ceil(diffInHours / 24);
+	return days * 5;
 }
 
 // 남은 일수 계산
