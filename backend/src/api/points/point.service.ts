@@ -7,6 +7,7 @@ import {
 
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { ErrorCodes } from '@/utils/errorCodes';
 
 export interface CreatePointTransactionDto {
 	userId: string;
@@ -52,7 +53,7 @@ export class PointService {
 
 	async earnPoints(dto: CreatePointTransactionDto, tx?: any): Promise<PointBalanceDto> {
 		if (dto.amount <= 0) {
-			throw new BadRequestException('획득 포인트는 0보다 커야 합니다');
+			throw new BadRequestException(ErrorCodes.POINT_INVALID_AMOUNT);
 		}
 
 		// 외부에서 트랜잭션이 전달되면 사용, 아니면 새로 생성
@@ -104,14 +105,14 @@ export class PointService {
 
 	async spendPoints(dto: CreatePointTransactionDto): Promise<PointBalanceDto> {
 		if (dto.amount <= 0) {
-			throw new BadRequestException('사용 포인트는 0보다 커야 합니다');
+			throw new BadRequestException(ErrorCodes.POINT_INVALID_AMOUNT);
 		}
 
 		return await this.prisma.$transaction(async (tx) => {
 			const currentBalance = await this.getOrCreateBalance(dto.userId, tx);
-			
+
 			if (currentBalance.availableBalance < dto.amount) {
-				throw new BadRequestException('포인트가 부족합니다');
+				throw new BadRequestException(ErrorCodes.POINT_INSUFFICIENT_BALANCE);
 			}
 
 			const newTotalBalance = currentBalance.totalBalance - dto.amount;
@@ -152,14 +153,14 @@ export class PointService {
 
 	async lockPoints(userId: string, amount: number, reason: string): Promise<PointBalanceDto> {
 		if (amount <= 0) {
-			throw new BadRequestException('잠금 포인트는 0보다 커야 합니다');
+			throw new BadRequestException(ErrorCodes.POINT_INVALID_AMOUNT);
 		}
 
 		return await this.prisma.$transaction(async (tx) => {
 			const currentBalance = await this.getOrCreateBalance(userId, tx);
-			
+
 			if (currentBalance.availableBalance < amount) {
-				throw new BadRequestException('잠금할 포인트가 부족합니다');
+				throw new BadRequestException(ErrorCodes.POINT_INSUFFICIENT_BALANCE);
 			}
 
 			const newAvailableBalance = currentBalance.availableBalance - amount;
@@ -189,14 +190,14 @@ export class PointService {
 
 	async unlockPoints(userId: string, amount: number, reason: string): Promise<PointBalanceDto> {
 		if (amount <= 0) {
-			throw new BadRequestException('해제 포인트는 0보다 커야 합니다');
+			throw new BadRequestException(ErrorCodes.POINT_INVALID_AMOUNT);
 		}
 
 		return await this.prisma.$transaction(async (tx) => {
 			const currentBalance = await this.getOrCreateBalance(userId, tx);
-			
+
 			if (currentBalance.lockedBalance < amount) {
-				throw new BadRequestException('해제할 포인트가 부족합니다');
+				throw new BadRequestException(ErrorCodes.POINT_INSUFFICIENT_LOCKED_BALANCE);
 			}
 
 			const newAvailableBalance = currentBalance.availableBalance + amount;
@@ -321,11 +322,11 @@ export class PointService {
 		});
 
 		if (!originalTransaction) {
-			throw new NotFoundException('원 거래를 찾을 수 없습니다');
+			throw new NotFoundException(ErrorCodes.POINT_TRANSACTION_NOT_FOUND);
 		}
 
 		if (originalTransaction.type !== PointTransactionType.SPENT) {
-			throw new BadRequestException('사용 거래만 환불할 수 있습니다');
+			throw new BadRequestException(ErrorCodes.POINT_REFUND_INVALID_TRANSACTION_TYPE);
 		}
 
 		const refundAmount = Math.abs(originalTransaction.amount);
@@ -348,7 +349,7 @@ export class PointService {
 		adminId: string,
 	): Promise<PointBalanceDto> {
 		if (amount === 0) {
-			throw new BadRequestException('조정 금액은 0이 아니어야 합니다');
+			throw new BadRequestException(ErrorCodes.POINT_INVALID_AMOUNT);
 		}
 
 		if (amount > 0) {
