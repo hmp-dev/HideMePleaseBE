@@ -22,14 +22,14 @@ function calculatePointsForDuration(expiresAt: Date): number {
 	const diffInHours = diffInMs / (1000 * 60 * 60);
 	const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
-	// 최소 3시간 체크
-	if (diffInHours < 3) {
-		throw new BadRequestException('만료일은 최소 3시간 이후여야 합니다');
+	// 최소 1시간 체크
+	if (diffInHours < 1) {
+		throw new BadRequestException(ErrorCodes.SIREN_DURATION_TOO_SHORT);
 	}
 
 	// 최대 30일 체크
 	if (diffInDays > 30) {
-		throw new BadRequestException('만료일은 최대 30일까지만 설정할 수 있습니다');
+		throw new BadRequestException(ErrorCodes.SIREN_DURATION_TOO_LONG);
 	}
 
 	// 시간 단위 포인트 정책
@@ -85,7 +85,7 @@ export class SirenService {
 		const now = new Date();
 
 		if (expiresAt <= now) {
-			throw new BadRequestException('만료일은 현재 시간보다 미래여야 합니다');
+			throw new BadRequestException(ErrorCodes.SIREN_EXPIRES_IN_PAST);
 		}
 
 		// 3. 포인트 계산
@@ -93,7 +93,7 @@ export class SirenService {
 
 		// 4. 메시지 길이 검증 (DTO에서도 검증하지만 추가 확인)
 		if (message.length < 1 || message.length > 500) {
-			throw new BadRequestException('메시지는 1자 이상 500자 이하여야 합니다');
+			throw new BadRequestException(ErrorCodes.SIREN_MESSAGE_INVALID_LENGTH);
 		}
 
 		// 5. 동일 매장에 동일 사용자의 활성 사이렌 개수 확인
@@ -108,9 +108,7 @@ export class SirenService {
 		});
 
 		if (activeCount >= MAX_ACTIVE_SIRENS_PER_USER_PER_SPACE) {
-			throw new BadRequestException(
-				`동일 매장에는 최대 ${MAX_ACTIVE_SIRENS_PER_USER_PER_SPACE}개까지만 활성 사이렌을 남길 수 있습니다`,
-			);
+			throw new BadRequestException(ErrorCodes.SIREN_MAX_ACTIVE_LIMIT_EXCEEDED);
 		}
 
 		// 6. 트랜잭션으로 포인트 차감 및 사이렌 생성
@@ -344,7 +342,7 @@ export class SirenService {
 
 		// 본인 확인
 		if (siren.userId !== authContext.userId) {
-			throw new BadRequestException('본인의 사이렌만 삭제할 수 있습니다');
+			throw new BadRequestException(ErrorCodes.SIREN_NOT_OWNER);
 		}
 
 		// Soft delete
