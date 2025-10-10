@@ -34,6 +34,9 @@ export class UsersService {
 				notificationsEnabled: true,
 				chatAccessToken: true,
 				pfpNftId: true,
+				onboardingCompleted: true,
+				appOS: true,
+				appVersion: true,
 			},
 		});
 
@@ -170,6 +173,9 @@ export class UsersService {
 			fcmToken,
 			profilePartsString,
 			finalProfileImageUrl,
+			onboardingCompleted,
+			appOS,
+			appVersion,
 		},
 		request,
 	}: {
@@ -179,7 +185,7 @@ export class UsersService {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
 		const updateData: any = {};
-		
+
 		if (nickName !== undefined) updateData.nickName = nickName;
 		if (introduction !== undefined) updateData.introduction = introduction;
 		if (locationPublic !== undefined) updateData.locationPublic = locationPublic;
@@ -188,6 +194,9 @@ export class UsersService {
 		if (fcmToken !== undefined) updateData.fcmToken = fcmToken;
 		if (profilePartsString !== undefined) updateData.profilePartsString = profilePartsString;
 		if (finalProfileImageUrl !== undefined) updateData.finalProfileImageUrl = finalProfileImageUrl;
+		if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
+		if (appOS !== undefined) updateData.appOS = appOS;
+		if (appVersion !== undefined) updateData.appVersion = appVersion;
 
 		await this.prisma.user.update({
 			where: {

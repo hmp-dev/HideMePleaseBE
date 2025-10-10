@@ -23,7 +23,7 @@ import { SystemConfigService } from '@/modules/system-config/system-config.servi
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 
-const DEFAULT_CHECK_IN_POINTS = 1;
+const DEFAULT_CHECK_IN_POINTS = 3;
 const GROUP_SIZE = 5;
 
 // 그룹 인원수에 따른 보너스 포인트 계산

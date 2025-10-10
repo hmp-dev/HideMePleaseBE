@@ -25,6 +25,9 @@ model User {
   chatAccessToken           String?
   profilePartsString        String?
   finalProfileImageUrl      String?
+  onboardingCompleted       Boolean                     @default(false)
+  appOS                     String?
+  appVersion                String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
   PointTransaction          PointTransaction[]

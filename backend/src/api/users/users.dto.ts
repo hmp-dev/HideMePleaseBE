@@ -47,6 +47,21 @@ export class UpdateUserProfileDTO {
 	@IsOptional()
 	@IsString()
 	finalProfileImageUrl?: string;
+
+	@ApiProperty({ description: '온보딩 완료 여부' })
+	@IsOptional()
+	@IsBoolean()
+	onboardingCompleted?: boolean;
+
+	@ApiProperty({ description: '앱 OS (ios, android 등)' })
+	@IsOptional()
+	@IsString()
+	appOS?: string;
+
+	@ApiProperty({ description: '앱 버전 (예: 2.5.0)' })
+	@IsOptional()
+	@IsString()
+	appVersion?: string;
 }
 
 export class UpdateLastKnownLocationDTO {
