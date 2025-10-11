@@ -10,6 +10,8 @@ import { GeoPosition } from 'geo-position.ts';
 import { CreateSirenDTO, GetSirensDTO, SirenSortBy } from '@/api/space/siren.dto';
 import { PointService } from '@/api/points/point.service';
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
+import { PushNotificationService } from '@/api/push-notification/push-notification.service';
+import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { MediaService } from '@/modules/media/media.service';
 import { AuthContext } from '@/types';
@@ -58,6 +60,7 @@ export class SirenService {
 	constructor(
 		private prisma: PrismaService,
 		private pointService: PointService,
+		private pushNotificationService: PushNotificationService,
 		private mediaService: MediaService,
 	) {}
 
@@ -140,6 +143,56 @@ export class SirenService {
 			this.logger.log(
 				`사이렌 생성: 사용자=${authContext.userId}, 매장=${space.name}, 포인트=${pointsRequired}`,
 			);
+
+			// 해당 공간에 체크인한 사용자들에게 알림 발송 (트랜잭션 외부에서)
+			setImmediate(async () => {
+				try {
+					const checkedInUsers = await this.prisma.spaceCheckIn.findMany({
+						where: {
+							spaceId,
+							isActive: true,
+						},
+						select: {
+							userId: true,
+							user: {
+								select: {
+									nickName: true,
+								},
+							},
+						},
+					});
+
+					// 사이렌 작성자 본인을 제외한 체크인 사용자들에게 알림
+					const notificationPromises = checkedInUsers
+						.filter((checkIn) => checkIn.userId !== authContext.userId)
+						.map((checkIn) =>
+							this.pushNotificationService.createPushNotification({
+								userId: checkIn.userId,
+								type: PUSH_NOTIFICATION_TYPES.SIREN,
+								title: '새로운 사이렌!',
+								body: `${space.name}에 새로운 사이렌이 울렸어요: "${message}"`,
+								params: {
+									sirenId: siren.id,
+									spaceId,
+									spaceName: space.name,
+									message,
+									authorId: authContext.userId,
+									expiresAt: siren.expiresAt.toISOString(),
+								},
+							}).catch((error) => {
+								this.logger.error(`사이렌 알림 전송 실패: ${checkIn.userId}`, error);
+							}),
+						);
+
+					await Promise.all(notificationPromises);
+
+					this.logger.log(
+						`사이렌 알림 전송 완료: ${notificationPromises.length}명에게 발송`,
+					);
+				} catch (error) {
+					this.logger.error('사이렌 알림 전송 중 오류 발생:', error);
+				}
+			});
 
 			return {
 				success: true,

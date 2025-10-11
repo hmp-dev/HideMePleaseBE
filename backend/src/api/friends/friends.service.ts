@@ -14,6 +14,8 @@ import {
 } from '@/api/friends/friends.dto';
 import { NotificationService } from '@/api/notification/notification.service';
 import { NotificationType } from '@/api/notification/notification.types';
+import { PushNotificationService } from '@/api/push-notification/push-notification.service';
+import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
@@ -25,6 +27,7 @@ export class FriendsService {
 	constructor(
 		private prisma: PrismaService,
 		private notificationService: NotificationService,
+		private pushNotificationService: PushNotificationService,
 	) {}
 
 	// 1. 친구 신청 보내기
@@ -118,11 +121,17 @@ export class FriendsService {
 			select: { nickName: true },
 		});
 
-		void this.notificationService.sendNotification({
-			type: NotificationType.FriendRequest,
+		// 푸시 알림 발송
+		void this.pushNotificationService.createPushNotification({
 			userId: addresseeId,
+			type: PUSH_NOTIFICATION_TYPES.FRIEND_REQUEST,
 			title: '친구 신청',
 			body: `${requester?.nickName || '사용자'}님이 친구 신청을 보냈습니다`,
+			params: {
+				requestId: friendship.id,
+				requesterId: authContext.userId,
+				requesterNickname: requester?.nickName || '사용자',
+			},
 		});
 
 		this.logger.log(`친구 신청: ${authContext.userId} -> ${addresseeId}`);
@@ -182,11 +191,16 @@ export class FriendsService {
 			select: { nickName: true },
 		});
 
-		void this.notificationService.sendNotification({
-			type: NotificationType.FriendAccepted,
+		// 푸시 알림 발송
+		void this.pushNotificationService.createPushNotification({
 			userId: friendship.requesterId,
+			type: PUSH_NOTIFICATION_TYPES.FRIEND_ACCEPTED,
 			title: '친구 수락',
 			body: `${addressee?.nickName || '사용자'}님이 친구 신청을 수락했습니다`,
+			params: {
+				friendId: authContext.userId,
+				friendNickname: addressee?.nickName || '사용자',
+			},
 		});
 
 		this.logger.log(`친구 신청 수락: ${friendshipId}`);

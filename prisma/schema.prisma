@@ -31,6 +31,7 @@ model User {
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
   PointTransaction          PointTransaction[]
+  PushNotification          PushNotification[]
   ScheduleNotification      ScheduleNotification[]
   SpaceBenefitUsageUser     SpaceBenefitUsage[]         @relation("user")
   SpaceCheckIn              SpaceCheckIn[]
@@ -333,6 +334,22 @@ model ScheduleNotification {
   scheduleTime DateTime @default(now())
   userId       String?  @db.Uuid
   User         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushNotification {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  userId    String   @db.Uuid
+  type      String
+  title     String
+  body      String
+  params    Json?
+  isRead    Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
 }
 
 model SolanaGroups {

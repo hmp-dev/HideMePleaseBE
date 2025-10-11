@@ -6,6 +6,7 @@ import { FriendsModule } from '@/api/friends/friends.module';
 import { NftModule } from '@/api/nft/nft.module';
 import { PointModule } from '@/api/points/point.module';
 import { PublicModule } from '@/api/public/public.module';
+import { PushNotificationModule } from '@/api/push-notification/push-notification.module';
 import { SpaceModule } from '@/api/space/space.module';
 import { UsersModule } from '@/api/users/users.module';
 import { WalletModule } from '@/api/wallet/wallet.module';
@@ -22,4 +23,5 @@ export const API_MODULES = [
 	AdminModule,
 	PointModule,
 	FriendsModule,
+	PushNotificationModule,
 ];

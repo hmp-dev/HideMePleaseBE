@@ -7,10 +7,10 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { GeoPosition } from 'geo-position.ts';
 
-import { 
-	CheckInDTO, 
-	CheckOutDTO, 
-	CheckInUserInfo, 
+import {
+	CheckInDTO,
+	CheckOutDTO,
+	CheckInUserInfo,
 	CurrentGroupResponse,
 	HeartbeatDTO
 } from '@/api/space/space-checkin.dto';
@@ -18,6 +18,8 @@ import { NotificationService } from '@/api/notification/notification.service';
 import { NotificationType } from '@/api/notification/notification.types';
 import { PointService } from '@/api/points/point.service';
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
+import { PushNotificationService } from '@/api/push-notification/push-notification.service';
+import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
@@ -45,6 +47,7 @@ export class SpaceCheckInService {
 		private prisma: PrismaService,
 		private systemConfig: SystemConfigService,
 		private notificationService: NotificationService,
+		private pushNotificationService: PushNotificationService,
 		private pointService: PointService,
 	) {}
 
@@ -339,11 +342,20 @@ export class SpaceCheckInService {
 
 						// 현재 체크인한 사용자가 아닌 경우에만 그룹 완성 알림 발송
 						if (checkInMember.userId !== authContext.userId) {
-							void this.notificationService.sendNotification({
-								type: NotificationType.Admin,
+							void this.pushNotificationService.createPushNotification({
 								userId: checkInMember.userId,
+								type: PUSH_NOTIFICATION_TYPES.MATCHING_COMPLETE,
 								title: '매칭 완료!',
 								body: `${space.name}에 ${groupSize}명이 모였으니,  ${updatedGroup.bonusPoints} SAV를 줄게!`,
+								params: {
+									spaceId,
+									spaceName: space.name,
+									groupSize,
+									bonusPoints: updatedGroup.bonusPoints,
+									groupId: updatedGroup.id,
+								},
+							}).catch((error) => {
+								this.logger.error(`매칭 완료 알림 전송 실패: ${checkInMember.userId}`, error);
 							});
 						}
 					}),
@@ -374,12 +386,27 @@ export class SpaceCheckInService {
 
 		// 알림 발송 로그 추가 (디버깅용)
 		this.logger.log(`[알림 발송] userId: ${authContext.userId}, checkInId: ${checkIn.id}, isGroupCompleted: ${isGroupCompleted}, message: ${notificationBody}`);
-		
-		void this.notificationService.sendNotification({
-			type: NotificationType.Admin,
+
+		void this.pushNotificationService.createPushNotification({
 			userId: authContext.userId,
+			type: PUSH_NOTIFICATION_TYPES.CHECK_IN_SUCCESS,
 			title: '체크인 완료',
 			body: notificationBody,
+			params: {
+				spaceId,
+				spaceName: space.name,
+				checkInId: checkIn.id,
+				earnedPoints: checkInPoints,
+				isGroupCompleted,
+				...(isGroupCompleted && updatedGroup ? {
+					groupId: updatedGroup.id,
+					bonusPoints: updatedGroup.bonusPoints,
+					groupSize,
+				} : {}),
+				...(previousSpaceName ? { previousSpaceName } : {}),
+			},
+		}).catch((error) => {
+			this.logger.error(`체크인 완료 알림 전송 실패: ${authContext.userId}`, error);
 		});
 
 		return {

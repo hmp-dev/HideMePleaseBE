@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
+import { PushNotificationService } from '@/api/push-notification/push-notification.service';
+import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { ErrorCodes } from '@/utils/errorCodes';
 
@@ -33,7 +35,10 @@ export interface PointBalanceDto {
 export class PointService {
 	private logger = new Logger(PointService.name);
 
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private pushNotificationService: PushNotificationService,
+	) {}
 
 	async getOrCreateBalance(userId: string, tx?: any): Promise<PointBalanceDto> {
 		const prisma = tx || this.prisma;
@@ -92,6 +97,21 @@ export class PointService {
 				`사용자 ${dto.userId}가 ${dto.amount} 포인트 획득 (${dto.source})`,
 			);
 
+			// 푸시 알림 발송 (비동기, 실패해도 무시)
+			void this.pushNotificationService.createPushNotification({
+				userId: dto.userId,
+				type: PUSH_NOTIFICATION_TYPES.SAV_EARN,
+				title: 'SAV 획득',
+				body: `${dto.amount} SAV를 획득했습니다`,
+				params: {
+					amount: dto.amount,
+					reason: dto.description,
+					source: dto.source,
+				},
+			}).catch((error) => {
+				this.logger.error(`SAV 획득 알림 전송 실패: ${dto.userId}`, error);
+			});
+
 			return updatedBalance;
 		};
 
@@ -146,6 +166,21 @@ export class PointService {
 			this.logger.log(
 				`사용자 ${dto.userId}가 ${dto.amount} 포인트 사용 (${dto.source})`,
 			);
+
+			// 푸시 알림 발송 (비동기, 실패해도 무시)
+			void this.pushNotificationService.createPushNotification({
+				userId: dto.userId,
+				type: PUSH_NOTIFICATION_TYPES.SAV_USAGE,
+				title: 'SAV 사용',
+				body: `${dto.amount} SAV를 사용했습니다`,
+				params: {
+					amount: dto.amount,
+					purpose: dto.description,
+					source: dto.source,
+				},
+			}).catch((error) => {
+				this.logger.error(`SAV 사용 알림 전송 실패: ${dto.userId}`, error);
+			});
 
 			return updatedBalance;
 		});
