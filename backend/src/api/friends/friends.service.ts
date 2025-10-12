@@ -12,8 +12,6 @@ import {
 	GetSentRequestsDTO,
 	SearchFriendsDTO,
 } from '@/api/friends/friends.dto';
-import { NotificationService } from '@/api/notification/notification.service';
-import { NotificationType } from '@/api/notification/notification.types';
 import { PushNotificationService } from '@/api/push-notification/push-notification.service';
 import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -26,7 +24,6 @@ export class FriendsService {
 
 	constructor(
 		private prisma: PrismaService,
-		private notificationService: NotificationService,
 		private pushNotificationService: PushNotificationService,
 	) {}
 
@@ -75,11 +72,15 @@ export class FriendsService {
 					});
 
 					// 양방향 알림
-					void this.notificationService.sendNotification({
-						type: NotificationType.FriendAccepted,
+					void this.pushNotificationService.createPushNotification({
 						userId: addresseeId,
+						type: PUSH_NOTIFICATION_TYPES.FRIEND_ACCEPTED,
 						title: '친구 수락',
 						body: `${addressee.nickName || '사용자'}님과 친구가 되었습니다`,
+						params: {
+							friendId: authContext.userId,
+							friendNickname: addressee.nickName || '사용자',
+						},
 					});
 
 					return {

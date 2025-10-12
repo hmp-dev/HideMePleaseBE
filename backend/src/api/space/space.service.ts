@@ -34,8 +34,8 @@ import { AuthContext } from '@/types';
 import { ErrorCodes } from '@/utils/errorCodes';
 import { benefitUsageResetTime } from '@/utils/time';
 
-import { NotificationService } from '../notification/notification.service';
-import { NotificationType } from '../notification/notification.types';
+import { PushNotificationService } from '@/api/push-notification/push-notification.service';
+import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
 
 @Injectable()
 export class SpaceService {
@@ -50,8 +50,8 @@ export class SpaceService {
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 		private systemConfig: SystemConfigService,
 		private spaceLocationService: SpaceLocationService,
-		private notificationService: NotificationService,
 		private spaceCheckInService: SpaceCheckInService,
+		private pushNotificationService: PushNotificationService,
 	) {}
 
 	async redeemBenefit({
@@ -175,9 +175,9 @@ export class SpaceService {
 		}
 
 		if (benefit.space.category === SpaceCategory.WALKERHILL) {
-			void this.notificationService.sendNotification({
-				type: NotificationType.Admin,
+			void this.pushNotificationService.createPushNotification({
 				userId: authContext.userId,
+				type: PUSH_NOTIFICATION_TYPES.BENEFITS,
 				title: '워커힐 혜택 사용알림',
 				body: '비밀 열쇠 1개를 획득하였습니다.',
 			});

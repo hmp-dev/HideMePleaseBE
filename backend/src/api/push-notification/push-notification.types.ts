@@ -25,6 +25,9 @@ export const PUSH_NOTIFICATION_TYPES = {
 
 	// 이벤트 관련
 	EVENT: 'EVENT',
+
+	// 자동 체크아웃 관련
+	AUTO_CHECKOUT: 'AUTO_CHECKOUT',
 } as const;
 
 export type PushNotificationType =

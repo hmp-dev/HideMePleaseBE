@@ -14,8 +14,6 @@ import {
 	CurrentGroupResponse,
 	HeartbeatDTO
 } from '@/api/space/space-checkin.dto';
-import { NotificationService } from '@/api/notification/notification.service';
-import { NotificationType } from '@/api/notification/notification.types';
 import { PointService } from '@/api/points/point.service';
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
 import { PushNotificationService } from '@/api/push-notification/push-notification.service';
@@ -46,7 +44,6 @@ export class SpaceCheckInService {
 	constructor(
 		private prisma: PrismaService,
 		private systemConfig: SystemConfigService,
-		private notificationService: NotificationService,
 		private pushNotificationService: PushNotificationService,
 		private pointService: PointService,
 	) {}
@@ -515,9 +512,9 @@ export class SpaceCheckInService {
 			});
 
 			// 알림 전송
-			void this.notificationService.sendNotification({
-				type: NotificationType.Admin,
+			void this.pushNotificationService.createPushNotification({
 				userId: authContext.userId,
+				type: PUSH_NOTIFICATION_TYPES.AUTO_CHECKOUT,
 				title: '자동 체크아웃',
 				body: `매장에서 ${maxDistance}m 이상 떨어져 자동 체크아웃되었습니다.`,
 			});
@@ -1086,9 +1083,9 @@ export class SpaceCheckInService {
 
 				// 알림 전송
 				try {
-					await this.notificationService.sendNotification({
-						type: NotificationType.Admin,
+					await this.pushNotificationService.createPushNotification({
 						userId: checkIn.userId,
+						type: PUSH_NOTIFICATION_TYPES.AUTO_CHECKOUT,
 						title: '자동 체크아웃',
 						body: `${checkIn.space.name}에서 자동으로 체크아웃되었습니다. (10분 이상 비활성)`,
 					});
