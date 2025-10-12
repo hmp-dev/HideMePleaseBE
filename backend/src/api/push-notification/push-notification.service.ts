@@ -23,13 +23,15 @@ export class PushNotificationService {
 	async createPushNotification(dto: CreatePushNotificationDto) {
 		try {
 			// 1. DB에 알림 저장
-			const notification = await this.prisma.pushNotification.create({
+			const notification = await this.prisma.notification.create({
 				data: {
 					userId: dto.userId,
 					type: dto.type,
 					title: dto.title,
 					body: dto.body,
 					params: dto.params || null,
+					sent: true,
+					isRead: false,
 				},
 			});
 
@@ -88,9 +90,10 @@ export class PushNotificationService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const notifications = await this.prisma.pushNotification.findMany({
+		const notifications = await this.prisma.notification.findMany({
 			where: {
 				userId: authContext.userId,
+				sent: true,
 			},
 			take: PAGE_SIZES.NOTIFICATION,
 			skip: PAGE_SIZES.NOTIFICATION * (page - 1),
@@ -121,7 +124,7 @@ export class PushNotificationService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const notification = await this.prisma.pushNotification.findFirst({
+		const notification = await this.prisma.notification.findFirst({
 			where: {
 				id: notificationId,
 				userId: authContext.userId,
@@ -132,7 +135,7 @@ export class PushNotificationService {
 			throw new NotFoundException('알림을 찾을 수 없습니다');
 		}
 
-		await this.prisma.pushNotification.update({
+		await this.prisma.notification.update({
 			where: { id: notificationId },
 			data: { isRead: true },
 		});
@@ -144,9 +147,10 @@ export class PushNotificationService {
 	async getUnreadCount({ request }: { request: Request }) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const count = await this.prisma.pushNotification.count({
+		const count = await this.prisma.notification.count({
 			where: {
 				userId: authContext.userId,
+				sent: true,
 				isRead: false,
 			},
 		});
@@ -164,7 +168,7 @@ export class PushNotificationService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const notification = await this.prisma.pushNotification.findFirst({
+		const notification = await this.prisma.notification.findFirst({
 			where: {
 				id: notificationId,
 				userId: authContext.userId,
@@ -175,7 +179,7 @@ export class PushNotificationService {
 			throw new NotFoundException('알림을 찾을 수 없습니다');
 		}
 
-		await this.prisma.pushNotification.delete({
+		await this.prisma.notification.delete({
 			where: { id: notificationId },
 		});
 
