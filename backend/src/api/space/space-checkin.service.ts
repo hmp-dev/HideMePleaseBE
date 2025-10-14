@@ -125,24 +125,22 @@ export class SpaceCheckInService {
 			this.logger.log(`사용자 ${authContext.userId} 자동 체크아웃 - 이전 공간: ${previousSpaceName} (${existingActiveCheckIn.spaceId})`);
 		}
 
-		// maxCheckInCapacity 체크는 체크인 생성 후로 이동 (아래에서 처리)
+		// 같은 유저의 당일 중복 체크인 방지
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
 
-		if (space.dailyCheckInLimit) {
-			const today = new Date();
-			today.setHours(0, 0, 0, 0);
-
-			const todayCheckInCount = await tx.spaceCheckIn.count({
-				where: {
-					spaceId,
-					checkedInAt: {
-						gte: today,
-					},
+		const existingTodayCheckIn = await tx.spaceCheckIn.findFirst({
+			where: {
+				userId: authContext.userId,
+				spaceId,
+				checkedInAt: {
+					gte: today,
 				},
-			});
+			},
+		});
 
-			if (todayCheckInCount >= space.dailyCheckInLimit) {
-				throw new BadRequestException('오늘의 체크인 제한 인원수를 초과했습니다');
-			}
+		if (existingTodayCheckIn) {
+			throw new BadRequestException('오늘 이미 체크인한 공간입니다');
 		}
 
 		const checkInPoints = space.checkInPointsOverride || DEFAULT_CHECK_IN_POINTS;
@@ -247,24 +245,6 @@ export class SpaceCheckInService {
 				benefitDescription,
 			},
 		});
-
-		// 체크인 생성 후 maxCheckInCapacity 재확인
-		if (space.maxCheckInCapacity) {
-			const currentCheckInCount = await tx.spaceCheckIn.count({
-				where: {
-					spaceId,
-					isActive: true,
-				},
-			});
-
-			if (currentCheckInCount > space.maxCheckInCapacity) {
-				// 방금 생성한 체크인을 삭제 (롤백 효과)
-				await tx.spaceCheckIn.delete({
-					where: { id: checkIn.id },
-				});
-				throw new BadRequestException('체크인 최대 인원수를 초과했습니다');
-			}
-		}
 
 		// 같은 트랜잭션을 사용하여 포인트 적립 (실패해도 체크인은 진행)
 		try {
