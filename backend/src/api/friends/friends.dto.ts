@@ -183,3 +183,25 @@ export class SendFriendRequestResponse {
 	@ApiProperty()
 	message!: string;
 }
+
+export class FriendStatusResponse {
+	@ApiProperty({ description: '친구 관계 존재 여부' })
+	exists!: boolean;
+
+	@ApiProperty({
+		enum: FriendshipStatus,
+		required: false,
+		description: '친구 관계 상태',
+	})
+	status?: FriendshipStatus;
+
+	@ApiProperty({ required: false, description: '친구 관계 ID' })
+	friendshipId?: string;
+
+	@ApiProperty({
+		enum: ['sent', 'received'],
+		required: false,
+		description: '신청 방향 (sent: 내가 보냄, received: 내가 받음)',
+	})
+	direction?: 'sent' | 'received';
+}

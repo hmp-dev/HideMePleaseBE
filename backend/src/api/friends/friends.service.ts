@@ -723,4 +723,35 @@ export class FriendsService {
 			sentRequests,
 		};
 	}
+
+	// 12. 특정 사용자와의 친구 관계 상태 확인
+	async getFriendStatus({ userId, request }: { userId: string; request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		// 양방향 검색
+		const friendship = await this.prisma.friendship.findFirst({
+			where: {
+				OR: [
+					{ requesterId: authContext.userId, addresseeId: userId },
+					{ requesterId: userId, addresseeId: authContext.userId },
+				],
+			},
+		});
+
+		if (!friendship) {
+			return {
+				exists: false,
+			};
+		}
+
+		// 방향 결정 (내가 requester면 sent, 아니면 received)
+		const direction = friendship.requesterId === authContext.userId ? 'sent' : 'received';
+
+		return {
+			exists: true,
+			status: friendship.status,
+			friendshipId: friendship.id,
+			direction,
+		};
+	}
 }

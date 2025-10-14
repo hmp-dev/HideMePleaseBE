@@ -29,6 +29,7 @@ import {
 	FriendRequestListResponse,
 	FriendStatsResponse,
 	SendFriendRequestResponse,
+	FriendStatusResponse,
 } from '@/api/friends/friends.dto';
 import { AuthGuard } from '@/api/auth/auth.guard';
 
@@ -361,5 +362,25 @@ export class FriendsController {
 	@Get('stats')
 	getFriendStats(@Req() request: Request) {
 		return this.friendsService.getFriendStats({ request });
+	}
+
+	@ApiOperation({
+		summary: 'Get friend status with specific user',
+		description: '특정 사용자와의 친구 관계 상태를 조회합니다.',
+	})
+	@ApiParam({
+		name: 'userId',
+		type: 'string',
+		description: '확인할 사용자 ID',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '친구 관계 상태 조회 성공',
+		type: FriendStatusResponse,
+	})
+	@UseGuards(AuthGuard)
+	@Get('status/:userId')
+	getFriendStatus(@Req() request: Request, @Param('userId') userId: string) {
+		return this.friendsService.getFriendStatus({ userId, request });
 	}
 }
