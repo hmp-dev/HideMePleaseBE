@@ -28,6 +28,9 @@ export const PUSH_NOTIFICATION_TYPES = {
 
 	// 자동 체크아웃 관련
 	AUTO_CHECKOUT: 'AUTO_CHECKOUT',
+
+	// 공지사항 관련
+	ANNOUNCEMENT: 'ANNOUNCEMENT',
 } as const;
 
 export type PushNotificationType =

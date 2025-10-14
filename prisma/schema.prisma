@@ -321,8 +321,8 @@ model Notification {
   params    Json?
   sent      Boolean  @default(false)
   isRead    Boolean  @default(false)
-  userId    String   @db.Uuid
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?  @db.Uuid
+  User      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([userId, isRead])
