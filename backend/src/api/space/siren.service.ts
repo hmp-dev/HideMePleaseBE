@@ -37,7 +37,7 @@ function calculatePointsForDuration(expiresAt: Date): number {
 	// 시간 단위 포인트 정책
 	if (diffInHours <= 3) return 1;
 	if (diffInHours <= 9) return 2;
-	if (diffInHours <= 24) return 5;
+	if (diffInHours <= 24) return 3;
 
 	// 24시간 초과: 일당 5포인트 (올림 처리)
 	const days = Math.ceil(diffInHours / 24);
