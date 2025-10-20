@@ -38,6 +38,10 @@ export class FriendsService {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		const { addresseeId } = sendFriendRequestDTO;
 
+		this.logger.log(
+			`[시작] 친구 신청: ${authContext.userId} -> ${addresseeId}`,
+		);
+
 		// 1. 자기 자신에게 신청 불가
 		if (authContext.userId === addresseeId) {
 			throw new BadRequestException('자기 자신에게는 친구 신청을 할 수 없습니다');
@@ -71,15 +75,21 @@ export class FriendsService {
 						data: { status: FriendshipStatus.ACCEPTED },
 					});
 
-					// 양방향 알림
-					void this.pushNotificationService.createPushNotification({
+					// B(현재 요청자)의 정보 조회
+					const currentRequester = await this.prisma.user.findFirst({
+						where: { id: authContext.userId },
+						select: { nickName: true },
+					});
+
+					// A(원래 신청자)에게 알림: B님이 친구 신청을 수락했습니다
+					await this.pushNotificationService.createPushNotification({
 						userId: addresseeId,
 						type: PUSH_NOTIFICATION_TYPES.FRIEND_ACCEPTED,
 						title: '친구 수락',
-						body: `${addressee.nickName || '사용자'}님과 친구가 되었습니다`,
+						body: `${currentRequester?.nickName || '사용자'}님이 친구 신청을 수락했습니다`,
 						params: {
 							friendId: authContext.userId,
-							friendNickname: addressee.nickName || '사용자',
+							friendNickname: currentRequester?.nickName || '사용자',
 						},
 					});
 
@@ -123,7 +133,7 @@ export class FriendsService {
 		});
 
 		// 푸시 알림 발송
-		void this.pushNotificationService.createPushNotification({
+		await this.pushNotificationService.createPushNotification({
 			userId: addresseeId,
 			type: PUSH_NOTIFICATION_TYPES.FRIEND_REQUEST,
 			title: '친구 신청',
@@ -153,6 +163,10 @@ export class FriendsService {
 		request: Request;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		this.logger.log(
+			`[시작] 친구 신청 수락: friendshipId=${friendshipId}, userId=${authContext.userId}`,
+		);
 
 		const friendship = await this.prisma.friendship.findFirst({
 			where: { id: friendshipId },
@@ -193,7 +207,7 @@ export class FriendsService {
 		});
 
 		// 푸시 알림 발송
-		void this.pushNotificationService.createPushNotification({
+		await this.pushNotificationService.createPushNotification({
 			userId: friendship.requesterId,
 			type: PUSH_NOTIFICATION_TYPES.FRIEND_ACCEPTED,
 			title: '친구 수락',

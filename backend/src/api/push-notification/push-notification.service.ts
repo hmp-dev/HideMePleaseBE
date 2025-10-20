@@ -13,6 +13,8 @@ import { AuthContext } from '@/types';
 @Injectable()
 export class PushNotificationService {
 	private readonly logger = new Logger(PushNotificationService.name);
+	private readonly notificationCache = new Map<string, number>();
+	private readonly CACHE_EXPIRY_MS = 5000; // 5초
 
 	constructor(
 		private prisma: PrismaService,
@@ -21,6 +23,30 @@ export class PushNotificationService {
 
 	// 푸시 알림 생성 (DB 저장 + FCM 전송)
 	async createPushNotification(dto: CreatePushNotificationDto) {
+		this.logger.log(
+			`[시작] 푸시 알림 생성 시도: ${dto.type} - userId: ${dto.userId} - title: ${dto.title}`,
+		);
+
+		// 중복 방지 체크
+		const cacheKey = `${dto.userId}:${dto.type}:${dto.title}`;
+		const now = Date.now();
+		const lastSent = this.notificationCache.get(cacheKey);
+
+		if (lastSent && now - lastSent < this.CACHE_EXPIRY_MS) {
+			this.logger.warn(
+				`[중복 방지] 알림 생성 스킵 (${Math.floor((now - lastSent) / 1000)}초 전에 발송): ${dto.type} - userId: ${dto.userId}`,
+			);
+			return null;
+		}
+
+		// 캐시 업데이트
+		this.notificationCache.set(cacheKey, now);
+
+		// 오래된 캐시 정리 (메모리 누수 방지)
+		setTimeout(() => {
+			this.notificationCache.delete(cacheKey);
+		}, this.CACHE_EXPIRY_MS);
+
 		try {
 			// 1. DB에 알림 저장
 			const notification = await this.prisma.notification.create({

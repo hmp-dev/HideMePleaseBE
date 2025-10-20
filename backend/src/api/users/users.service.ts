@@ -138,6 +138,17 @@ export class UsersService {
 			},
 		});
 
+		// 친구 수 조회
+		const friendsCount = await this.prisma.friendship.count({
+			where: {
+				status: 'ACCEPTED',
+				OR: [
+					{ requesterId: authContext.userId },
+					{ addresseeId: authContext.userId },
+				],
+			},
+		});
+
 		return {
 			...userProfile,
 			pfpImageUrl: undefined,
@@ -160,6 +171,7 @@ export class UsersService {
 					checkedInAt: activeCheckIn.checkedInAt,
 				} : null,
 			},
+			friendsCount,
 		};
 	}
 
