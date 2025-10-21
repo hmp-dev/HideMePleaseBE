@@ -12,6 +12,8 @@ import {
 	GetSentRequestsDTO,
 	SearchFriendsDTO,
 } from '@/api/friends/friends.dto';
+import { PointService } from '@/api/points/point.service';
+import { PointSource, PointTransactionType } from '@/api/points/point.types';
 import { PushNotificationService } from '@/api/push-notification/push-notification.service';
 import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -25,6 +27,7 @@ export class FriendsService {
 	constructor(
 		private prisma: PrismaService,
 		private pushNotificationService: PushNotificationService,
+		private pointService: PointService,
 	) {}
 
 	// 1. 친구 신청 보내기
@@ -93,6 +96,17 @@ export class FriendsService {
 						},
 					});
 
+					// 포인트 차감 (5 SAV) - B(현재 요청자)
+					await this.pointService.spendPoints({
+						userId: authContext.userId,
+						amount: 5,
+						type: PointTransactionType.SPENT,
+						source: PointSource.FRIEND_REQUEST,
+						description: '친구 신청 (자동 수락)',
+						referenceId: existingFriendship.id,
+						referenceType: 'Friendship',
+					});
+
 					return {
 						success: true,
 						friendshipId: existingFriendship.id,
@@ -146,6 +160,17 @@ export class FriendsService {
 		});
 
 		this.logger.log(`친구 신청: ${authContext.userId} -> ${addresseeId}`);
+
+		// 6. 포인트 차감 (5 SAV)
+		await this.pointService.spendPoints({
+			userId: authContext.userId,
+			amount: 5,
+			type: PointTransactionType.SPENT,
+			source: PointSource.FRIEND_REQUEST,
+			description: '친구 신청',
+			referenceId: friendship.id,
+			referenceType: 'Friendship',
+		});
 
 		return {
 			success: true,
@@ -219,6 +244,17 @@ export class FriendsService {
 		});
 
 		this.logger.log(`친구 신청 수락: ${friendshipId}`);
+
+		// 포인트 차감 (5 SAV)
+		await this.pointService.spendPoints({
+			userId: authContext.userId,
+			amount: 5,
+			type: PointTransactionType.SPENT,
+			source: PointSource.FRIEND_ACCEPT,
+			description: '친구 수락',
+			referenceId: friendshipId,
+			referenceType: 'Friendship',
+		});
 
 		return {
 			success: true,
