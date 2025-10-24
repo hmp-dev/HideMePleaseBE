@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core/constants';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_FILTER } from '@nestjs/core/constants';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
 import { API_MODULES } from '@/api';
@@ -11,23 +10,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
-	imports: [
-		ThrottlerModule.forRoot([
-			{
-				ttl: 60000, // 60 seconds
-				limit: 100, // 100 requests per 60 seconds per IP (global default)
-			},
-		]),
-		...DEFAULT_MODULES,
-		...API_MODULES,
-	],
+	imports: [...DEFAULT_MODULES, ...API_MODULES],
 	controllers: [AppController],
 	providers: [
 		AppService,
-		{
-			provide: APP_GUARD,
-			useClass: ThrottlerGuard,
-		},
 		{
 			provide: APP_FILTER,
 			useClass: HttpExceptionFilter,

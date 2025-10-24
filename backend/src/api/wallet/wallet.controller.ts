@@ -9,7 +9,6 @@ import {
 	UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 
 import { CreateWalletDTO } from '@/api/wallet/wallet.dto';
 import { WalletService } from '@/api/wallet/wallet.service';
@@ -26,7 +25,6 @@ export class WalletController {
 		summary: 'Get wallets for user',
 	})
 	@UseGuards(AuthGuard)
-	@Throttle({ default: { limit: 5, ttl: 10000 } }) // More strict: 5 requests per 10 seconds
 	@Get()
 	async getWallets(@Req() request: Request) {
 		return this.walletService.getWallets({ request });
