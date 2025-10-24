@@ -23,10 +23,14 @@ export class AuthGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest<Request>();
+		const response = context.switchToHttp().getResponse();
 
 		try {
 			const token = extractTokenFromHeader(request);
 			if (!token) {
+				// Add Retry-After header to prevent client retries
+				response.setHeader('Retry-After', '3600'); // 1 hour in seconds
+				response.setHeader('X-Auth-Error', 'token-missing');
 				throw new UnauthorizedException(
 					ErrorCodes.JWT_INVALID_OR_EXPIRED,
 				);
@@ -41,6 +45,9 @@ export class AuthGuard implements CanActivate {
 			Reflect.set(request, 'authContext', authContext);
 			return true;
 		} catch (e: unknown) {
+			// Add Retry-After header to prevent client retries
+			response.setHeader('Retry-After', '3600'); // 1 hour in seconds
+			response.setHeader('X-Auth-Error', 'token-invalid');
 			throw new UnauthorizedException((e as Error).message);
 		}
 	}
