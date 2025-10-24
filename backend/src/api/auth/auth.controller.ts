@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 import { FirebaseLoginDTO, WorldcoinLoginDTO } from '@/api/auth/auth.dto';
 import { AuthService } from '@/api/auth/auth.service';
@@ -13,6 +14,7 @@ export class AuthController {
 	@ApiOperation({
 		summary: 'login via firebase',
 	})
+	@Throttle({ default: { limit: 2, ttl: 1000 } }) // Very strict: 2 requests per second
 	@Post('/firebase/login')
 	async firebaseLogin(@Body() firebaseLoginDTO: FirebaseLoginDTO) {
 		return this.authService.firebaseLogin({ firebaseLoginDTO });
@@ -21,6 +23,7 @@ export class AuthController {
 	@ApiOperation({
 		summary: 'login via worldcoin',
 	})
+	@Throttle({ default: { limit: 2, ttl: 1000 } }) // Very strict: 2 requests per second
 	@Post('/wld/login')
 	async worldcoinLogin(@Body() worldcoinLoginDTO: WorldcoinLoginDTO) {
 		return this.authService.worldcoinLogin({ worldcoinLoginDTO });

@@ -15,7 +15,7 @@ import { AppService } from './app.service';
 		ThrottlerModule.forRoot([
 			{
 				ttl: 60000, // 60 seconds
-				limit: 10, // 10 requests per 60 seconds per IP
+				limit: 100, // 100 requests per 60 seconds per IP (global default)
 			},
 		]),
 		...DEFAULT_MODULES,
