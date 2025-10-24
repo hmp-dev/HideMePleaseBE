@@ -19,7 +19,6 @@ import { AuthGuard } from '../auth/auth.guard';
 @ApiTags('Wallet')
 @ApiBearerAuth()
 @Controller('wallet')
-@Throttle([{ ttl: 60000, limit: 20 }]) // 20 requests per minute for wallet endpoints
 export class WalletController {
 	constructor(private walletService: WalletService) {}
 
@@ -27,7 +26,7 @@ export class WalletController {
 		summary: 'Get wallets for user',
 	})
 	@UseGuards(AuthGuard)
-	@Throttle([{ ttl: 10000, limit: 5 }]) // More strict: 5 requests per 10 seconds
+	@Throttle({ default: { limit: 5, ttl: 10000 } }) // More strict: 5 requests per 10 seconds
 	@Get()
 	async getWallets(@Req() request: Request) {
 		return this.walletService.getWallets({ request });
