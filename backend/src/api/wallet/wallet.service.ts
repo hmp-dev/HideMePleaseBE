@@ -1,11 +1,10 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { WalletProvider } from '@prisma/client';
 
 import { CreateWalletDTO } from '@/api/wallet/wallet.dto';
 import { getWalletDeleteName } from '@/api/wallet/wallet.utils';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
-import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class WalletService {
@@ -20,23 +19,34 @@ export class WalletService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		try {
-			const wallet = await this.prisma.wallet.create({
-				data: {
-					userId: authContext.userId,
-					publicAddress:
-						provider === WalletProvider.PHANTOM ||
-						provider === WalletProvider.WEPIN_SOLANA
-							? publicAddress
-							: publicAddress.toLowerCase(),
-					provider,
-				},
-			});
+		// Normalize address based on provider
+		const normalizedAddress =
+			provider === WalletProvider.PHANTOM ||
+			provider === WalletProvider.WEPIN_SOLANA
+				? publicAddress
+				: publicAddress.toLowerCase();
 
-			return { ...wallet, id: wallet.publicAddress };
-		} catch {
-			throw new ConflictException(ErrorCodes.WALLET_ALREADY_LINKED);
+		// Check if wallet already exists - if so, return existing wallet
+		const existingWallet = await this.prisma.wallet.findUnique({
+			where: {
+				publicAddress: normalizedAddress,
+			},
+		});
+
+		if (existingWallet) {
+			return { ...existingWallet, id: existingWallet.publicAddress };
 		}
+
+		// Create new wallet if it doesn't exist
+		const wallet = await this.prisma.wallet.create({
+			data: {
+				userId: authContext.userId,
+				publicAddress: normalizedAddress,
+				provider,
+			},
+		});
+
+		return { ...wallet, id: wallet.publicAddress };
 	}
 
 	async getWallets({ request }: { request: Request }) {

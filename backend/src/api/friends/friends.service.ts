@@ -84,8 +84,8 @@ export class FriendsService {
 						select: { nickName: true },
 					});
 
-					// A(원래 신청자)에게 알림: B님이 친구 신청을 수락했습니다
-					await this.pushNotificationService.createPushNotification({
+					// A(원래 신청자)에게 알림: B님이 친구 신청을 수락했습니다 (비동기, 실패해도 무시)
+					void this.pushNotificationService.createPushNotification({
 						userId: addresseeId,
 						type: PUSH_NOTIFICATION_TYPES.FRIEND_ACCEPTED,
 						title: '친구 수락',
@@ -94,6 +94,8 @@ export class FriendsService {
 							friendId: authContext.userId,
 							friendNickname: currentRequester?.nickName || '사용자',
 						},
+					}).catch((error) => {
+						this.logger.error(`친구 신청 자동 수락 알림 전송 실패: ${addresseeId}`, error);
 					});
 
 					// 포인트 차감 (5 SAV) - B(현재 요청자)
@@ -146,8 +148,8 @@ export class FriendsService {
 			select: { nickName: true },
 		});
 
-		// 푸시 알림 발송
-		await this.pushNotificationService.createPushNotification({
+		// 푸시 알림 발송 (비동기, 실패해도 무시)
+		void this.pushNotificationService.createPushNotification({
 			userId: addresseeId,
 			type: PUSH_NOTIFICATION_TYPES.FRIEND_REQUEST,
 			title: '친구 신청',
@@ -157,6 +159,8 @@ export class FriendsService {
 				requesterId: authContext.userId,
 				requesterNickname: requester?.nickName || '사용자',
 			},
+		}).catch((error) => {
+			this.logger.error(`친구 신청 알림 전송 실패: ${addresseeId}`, error);
 		});
 
 		this.logger.log(`친구 신청: ${authContext.userId} -> ${addresseeId}`);
@@ -231,8 +235,8 @@ export class FriendsService {
 			select: { nickName: true },
 		});
 
-		// 푸시 알림 발송
-		await this.pushNotificationService.createPushNotification({
+		// 푸시 알림 발송 (비동기, 실패해도 무시)
+		void this.pushNotificationService.createPushNotification({
 			userId: friendship.requesterId,
 			type: PUSH_NOTIFICATION_TYPES.FRIEND_ACCEPTED,
 			title: '친구 수락',
@@ -241,6 +245,8 @@ export class FriendsService {
 				friendId: authContext.userId,
 				friendNickname: addressee?.nickName || '사용자',
 			},
+		}).catch((error) => {
+			this.logger.error(`친구 수락 알림 전송 실패: ${friendship.requesterId}`, error);
 		});
 
 		this.logger.log(`친구 신청 수락: ${friendshipId}`);
