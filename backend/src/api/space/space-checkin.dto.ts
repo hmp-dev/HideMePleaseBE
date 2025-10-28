@@ -17,6 +17,14 @@ export class CheckInDTO {
 	@IsOptional()
 	@IsString()
 	benefitId?: string;
+
+	@ApiProperty({
+		description: 'FCM 토큰 (Silent Push용)',
+		required: false,
+	})
+	@IsOptional()
+	@IsString()
+	fcmToken?: string;
 }
 
 export class HeartbeatDTO {

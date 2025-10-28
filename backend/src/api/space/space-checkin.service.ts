@@ -18,6 +18,7 @@ import { PointService } from '@/api/points/point.service';
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
 import { PushNotificationService } from '@/api/push-notification/push-notification.service';
 import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
+import { FirebaseService } from '@/modules/firebase/firebase.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { SystemConfigService } from '@/modules/system-config/system-config.service';
 import { AuthContext } from '@/types';
@@ -46,6 +47,7 @@ export class SpaceCheckInService {
 		private systemConfig: SystemConfigService,
 		private pushNotificationService: PushNotificationService,
 		private pointService: PointService,
+		private firebaseService: FirebaseService,
 	) {}
 
 	async checkIn({
@@ -245,6 +247,15 @@ export class SpaceCheckInService {
 				benefitDescription,
 			},
 		});
+
+		// FCM 토큰 업데이트 (Silent Push용)
+		if (checkInDTO.fcmToken) {
+			await tx.user.update({
+				where: { id: authContext.userId },
+				data: { fcmToken: checkInDTO.fcmToken },
+			});
+			this.logger.log(`FCM 토큰 업데이트: userId=${authContext.userId}`);
+		}
 
 		// 같은 트랜잭션을 사용하여 포인트 적립 (실패해도 체크인은 진행)
 		try {
@@ -1080,6 +1091,111 @@ export class SpaceCheckInService {
 			this.logger.log(`총 ${inactiveCheckIns.length}명 자동 체크아웃 완료`);
 		} catch (error) {
 			this.logger.error('자동 체크아웃 크론잡 실패:', error);
+		}
+	}
+
+	/**
+	 * 특정 사용자에게 하트비트 Silent Push 전송
+	 */
+	private async sendHeartbeatSilentPush(userId: string): Promise<boolean> {
+		try {
+			// 사용자의 FCM 토큰 조회
+			const user = await this.prisma.user.findUnique({
+				where: { id: userId },
+				select: { fcmToken: true, nickName: true },
+			});
+
+			if (!user?.fcmToken) {
+				this.logger.debug(`FCM 토큰 없음 - userId: ${userId}`);
+				return false;
+			}
+
+			// Silent Push 메시지 구성
+			const message = {
+				token: user.fcmToken,
+				data: {
+					type: 'CHECKIN_HEARTBEAT', // 클라이언트에서 감지하는 타입
+				},
+				// iOS Silent Push 설정
+				apns: {
+					headers: {
+						'apns-priority': '5',
+						'apns-push-type': 'background',
+					},
+					payload: {
+						aps: {
+							'content-available': 1, // iOS Silent Push 필수
+						},
+					},
+				},
+				// Android 설정
+				android: {
+					priority: 'high' as const, // Android 높은 우선순위
+				},
+			};
+
+			await this.firebaseService.sendNotifications(message);
+			this.logger.debug(`✅ Silent Push 전송 성공 - userId: ${userId}`);
+			return true;
+		} catch (error) {
+			this.logger.error(`❌ Silent Push 전송 실패 - userId: ${userId}`, error);
+			return false;
+		}
+	}
+
+	/**
+	 * 3분마다 활성 체크인 사용자들에게 하트비트 Silent Push 전송
+	 */
+	@Cron('*/3 * * * *')
+	async sendHeartbeatSilentPushes() {
+		this.logger.log('💓 하트비트 Silent Push 크론잡 시작');
+
+		try {
+			const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+			// 활성 체크인 중이며 최근 10분 이내에 하트비트가 있는 사용자 조회
+			const activeCheckIns = await this.prisma.spaceCheckIn.findMany({
+				where: {
+					isActive: true,
+					lastActivityTime: {
+						gte: tenMinutesAgo, // 최근 10분 이내 활동
+					},
+				},
+				select: {
+					userId: true,
+					space: {
+						select: {
+							name: true,
+						},
+					},
+				},
+			});
+
+			if (activeCheckIns.length === 0) {
+				this.logger.log('활성 체크인 사용자 없음');
+				return;
+			}
+
+			this.logger.log(`${activeCheckIns.length}명에게 Silent Push 전송 시작`);
+
+			// 각 사용자에게 Silent Push 전송
+			let successCount = 0;
+			let failCount = 0;
+
+			for (const checkIn of activeCheckIns) {
+				const success = await this.sendHeartbeatSilentPush(checkIn.userId);
+				if (success) {
+					successCount++;
+				} else {
+					failCount++;
+				}
+			}
+
+			this.logger.log(
+				`💓 하트비트 Silent Push 완료 - 성공: ${successCount}, 실패: ${failCount}`,
+			);
+		} catch (error) {
+			this.logger.error('하트비트 Silent Push 크론잡 실패:', error);
 		}
 	}
 }
