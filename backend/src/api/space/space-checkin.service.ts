@@ -243,6 +243,7 @@ export class SpaceCheckInService {
 				longitude: checkInDTO.longitude,
 				pointsEarned: checkInPoints,
 				lastActivityTime: new Date(),
+				lastClientHeartbeatTime: new Date(),
 				benefitId: checkInDTO.benefitId,
 				benefitDescription,
 			},
@@ -471,11 +472,12 @@ export class SpaceCheckInService {
 			};
 		}
 
-		// 하트비트 수신 자체가 활동의 증거이므로 즉시 lastActivityTime 업데이트
+		// 하트비트 수신 자체가 활동의 증거이므로 즉시 lastActivityTime과 lastClientHeartbeatTime 업데이트
 		await this.prisma.spaceCheckIn.update({
 			where: { id: checkIn.id },
 			data: {
 				lastActivityTime: new Date(),
+				lastClientHeartbeatTime: new Date(),
 			},
 		});
 
@@ -1025,16 +1027,18 @@ export class SpaceCheckInService {
 	@Cron(CronExpression.EVERY_5_MINUTES)
 	async autoCheckOutInactiveUsers() {
 		this.logger.log('자동 체크아웃 크론잡 시작');
-		
+
 		try {
-			const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-			
-			// 10분 이상 비활성 체크인 찾기
+			const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+			// 15분 이상 클라이언트 하트비트가 없는 체크인 찾기
+			// Silent Push는 lastActivityTime을 갱신하지만,
+			// 클라이언트가 실제로 하트비트를 보내지 않으면 15분 후 체크아웃
 			const inactiveCheckIns = await this.prisma.spaceCheckIn.findMany({
 				where: {
 					isActive: true,
-					lastActivityTime: {
-						lt: tenMinutesAgo,
+					lastClientHeartbeatTime: {
+						lt: fifteenMinutesAgo,
 					},
 				},
 				include: {
@@ -1078,7 +1082,7 @@ export class SpaceCheckInService {
 						userId: checkIn.userId,
 						type: PUSH_NOTIFICATION_TYPES.AUTO_CHECKOUT,
 						title: '자동 체크아웃',
-						body: `${checkIn.space.name}에서 자동으로 체크아웃되었습니다. (10분 이상 비활성)`,
+						body: `${checkIn.space.name}에서 자동으로 체크아웃되었습니다. (15분 이상 비활성)`,
 					});
 				} catch (notificationError) {
 					this.logger.error(
@@ -1162,6 +1166,7 @@ export class SpaceCheckInService {
 					},
 				},
 				select: {
+					id: true,
 					userId: true,
 					space: {
 						select: {
@@ -1181,14 +1186,30 @@ export class SpaceCheckInService {
 			// 각 사용자에게 Silent Push 전송
 			let successCount = 0;
 			let failCount = 0;
+			const successfulCheckInIds: string[] = [];
 
 			for (const checkIn of activeCheckIns) {
 				const success = await this.sendHeartbeatSilentPush(checkIn.userId);
 				if (success) {
 					successCount++;
+					successfulCheckInIds.push(checkIn.id);
 				} else {
 					failCount++;
 				}
+			}
+
+			// Silent Push 전송 성공한 체크인들의 lastActivityTime 갱신
+			// 이렇게 하면 클라이언트가 하트비트를 못 보내도 자동 체크아웃되지 않음
+			if (successfulCheckInIds.length > 0) {
+				await this.prisma.spaceCheckIn.updateMany({
+					where: {
+						id: { in: successfulCheckInIds },
+					},
+					data: {
+						lastActivityTime: new Date(),
+					},
+				});
+				this.logger.log(`${successfulCheckInIds.length}개 체크인의 lastActivityTime 갱신 완료`);
 			}
 
 			this.logger.log(

@@ -873,20 +873,22 @@ model SpaceCheckIn {
   groupId             String?            @db.Uuid
   latitude            Float
   longitude           Float
-  pointsEarned        Int                @default(0)
-  lastActivityTime    DateTime           @default(now())
-  autoCheckedOut      Boolean            @default(false)
-  benefitId           String?            @db.Uuid
-  benefitDescription  String?
-  group               SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
-  space               Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  benefit             SpaceBenefit?      @relation(fields: [benefitId], references: [id])
+  pointsEarned            Int                @default(0)
+  lastActivityTime        DateTime           @default(now())
+  lastClientHeartbeatTime DateTime           @default(now())
+  autoCheckedOut          Boolean            @default(false)
+  benefitId               String?            @db.Uuid
+  benefitDescription      String?
+  group                   SpaceCheckInGroup? @relation(fields: [groupId], references: [id])
+  space                   Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  benefit                 SpaceBenefit?      @relation(fields: [benefitId], references: [id])
 
   @@index([userId, spaceId, isActive])
   @@index([spaceId, isActive])
   @@index([userId, isActive])
   @@index([lastActivityTime, isActive])
+  @@index([lastClientHeartbeatTime, isActive])
 }
 
 model SpaceCheckInGroup {
