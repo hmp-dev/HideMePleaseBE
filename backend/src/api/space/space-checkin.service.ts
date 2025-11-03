@@ -447,6 +447,10 @@ export class SpaceCheckInService {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 		const { spaceId, latitude, longitude } = heartbeatDTO;
 
+		this.logger.log(
+			`Heartbeat 수신 - userId: ${authContext.userId}, spaceId: ${spaceId}`,
+		);
+
 		// 활성 체크인 확인
 		const checkIn = await this.prisma.spaceCheckIn.findFirst({
 			where: {
@@ -465,6 +469,9 @@ export class SpaceCheckInService {
 		});
 
 		if (!checkIn) {
+			this.logger.warn(
+				`Heartbeat 실패 - 유효하지 않은 체크인 - userId: ${authContext.userId}, spaceId: ${spaceId}`,
+			);
 			return {
 				success: false,
 				checkinStatus: 'invalid' as const,
@@ -489,6 +496,10 @@ export class SpaceCheckInService {
 			checkIn.space.longitude,
 		);
 		const distance = Number(userPosition.Distance(spacePosition).toFixed(0));
+
+		this.logger.log(
+			`Heartbeat 처리 완료 - userId: ${authContext.userId}, checkInId: ${checkIn.id}, distance: ${distance}m`,
+		);
 
 		if (distance > maxDistance) {
 			this.logger.log(
@@ -518,6 +529,10 @@ export class SpaceCheckInService {
 				lastActivityTime: checkIn.lastActivityTime,
 			};
 		}
+
+		this.logger.log(
+			`Heartbeat 성공 - userId: ${authContext.userId}, status: active, distance: ${distance}m`,
+		);
 
 		return {
 			success: true,

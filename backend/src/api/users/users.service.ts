@@ -37,6 +37,8 @@ export class UsersService {
 				onboardingCompleted: true,
 				appOS: true,
 				appVersion: true,
+				profilePartsString: true,
+				finalProfileImageUrl: true,
 			},
 		});
 
