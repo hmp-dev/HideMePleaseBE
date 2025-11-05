@@ -38,7 +38,7 @@ export class PfpNftService {
 
 		this.logger.log(`Starting PFP mint for user ${authContext.userId}, wallet: ${walletAddress}`);
 
-		// Check if user has already minted PFP NFT
+		// Check if user has already minted PFP NFT and immediately set flag to prevent concurrent requests
 		const user = await this.prisma.user.findUnique({
 			where: {
 				id: authContext.userId,
@@ -56,6 +56,17 @@ export class PfpNftService {
 			});
 		}
 
+		// Immediately set hasMintedPfp to true to prevent concurrent minting requests
+		await this.prisma.user.update({
+			where: {
+				id: authContext.userId,
+			},
+			data: {
+				hasMintedPfp: true,
+			},
+		});
+		this.logger.log(`Set hasMintedPfp flag to true for user ${authContext.userId} to prevent concurrent requests`);
+
 		// Validate wallet ownership
 		const wallet = await this.prisma.wallet.findFirst({
 			where: {
@@ -66,6 +77,11 @@ export class PfpNftService {
 
 		if (!wallet) {
 			this.logger.error(`Wallet not found for user ${authContext.userId}: ${walletAddress}`);
+			// Reset flag if wallet validation fails
+			await this.prisma.user.update({
+				where: { id: authContext.userId },
+				data: { hasMintedPfp: false },
+			});
 			throw new BadRequestException('지갑이 사용자 계정에 연결되어 있지 않습니다.');
 		}
 
@@ -193,17 +209,16 @@ export class PfpNftService {
 					throw new InternalServerErrorException(`NFT 레코드 생성 실패: ${nftError.message}`);
 				}
 
-				// Update user profile with PFP NFT ID and mark as minted (image URL was already updated before minting)
+				// Update user profile with PFP NFT ID (hasMintedPfp was already set to true at the beginning)
 				await this.prisma.user.update({
 					where: {
 						id: authContext.userId,
 					},
 					data: {
 						pfpNftId: nftId,
-						hasMintedPfp: true,
 					},
 				});
-				this.logger.log(`User profile updated with PFP NFT ID and hasMintedPfp flag`);
+				this.logger.log(`User profile updated with PFP NFT ID`);
 
 				return {
 					success: true,
