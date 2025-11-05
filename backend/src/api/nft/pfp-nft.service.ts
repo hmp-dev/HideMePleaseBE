@@ -38,34 +38,28 @@ export class PfpNftService {
 
 		this.logger.log(`Starting PFP mint for user ${authContext.userId}, wallet: ${walletAddress}`);
 
-		// Check if user has already minted PFP NFT and immediately set flag to prevent concurrent requests
-		const user = await this.prisma.user.findUnique({
+		// Atomically check and set hasMintedPfp flag to prevent race conditions
+		// This will only update if hasMintedPfp is currently false
+		const updateResult = await this.prisma.user.updateMany({
 			where: {
 				id: authContext.userId,
+				hasMintedPfp: false,
 			},
-			select: {
+			data: {
 				hasMintedPfp: true,
 			},
 		});
 
-		if (user?.hasMintedPfp) {
-			this.logger.warn(`User ${authContext.userId} has already minted a PFP NFT`);
+		// If count is 0, it means hasMintedPfp was already true (already minted)
+		if (updateResult.count === 0) {
+			this.logger.warn(`User ${authContext.userId} has already minted a PFP NFT or minting is in progress`);
 			throw new BadRequestException({
 				message: '이미 PFP NFT를 민팅하셨습니다. 사용자당 1개만 민팅 가능합니다.',
 				errorCode: ErrorCodes.PFP_NFT_ALREADY_MINTED,
 			});
 		}
 
-		// Immediately set hasMintedPfp to true to prevent concurrent minting requests
-		await this.prisma.user.update({
-			where: {
-				id: authContext.userId,
-			},
-			data: {
-				hasMintedPfp: true,
-			},
-		});
-		this.logger.log(`Set hasMintedPfp flag to true for user ${authContext.userId} to prevent concurrent requests`);
+		this.logger.log(`Atomically set hasMintedPfp flag to true for user ${authContext.userId}`);
 
 		// Validate wallet ownership
 		const wallet = await this.prisma.wallet.findFirst({
