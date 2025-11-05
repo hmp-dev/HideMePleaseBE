@@ -26,6 +26,7 @@ model User {
   profilePartsString        String?
   finalProfileImageUrl      String?
   onboardingCompleted       Boolean                     @default(false)
+  hasMintedPfp              Boolean                     @default(false)
   appOS                     String?
   appVersion                String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]

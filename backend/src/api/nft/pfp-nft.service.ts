@@ -13,6 +13,7 @@ import { AvalancheNftService } from '@/modules/avalanche/avalanche-nft.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 import { EnvironmentVariables } from '@/utils/env';
+import { ErrorCodes } from '@/utils/errorCodes';
 
 @Injectable()
 export class PfpNftService {
@@ -36,6 +37,24 @@ export class PfpNftService {
 		const { walletAddress, imageUrl, metadataUrl, name } = mintPfpNftDto;
 
 		this.logger.log(`Starting PFP mint for user ${authContext.userId}, wallet: ${walletAddress}`);
+
+		// Check if user has already minted PFP NFT
+		const user = await this.prisma.user.findUnique({
+			where: {
+				id: authContext.userId,
+			},
+			select: {
+				hasMintedPfp: true,
+			},
+		});
+
+		if (user?.hasMintedPfp) {
+			this.logger.warn(`User ${authContext.userId} has already minted a PFP NFT`);
+			throw new BadRequestException({
+				message: '이미 PFP NFT를 민팅하셨습니다. 사용자당 1개만 민팅 가능합니다.',
+				errorCode: ErrorCodes.PFP_NFT_ALREADY_MINTED,
+			});
+		}
 
 		// Validate wallet ownership
 		const wallet = await this.prisma.wallet.findFirst({
@@ -174,16 +193,17 @@ export class PfpNftService {
 					throw new InternalServerErrorException(`NFT 레코드 생성 실패: ${nftError.message}`);
 				}
 
-				// Update user profile with PFP NFT ID (image URL was already updated before minting)
+				// Update user profile with PFP NFT ID and mark as minted (image URL was already updated before minting)
 				await this.prisma.user.update({
 					where: {
 						id: authContext.userId,
 					},
 					data: {
 						pfpNftId: nftId,
+						hasMintedPfp: true,
 					},
 				});
-				this.logger.log(`User profile updated with PFP NFT ID`);
+				this.logger.log(`User profile updated with PFP NFT ID and hasMintedPfp flag`);
 
 				return {
 					success: true,
@@ -199,43 +219,57 @@ export class PfpNftService {
 			} catch (error: any) {
 				lastError = error;
 				retryCount++;
-				
+
 				this.logger.error(`PFP minting attempt ${retryCount} failed:`, error);
 				this.logger.error(`Error message: ${error.message}`);
 				this.logger.error(`Error stack: ${error.stack}`);
-				
+
 				if (error.code) {
 					this.logger.error(`Error code: ${error.code}`);
 				}
-				
+
 				if (error.reason) {
 					this.logger.error(`Error reason: ${error.reason}`);
 				}
-				
+
 				// Check for specific error types
 				if (error.message?.includes('insufficient funds')) {
+					// Reset hasMintedPfp flag before throwing error
+					await this.prisma.user.update({
+						where: { id: authContext.userId },
+						data: { hasMintedPfp: false },
+					});
 					throw new BadRequestException('가스비가 부족합니다. 지갑에 AVAX를 충전해주세요.');
 				}
-				
+
 				if (error.message?.includes('contract not found') || error.message?.includes('no contract code')) {
+					// Reset hasMintedPfp flag before throwing error
+					await this.prisma.user.update({
+						where: { id: authContext.userId },
+						data: { hasMintedPfp: false },
+					});
 					throw new BadRequestException('PFP 컨트랙트가 배포되지 않았습니다. 관리자에게 문의해주세요.');
 				}
-				
+
 				if (error.message?.includes('nonce')) {
 					this.logger.warn(`Nonce error detected, waiting before retry...`);
 					await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
 					continue;
 				}
-				
+
 				if (retryCount < maxRetries) {
 					this.logger.warn(`Retrying in ${retryCount} seconds...`);
 					await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
 				}
 			}
 		}
-		
-		// All retries failed
+
+		// All retries failed - reset hasMintedPfp flag
 		this.logger.error(`All ${maxRetries} minting attempts failed for user ${authContext.userId}`);
+		await this.prisma.user.update({
+			where: { id: authContext.userId },
+			data: { hasMintedPfp: false },
+		});
 		throw new InternalServerErrorException(`PFP NFT 민팅 중 오류가 발생했습니다: ${lastError?.message || '알 수 없는 오류'}`);
 	}
 
