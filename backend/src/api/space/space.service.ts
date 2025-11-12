@@ -237,6 +237,7 @@ export class SpaceService {
 				id: true,
 				name: true,
 				nameEn: true,
+				maxCheckInCapacity: true,
 				image: {
 					select: {
 						id: true,
@@ -371,6 +372,7 @@ export class SpaceService {
 				id: true,
 				name: true,
 				nameEn: true,
+				maxCheckInCapacity: true,
 				latitude: true,
 				longitude: true,
 				address: true,
@@ -732,6 +734,7 @@ export class SpaceService {
 				id: true,
 				name: true,
 				nameEn: true,
+				maxCheckInCapacity: true,
 				image: {
 					select: {
 						id: true,
