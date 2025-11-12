@@ -20,7 +20,6 @@ import { NftPointService } from '@/api/nft/nft-point.service';
 import {
 	DEFAULT_POINTS,
 	SPACE_LIST_PAGE_SIZE,
-	SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS,
 } from '@/api/space/space.constants';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { SpaceLocationService } from '@/api/space/space-location.service';
@@ -722,14 +721,10 @@ export class SpaceService {
 
 	async getNewSpaces() {
 		const newSpaces = await this.prisma.space.findMany({
-			where: {
-				createdAt: {
-					gte: subDays(
-						new Date(),
-						SPACE_ONBOARDING_EXPOSURE_TIME_IN_DAYS,
-					),
-				},
+			orderBy: {
+				createdAt: 'desc',
 			},
+			take: 3,
 			select: {
 				id: true,
 				name: true,
