@@ -4,6 +4,7 @@ import {
 	Get,
 	Param,
 	Patch,
+	Post,
 	Query,
 	Req,
 	UseGuards,
@@ -72,6 +73,15 @@ export class PushNotificationController {
 			notificationId: id,
 			request,
 		});
+	}
+
+	@ApiOperation({
+		summary: '모든 알림 읽음 처리',
+	})
+	@UseGuards(AuthGuard)
+	@Post('/read-all')
+	async markAllAsRead(@Req() request: Request) {
+		return this.pushNotificationService.markAllAsRead({ request });
 	}
 
 	@ApiOperation({

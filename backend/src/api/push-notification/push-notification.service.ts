@@ -197,6 +197,21 @@ export class PushNotificationService {
 		return { count };
 	}
 
+	// 모든 알림 읽음 처리
+	async markAllAsRead({ request }: { request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const result = await this.prisma.notification.updateMany({
+			where: {
+				userId: authContext.userId, // 전역 알림(userId=null) 제외
+				isRead: false,
+			},
+			data: { isRead: true },
+		});
+
+		return { success: true, updatedCount: result.count };
+	}
+
 	// 알림 삭제
 	async deleteNotification({
 		notificationId,
