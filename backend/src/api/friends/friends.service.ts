@@ -341,6 +341,15 @@ export class FriendsService {
 							nickName: true,
 							finalProfileImageUrl: true,
 							introduction: true,
+							SpaceCheckIn: {
+								where: { isActive: true },
+								take: 1,
+								include: {
+									space: {
+										select: { id: true, name: true },
+									},
+								},
+							},
 						},
 					},
 					addressee: {
@@ -349,6 +358,15 @@ export class FriendsService {
 							nickName: true,
 							finalProfileImageUrl: true,
 							introduction: true,
+							SpaceCheckIn: {
+								where: { isActive: true },
+								take: 1,
+								include: {
+									space: {
+										select: { id: true, name: true },
+									},
+								},
+							},
 						},
 					},
 				},
@@ -366,6 +384,8 @@ export class FriendsService {
 					? friendship.addressee
 					: friendship.requester;
 
+			const activeCheckIn = friend.SpaceCheckIn[0];
+
 			return {
 				id: friendship.id,
 				status: friendship.status,
@@ -375,6 +395,13 @@ export class FriendsService {
 					nickName: friend.nickName || undefined,
 					profileImageUrl: friend.finalProfileImageUrl || undefined,
 					introduction: friend.introduction || undefined,
+					activeCheckIn: activeCheckIn
+						? {
+								spaceId: activeCheckIn.spaceId,
+								spaceName: activeCheckIn.space.name,
+								checkedInAt: activeCheckIn.checkedInAt,
+							}
+						: undefined,
 				},
 			};
 		});

@@ -94,6 +94,17 @@ export class SearchFriendsDTO {
 	limit?: number = 20;
 }
 
+export class ActiveCheckInInfo {
+	@ApiProperty({ description: '매장 ID' })
+	spaceId!: string;
+
+	@ApiProperty({ description: '매장 이름' })
+	spaceName!: string;
+
+	@ApiProperty({ description: '체크인 시간' })
+	checkedInAt!: Date;
+}
+
 export class FriendUserInfo {
 	@ApiProperty()
 	userId!: string;
@@ -106,6 +117,9 @@ export class FriendUserInfo {
 
 	@ApiProperty({ required: false })
 	introduction?: string;
+
+	@ApiProperty({ required: false, type: ActiveCheckInInfo, description: '활성 체크인 정보' })
+	activeCheckIn?: ActiveCheckInInfo;
 }
 
 export class FriendshipResponse {
