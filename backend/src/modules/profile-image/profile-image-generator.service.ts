@@ -68,9 +68,9 @@ export class ProfileImageGeneratorService {
 				parts.background,
 				parts.body,
 				parts.clothes,
+				parts.hair,
 				parts.earAccessory,
 				parts.eyes,
-				parts.hair,
 				parts.nose,
 			].filter(Boolean); // Remove undefined/null values
 
