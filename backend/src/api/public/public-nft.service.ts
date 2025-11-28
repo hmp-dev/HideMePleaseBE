@@ -107,16 +107,11 @@ export class PublicNftService {
 
 		// If user has finalProfileImageUrl, use it
 		if (user.finalProfileImageUrl) {
-			// 자기 참조 체크 - 자신의 NFT 이미지 URL인지 확인
-			const baseUrl = process.env.API_BASE_URL || 'https://dev-api.hidemeplease.xyz/v1';
-			const selfReferenceUrls = [
-				`${baseUrl}/public/nft/user/${userId}/image`,
-				`https://dev-api.hidemeplease.xyz/v1/public/nft/user/${userId}/image`,
-				`https://api.hidemeplease.xyz/v1/public/nft/user/${userId}/image`,
-			];
-			
+			// 자기 참조 체크 - userId를 포함하는 NFT 이미지 URL인지 확인 (패턴 매칭)
+			const isSelfReference = user.finalProfileImageUrl.includes(`/public/nft/user/${userId}/image`);
+
 			// 자기 참조인 경우 finalProfileImageUrl을 무시하고 profilePartsString으로 처리
-			if (selfReferenceUrls.includes(user.finalProfileImageUrl)) {
+			if (isSelfReference) {
 				// profilePartsString이 있으면 이미지 생성으로 넘어감
 				if (user.profilePartsString) {
 					// 아래 profilePartsString 처리 로직으로 진행
