@@ -25,17 +25,19 @@ import { SpaceCategory } from '@prisma/client';
 import { RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { SpaceService } from '@/api/space/space.service';
 import { SpaceCheckInService } from '@/api/space/space-checkin.service';
-import { 
-	CheckInDTO, 
-	CheckOutDTO, 
-	CheckInStatusResponse, 
-	CheckInUsersResponse, 
+import {
+	CheckInDTO,
+	CheckOutDTO,
+	CheckInStatusResponse,
+	CheckInUsersResponse,
 	CurrentGroupResponse,
 	CheckOutAllUsersResponse,
 	HeartbeatDTO,
 	HeartbeatResponse,
-	CheckInStatusDTO
+	CheckInStatusDTO,
+	RegisterLiveActivityTokenDTO
 } from '@/api/space/space-checkin.dto';
+import { LiveActivityService } from '@/api/space/live-activity.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
 import { AuthGuard } from '../auth/auth.guard';
@@ -47,6 +49,7 @@ export class SpaceController {
 	constructor(
 		private spaceService: SpaceService,
 		private spaceCheckInService: SpaceCheckInService,
+		private liveActivityService: LiveActivityService,
 	) {}
 
 	@ApiOperation({
@@ -426,5 +429,54 @@ export class SpaceController {
 	@Get('checkin/status')
 	getCurrentCheckInStatus(@Req() request: Request) {
 		return this.spaceCheckInService.getCurrentCheckInStatus({ request });
+	}
+
+	@ApiOperation({
+		summary: 'Register Live Activity token',
+		description: 'iOS Live Activity용 Push Token을 등록합니다.',
+	})
+	@ApiBody({
+		type: RegisterLiveActivityTokenDTO,
+	})
+	@ApiResponse({
+		status: 200,
+		description: '토큰 등록 성공',
+	})
+	@ApiResponse({
+		status: 401,
+		description: '인증 실패',
+	})
+	@UseGuards(AuthGuard)
+	@Post('checkin/live-activity-token')
+	async registerLiveActivityToken(
+		@Req() request: Request,
+		@Body() dto: RegisterLiveActivityTokenDTO,
+	) {
+		const authContext = Reflect.get(request, 'authContext') as { userId: string };
+		await this.liveActivityService.registerLiveActivityToken({
+			userId: authContext.userId,
+			liveActivityToken: dto.liveActivityToken,
+		});
+		return { success: true };
+	}
+
+	@ApiOperation({
+		summary: 'Remove Live Activity token',
+		description: 'iOS Live Activity용 Push Token을 제거합니다.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '토큰 제거 성공',
+	})
+	@ApiResponse({
+		status: 401,
+		description: '인증 실패',
+	})
+	@UseGuards(AuthGuard)
+	@Delete('checkin/live-activity-token')
+	async removeLiveActivityToken(@Req() request: Request) {
+		const authContext = Reflect.get(request, 'authContext') as { userId: string };
+		await this.liveActivityService.removeLiveActivityToken(authContext.userId);
+		return { success: true };
 	}
 }

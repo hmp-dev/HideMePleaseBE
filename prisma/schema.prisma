@@ -29,6 +29,8 @@ model User {
   hasMintedPfp              Boolean                     @default(false)
   appOS                     String?
   appVersion                String?
+  liveActivityToken         String?
+  liveActivityTokenUpdatedAt DateTime?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
   PointTransaction          PointTransaction[]

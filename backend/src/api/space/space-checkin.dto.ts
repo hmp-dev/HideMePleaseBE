@@ -25,6 +25,14 @@ export class CheckInDTO {
 	@IsOptional()
 	@IsString()
 	fcmToken?: string;
+
+	@ApiProperty({
+		description: 'Live Activity Push Token (iOS ActivityKit에서 발급)',
+		required: false,
+	})
+	@IsOptional()
+	@IsString()
+	liveActivityToken?: string;
 }
 
 export class HeartbeatDTO {
@@ -181,4 +189,12 @@ export class CheckInStatusDTO {
 		benefitId?: string;
 		benefitDescription?: string;
 	};
+}
+
+export class RegisterLiveActivityTokenDTO {
+	@ApiProperty({
+		description: 'Live Activity Push Token',
+	})
+	@IsString()
+	liveActivityToken!: string;
 }

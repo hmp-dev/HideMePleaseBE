@@ -6,6 +6,7 @@ import {
 	IsEnum,
 	IsNotEmpty,
 	IsNumber,
+	IsOptional,
 	IsPositive,
 	IsString,
 	validateSync,
@@ -128,6 +129,10 @@ export class EnvironmentVariables {
 	@IsNotEmpty()
 	@IsString()
 	SBT_BYTECODE!: string;
+
+	@IsOptional()
+	@IsString()
+	IOS_BUNDLE_ID?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

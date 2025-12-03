@@ -8,6 +8,7 @@ import { PushNotificationModule } from '@/api/push-notification/push-notificatio
 import { SpaceController } from '@/api/space/space.controller';
 import { SpaceService } from '@/api/space/space.service';
 import { SpaceCheckInService } from '@/api/space/space-checkin.service';
+import { LiveActivityService } from '@/api/space/live-activity.service';
 import { SirenController } from '@/api/space/siren.controller';
 import { SirenService } from '@/api/space/siren.service';
 import { SpaceLocationModuleModule } from '@/api/space/space-location.module';
@@ -29,7 +30,7 @@ import { NotificationModule } from '../notification/notification.module';
 		ScheduleModule.forRoot(),
 	],
 	controllers: [SpaceController, SirenController],
-	providers: [SpaceService, SpaceCheckInService, SirenService],
-	exports: [SpaceCheckInService],
+	providers: [SpaceService, SpaceCheckInService, LiveActivityService, SirenService],
+	exports: [SpaceCheckInService, LiveActivityService],
 })
 export class SpaceModule {}

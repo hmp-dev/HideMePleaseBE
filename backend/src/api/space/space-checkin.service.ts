@@ -14,6 +14,7 @@ import {
 	CurrentGroupResponse,
 	HeartbeatDTO
 } from '@/api/space/space-checkin.dto';
+import { LiveActivityService } from '@/api/space/live-activity.service';
 import { PointService } from '@/api/points/point.service';
 import { PointSource, PointTransactionType } from '@/api/points/point.types';
 import { PushNotificationService } from '@/api/push-notification/push-notification.service';
@@ -48,6 +49,7 @@ export class SpaceCheckInService {
 		private pushNotificationService: PushNotificationService,
 		private pointService: PointService,
 		private firebaseService: FirebaseService,
+		private liveActivityService: LiveActivityService,
 	) {}
 
 	async checkIn({
@@ -258,6 +260,14 @@ export class SpaceCheckInService {
 			this.logger.log(`FCM 토큰 업데이트: userId=${authContext.userId}`);
 		}
 
+		// Live Activity 토큰 저장 (iOS ActivityKit)
+		if (checkInDTO.liveActivityToken) {
+			await this.liveActivityService.registerLiveActivityToken({
+				userId: authContext.userId,
+				liveActivityToken: checkInDTO.liveActivityToken,
+			});
+		}
+
 		// 같은 트랜잭션을 사용하여 포인트 적립 (실패해도 체크인은 진행)
 		try {
 			await this.pointService.earnPoints({
@@ -398,6 +408,17 @@ export class SpaceCheckInService {
 			this.logger.error(`체크인 완료 알림 전송 실패: ${authContext.userId}`, error);
 		});
 
+		// Live Activity 업데이트 전송 (그룹 멤버들에게)
+		if (currentGroup?.id) {
+			void this.liveActivityService.notifyGroupUpdate({
+				groupId: currentGroup.id,
+				spaceId,
+				spaceName: space.name,
+			}).catch((error) => {
+				this.logger.error('Live Activity 그룹 업데이트 전송 실패', error);
+			});
+		}
+
 		return {
 			success: true,
 			checkInId: checkIn.id,
@@ -423,6 +444,13 @@ export class SpaceCheckInService {
 				spaceId,
 				isActive: true,
 			},
+			include: {
+				space: {
+					select: {
+						name: true,
+					},
+				},
+			},
 		});
 
 		if (!checkIn) {
@@ -433,6 +461,27 @@ export class SpaceCheckInService {
 			where: { id: checkIn.id },
 			data: { isActive: false },
 		});
+
+		// Live Activity 종료
+		void this.liveActivityService.endUserLiveActivity({
+			userId: authContext.userId,
+			spaceId,
+			spaceName: checkIn.space.name,
+			reason: 'checkout',
+		}).catch((error) => {
+			this.logger.error('Live Activity 종료 실패', error);
+		});
+
+		// 같은 그룹의 다른 멤버들에게 업데이트 전송
+		if (checkIn.groupId) {
+			void this.liveActivityService.notifyGroupUpdate({
+				groupId: checkIn.groupId,
+				spaceId,
+				spaceName: checkIn.space.name,
+			}).catch((error) => {
+				this.logger.error('Live Activity 그룹 업데이트 전송 실패', error);
+			});
+		}
 
 		return { success: true };
 	}
@@ -971,8 +1020,23 @@ export class SpaceCheckInService {
 	@Cron(CronExpression.EVERY_DAY_AT_6AM)
 	async resetDailyCheckIns() {
 		this.logger.log('매일 오전 6시 체크인 리셋 시작');
-		
+
 		try {
+			// 활성 체크인 목록 조회 (Live Activity 종료용)
+			const activeCheckIns = await this.prisma.spaceCheckIn.findMany({
+				where: {
+					isActive: true,
+				},
+				include: {
+					space: {
+						select: {
+							name: true,
+						},
+					},
+				},
+			});
+
+			// 모든 활성 체크인 비활성화
 			await this.prisma.spaceCheckIn.updateMany({
 				where: {
 					isActive: true,
@@ -982,7 +1046,20 @@ export class SpaceCheckInService {
 				},
 			});
 
-			this.logger.log('체크인 리셋 완료');
+			// Live Activity 일괄 종료
+			if (activeCheckIns.length > 0) {
+				void this.liveActivityService.endMultipleUserLiveActivities(
+					activeCheckIns.map((checkIn) => ({
+						userId: checkIn.userId,
+						spaceId: checkIn.spaceId,
+						spaceName: checkIn.space.name,
+					})),
+				).catch((error) => {
+					this.logger.error('Live Activity 일괄 종료 실패:', error);
+				});
+			}
+
+			this.logger.log(`체크인 리셋 완료 - ${activeCheckIns.length}명 처리`);
 		} catch (error) {
 			this.logger.error('체크인 리셋 실패:', error);
 		}
@@ -1090,6 +1167,16 @@ export class SpaceCheckInService {
 				this.logger.log(
 					`자동 체크아웃: ${checkIn.user.nickName || checkIn.user.id} - ${checkIn.space.name}`,
 				);
+
+				// Live Activity 종료
+				void this.liveActivityService.endUserLiveActivity({
+					userId: checkIn.userId,
+					spaceId: checkIn.spaceId,
+					spaceName: checkIn.space.name,
+					reason: 'auto_checkout',
+				}).catch((error) => {
+					this.logger.error(`Live Activity 종료 실패 - 사용자: ${checkIn.userId}`, error);
+				});
 
 				// 알림 전송
 				try {
