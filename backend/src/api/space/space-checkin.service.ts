@@ -144,7 +144,14 @@ export class SpaceCheckInService {
 		});
 
 		if (existingTodayCheckIn) {
-			throw new BadRequestException('오늘 이미 체크인한 공간입니다');
+			// 면제 유저인지 확인
+			const isUnlimitedUser = await tx.checkInUnlimitedUser.findUnique({
+				where: { userId: authContext.userId },
+			});
+
+			if (!isUnlimitedUser) {
+				throw new BadRequestException('오늘 이미 체크인한 공간입니다');
+			}
 		}
 
 		const checkInPoints = space.checkInPointsOverride || DEFAULT_CHECK_IN_POINTS;
