@@ -517,6 +517,7 @@ export class SpaceCheckInService {
 			include: {
 				space: {
 					select: {
+						name: true,
 						latitude: true,
 						longitude: true,
 					},
@@ -578,6 +579,18 @@ export class SpaceCheckInService {
 				title: '자동 체크아웃',
 				body: `매장에서 ${maxDistance}m 이상 떨어져 자동 체크아웃되었습니다.`,
 			});
+
+			// Live Activity 종료
+			void this.liveActivityService
+				.endUserLiveActivity({
+					userId: authContext.userId,
+					spaceId,
+					spaceName: checkIn.space.name,
+					reason: 'auto_checkout',
+				})
+				.catch((error) => {
+					this.logger.error('Live Activity 종료 실패', error);
+				});
 
 			return {
 				success: false,
@@ -1013,8 +1026,21 @@ export class SpaceCheckInService {
 			// 알림은 발송하지 않음 (관리자 요청에 따라)
 
 			this.logger.log(
-				`관리자 ${authContext.userId}가 ${space.name}(${spaceId})의 모든 사용자 체크아웃 처리 - 대상: ${activeCheckIns.length}명`
+				`관리자 ${authContext.userId}가 ${space.name}(${spaceId})의 모든 사용자 체크아웃 처리 - 대상: ${activeCheckIns.length}명`,
 			);
+
+			// Live Activity 일괄 종료
+			void this.liveActivityService
+				.endMultipleUserLiveActivities(
+					activeCheckIns.map((checkIn) => ({
+						userId: checkIn.userId,
+						spaceId,
+						spaceName: space.name,
+					})),
+				)
+				.catch((error) => {
+					this.logger.error('Live Activity 일괄 종료 실패:', error);
+				});
 
 			return {
 				success: true,
