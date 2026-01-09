@@ -5,7 +5,7 @@ import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
 @ApiTags('Space Public')
-@Controller('v1/space')
+@Controller('space')
 export class SpacePublicController {
 	constructor(
 		private prisma: PrismaService,
