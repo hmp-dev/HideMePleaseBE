@@ -475,6 +475,10 @@ export class SpaceCheckInService {
 			spaceId,
 			spaceName: checkIn.space.name,
 			reason: 'checkout',
+			checkInData: {
+				checkedInAt: checkIn.checkedInAt,
+				groupId: checkIn.groupId,
+			},
 		}).catch((error) => {
 			this.logger.error('Live Activity 종료 실패', error);
 		});
@@ -1086,6 +1090,10 @@ export class SpaceCheckInService {
 						userId: checkIn.userId,
 						spaceId: checkIn.spaceId,
 						spaceName: checkIn.space.name,
+						checkInData: {
+							checkedInAt: checkIn.checkedInAt,
+							groupId: checkIn.groupId,
+						},
 					})),
 				).catch((error) => {
 					this.logger.error('Live Activity 일괄 종료 실패:', error);
@@ -1207,6 +1215,10 @@ export class SpaceCheckInService {
 					spaceId: checkIn.spaceId,
 					spaceName: checkIn.space.name,
 					reason: 'auto_checkout',
+					checkInData: {
+						checkedInAt: checkIn.checkedInAt,
+						groupId: checkIn.groupId,
+					},
 				}).catch((error) => {
 					this.logger.error(`Live Activity 종료 실패 - 사용자: ${checkIn.userId}`, error);
 				});

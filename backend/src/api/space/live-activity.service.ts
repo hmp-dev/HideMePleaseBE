@@ -124,11 +124,16 @@ export class LiveActivityService {
 		spaceId,
 		spaceName,
 		reason,
+		checkInData,
 	}: {
 		userId: string;
 		spaceId: string;
 		spaceName: string;
 		reason: 'checkout' | 'auto_checkout' | 'daily_reset';
+		checkInData?: {
+			checkedInAt: Date;
+			groupId?: string | null;
+		};
 	}): Promise<void> {
 		const user = await this.prisma.user.findUnique({
 			where: { id: userId },
@@ -139,15 +144,44 @@ export class LiveActivityService {
 			return;
 		}
 
+		// 그룹 정보 조회 (있는 경우)
+		let groupProgress = '0/5';
+		let currentMembers = 0;
+		let requiredMembers = 5;
+		let isCompleted = false;
+		let bonusPoints: number | undefined;
+
+		if (checkInData?.groupId) {
+			const group = await this.prisma.spaceCheckInGroup.findUnique({
+				where: { id: checkInData.groupId },
+				include: { checkIns: { where: { isActive: true } } },
+			});
+			if (group) {
+				currentMembers = group.checkIns.length;
+				requiredMembers = group.requiredMembers;
+				groupProgress = `${currentMembers}/${requiredMembers}`;
+				isCompleted = currentMembers >= requiredMembers;
+				bonusPoints = isCompleted ? group.bonusPoints : undefined;
+			}
+		}
+
+		const elapsedMinutes = checkInData?.checkedInAt
+			? Math.floor(
+					(Date.now() - checkInData.checkedInAt.getTime()) / (1000 * 60),
+				)
+			: 0;
+
 		const contentState: LiveActivityContentState = {
-			groupProgress: '0/5',
-			currentMembers: 0,
-			requiredMembers: 5,
-			checkedInAt: new Date().toISOString(),
-			elapsedMinutes: 0,
+			groupProgress,
+			currentMembers,
+			requiredMembers,
+			checkedInAt:
+				checkInData?.checkedInAt?.toISOString() ?? new Date().toISOString(),
+			elapsedMinutes,
 			spaceName,
 			spaceId,
-			isCompleted: false,
+			isCompleted,
+			bonusPoints,
 		};
 
 		await this.firebaseService.endLiveActivity({
@@ -161,7 +195,15 @@ export class LiveActivityService {
 
 	// 여러 사용자의 Live Activity 일괄 종료 (일일 리셋용)
 	async endMultipleUserLiveActivities(
-		users: { userId: string; spaceId: string; spaceName: string }[],
+		users: {
+			userId: string;
+			spaceId: string;
+			spaceName: string;
+			checkInData?: {
+				checkedInAt: Date;
+				groupId?: string | null;
+			};
+		}[],
 	): Promise<void> {
 		const endPromises = users.map((user) =>
 			this.endUserLiveActivity({
@@ -169,6 +211,7 @@ export class LiveActivityService {
 				spaceId: user.spaceId,
 				spaceName: user.spaceName,
 				reason: 'daily_reset',
+				checkInData: user.checkInData,
 			}).catch((error) => {
 				this.logger.error(
 					`Live Activity 종료 실패: userId=${user.userId}`,
