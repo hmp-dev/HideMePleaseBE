@@ -661,6 +661,24 @@ export class SpaceCheckInService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
+		// 오늘 날짜 기준
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+
+		// 오늘 이 매장에 체크인한 적 있는지 확인
+		const todayCheckIn = await this.prisma.spaceCheckIn.findFirst({
+			where: {
+				userId: authContext.userId,
+				spaceId,
+				checkedInAt: { gte: today },
+			},
+		});
+
+		// 무제한 사용자인지 확인
+		const unlimitedUser = await this.prisma.checkInUnlimitedUser.findUnique({
+			where: { userId: authContext.userId },
+		});
+
 		const checkIn = await this.prisma.spaceCheckIn.findFirst({
 			where: {
 				userId: authContext.userId,
@@ -675,12 +693,14 @@ export class SpaceCheckInService {
 		if (!checkIn) {
 			return {
 				isCheckedIn: false,
+				hasCheckedInToday: !!todayCheckIn,
+				isUnlimitedUser: !!unlimitedUser,
 			};
 		}
 
 		// 그룹 사이즈 결정
-		const groupSize = !checkIn.space.maxCheckInCapacity || checkIn.space.maxCheckInCapacity > 5 
-			? GROUP_SIZE 
+		const groupSize = !checkIn.space.maxCheckInCapacity || checkIn.space.maxCheckInCapacity > 5
+			? GROUP_SIZE
 			: checkIn.space.maxCheckInCapacity;
 
 		// 현재 활성 그룹을 직접 조회
@@ -699,11 +719,13 @@ export class SpaceCheckInService {
 		return {
 			isCheckedIn: true,
 			checkedInAt: checkIn.checkedInAt,
-			groupProgress: currentGroup 
+			groupProgress: currentGroup
 				? `${currentGroup.checkIns.length}/${currentGroup.requiredMembers || groupSize}`
 				: `0/${groupSize}`,
 			earnedPoints: checkIn.pointsEarned,
 			groupId: checkIn.groupId,
+			hasCheckedInToday: !!todayCheckIn,
+			isUnlimitedUser: !!unlimitedUser,
 		};
 	}
 

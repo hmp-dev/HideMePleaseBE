@@ -96,6 +96,12 @@ export class CheckInStatusResponse {
 
 	@ApiProperty({ required: false })
 	groupId?: string;
+
+	@ApiProperty({ description: '오늘 이 매장에 체크인한 적이 있는지' })
+	hasCheckedInToday!: boolean;
+
+	@ApiProperty({ description: '무제한 체크인 사용자인지' })
+	isUnlimitedUser!: boolean;
 }
 
 export class CheckInUserInfo {
