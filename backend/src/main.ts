@@ -43,6 +43,10 @@ import { setupValidationPipe } from './utils/configuration';
 		.setVersion(ApiVersions.V1)
 		.addTag('Hidemeplease-api')
 		.addBearerAuth()
+		.addApiKey(
+			{ type: 'apiKey', name: 'X-API-Key', in: 'header' },
+			'X-API-Key',
+		)
 		.build();
 	const documentOptions: SwaggerDocumentOptions = {
 		operationIdFactory: (_: string, methodKey: string) => methodKey,

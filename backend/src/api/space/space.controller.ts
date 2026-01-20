@@ -16,6 +16,7 @@ import {
 	ApiOperation,
 	ApiParam,
 	ApiQuery,
+	ApiSecurity,
 	ApiTags,
 	ApiResponse,
 	ApiBody,
@@ -44,6 +45,7 @@ import { AuthOrApiKeyGuard } from '../auth/auth-or-api-key.guard';
 
 @ApiTags('Space')
 @ApiBearerAuth()
+@ApiSecurity('X-API-Key')
 @Controller('space')
 export class SpaceController {
 	constructor(

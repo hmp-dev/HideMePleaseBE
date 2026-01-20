@@ -13,6 +13,7 @@ import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiParam,
+	ApiSecurity,
 	ApiTags,
 } from '@nestjs/swagger';
 
@@ -26,6 +27,7 @@ import { ReservationService } from '@/api/reservation/reservation.service';
 
 @ApiTags('Reservation')
 @ApiBearerAuth()
+@ApiSecurity('X-API-Key')
 @UseGuards(AuthOrApiKeyGuard)
 @Controller('reservation')
 export class ReservationController {

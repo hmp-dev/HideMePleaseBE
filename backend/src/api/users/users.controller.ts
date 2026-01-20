@@ -3,6 +3,7 @@ import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiQuery,
+	ApiSecurity,
 	ApiTags,
 } from '@nestjs/swagger';
 
@@ -17,6 +18,7 @@ import { AuthOrApiKeyGuard } from '../auth/auth-or-api-key.guard';
 
 @ApiTags('Users')
 @ApiBearerAuth()
+@ApiSecurity('X-API-Key')
 @Controller('users/:userId')
 export class UsersController {
 	constructor(

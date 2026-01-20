@@ -15,6 +15,7 @@ import {
 	ApiOperation,
 	ApiParam,
 	ApiResponse,
+	ApiSecurity,
 	ApiTags,
 } from '@nestjs/swagger';
 
@@ -31,6 +32,7 @@ import { OwnerService } from '@/api/owner/owner.service';
 
 @ApiTags('Owner')
 @ApiBearerAuth()
+@ApiSecurity('X-API-Key')
 @UseGuards(AuthOrApiKeyGuard, OwnerGuard)
 @Controller('owner')
 export class OwnerController {

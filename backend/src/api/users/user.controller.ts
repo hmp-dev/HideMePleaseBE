@@ -14,6 +14,7 @@ import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiQuery,
+	ApiSecurity,
 	ApiTags,
 } from '@nestjs/swagger';
 import { SupportedChains } from '@prisma/client';
@@ -37,6 +38,7 @@ import { AuthContext, SortOrder } from '@/types';
 
 @ApiTags('User')
 @ApiBearerAuth()
+@ApiSecurity('X-API-Key')
 @Controller('user')
 export class UserController {
 	constructor(
