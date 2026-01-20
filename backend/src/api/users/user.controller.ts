@@ -18,7 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { SupportedChains } from '@prisma/client';
 
-import { AuthGuard } from '@/api/auth/auth.guard';
+import { AuthOrApiKeyGuard } from '@/api/auth/auth-or-api-key.guard';
 import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { BenefitUsageType } from '@/api/nft/nft.types';
 import { NftBenefitsService } from '@/api/nft/nft-benefits.service';
@@ -51,7 +51,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Gets base user',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/')
 	async getUser(@Req() request: Request) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
@@ -61,7 +61,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Delete user',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Delete('/')
 	async deleteUser(@Req() request: Request) {
 		return this.usersService.deleteUser({ request });
@@ -70,7 +70,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Gets user profile',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/profile')
 	async getUserProfile(@Req() request: Request) {
 		return this.usersService.getUserProfile({ request });
@@ -87,7 +87,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Update user profile',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Patch('/profile')
 	async updateUserProfile(
 		@Req() request: Request,
@@ -102,7 +102,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Update last known location',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post('/location')
 	async updateUserLocation(
 		@Req() request: Request,
@@ -117,7 +117,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Gets my selected NFT collections',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collections/selected')
 	getSelectedNftCollections(@Req() request: Request) {
 		return this.userNftService.getSelectedNfts({
@@ -128,7 +128,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Gets my selected NFT collections with points',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collections/selected/points')
 	getSelectedNftCollectionsWithPoints(@Req() request: Request) {
 		return this.userNftService.getSelectedNftsWithPoints({
@@ -139,7 +139,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Update selected nft order',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post('/nft/selected/order')
 	updateSelectedNftOrder(
 		@Req() request: Request,
@@ -154,7 +154,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Toggle nft token selected',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post('nft/select')
 	async toggleNftSelected(
 		@Req() request: Request,
@@ -177,7 +177,7 @@ export class UserController {
 		description: 'next cursor for pagination',
 		required: false,
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collections')
 	getNftCollections(
 		@Req() request: Request,
@@ -206,7 +206,7 @@ export class UserController {
 		description: 'next cursor for pagination',
 		required: false,
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collections/populated')
 	getNftCollectionsPopulated(
 		@Req() request: Request,
@@ -224,7 +224,7 @@ export class UserController {
 	@ApiOperation({
 		summary: 'Get user nft communities',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collections/communities')
 	getUserNftCommunities(@Req() request: Request) {
 		return this.nftCommunityService.getUserNftCommunities({
@@ -250,7 +250,7 @@ export class UserController {
 		enum: SortOrder,
 		required: false,
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collection/:tokenAddress/usage-history')
 	getNftCollectionUsageHistory(
 		@Req() request: Request,

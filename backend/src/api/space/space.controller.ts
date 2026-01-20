@@ -40,7 +40,7 @@ import {
 import { LiveActivityService } from '@/api/space/live-activity.service';
 import { EnumValidationPipe } from '@/exception-filters/enum-validation.pipe';
 
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthOrApiKeyGuard } from '../auth/auth-or-api-key.guard';
 
 @ApiTags('Space')
 @ApiBearerAuth()
@@ -61,7 +61,7 @@ export class SpaceController {
 		status: 201,
 		description: '매장 생성 성공',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post()
 	createSpace(@Body() createSpaceDTO: CreateSpaceDTO) {
 		return this.spaceService.createSpace({ createSpaceDTO });
@@ -108,7 +108,7 @@ export class SpaceController {
 			],
 		},
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get()
 	getSpaceList(
 		@Req() request: Request,
@@ -130,7 +130,7 @@ export class SpaceController {
 	@ApiOperation({
 		summary: 'Get space recommendations',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('recommendations')
 	getSpaceRecommendations() {
 		return this.spaceService.getSpaceRecommendations();
@@ -139,7 +139,7 @@ export class SpaceController {
 	@ApiOperation({
 		summary: 'Get new spaces',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('new-spaces')
 	getNewSpaces() {
 		return this.spaceService.getNewSpaces();
@@ -175,7 +175,7 @@ export class SpaceController {
 			},
 		},
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('space/:spaceId')
 	getSpace(@Req() request: Request, @Param('spaceId') spaceId: string) {
 		return this.spaceService.getSpace({ request, spaceId });
@@ -184,7 +184,7 @@ export class SpaceController {
 	@ApiOperation({
 		summary: 'Get space benefits',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('space/:spaceId/benefits')
 	getSpaceBenefits(
 		@Req() request: Request,
@@ -201,7 +201,7 @@ export class SpaceController {
 		type: 'string',
 	})
 	@HttpCode(HttpStatus.NO_CONTENT)
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post('benefits/redeem/:benefitId')
 	redeemBenefit(
 		@Req() request: Request,
@@ -248,7 +248,7 @@ export class SpaceController {
 		status: 404,
 		description: '매장을 찾을 수 없음',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post(':spaceId/check-in')
 	checkIn(
 		@Req() request: Request,
@@ -288,7 +288,7 @@ export class SpaceController {
 		status: 400,
 		description: '체크인하지 않은 상태',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Delete(':spaceId/check-out')
 	checkOut(
 		@Req() request: Request,
@@ -316,7 +316,7 @@ export class SpaceController {
 		description: '체크인 상태 조회 성공',
 		type: CheckInStatusResponse,
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get(':spaceId/check-in-status')
 	getCheckInStatus(
 		@Req() request: Request,
@@ -342,7 +342,7 @@ export class SpaceController {
 		description: '체크인 사용자 목록 조회 성공',
 		type: CheckInUsersResponse,
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get(':spaceId/check-in-users')
 	getCheckInUsers(@Param('spaceId') spaceId: string) {
 		return this.spaceCheckInService.getCheckInUsers({ spaceId });
@@ -362,7 +362,7 @@ export class SpaceController {
 		description: '그룹 상태 조회 성공',
 		type: CurrentGroupResponse,
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get(':spaceId/current-group')
 	getCurrentGroup(@Param('spaceId') spaceId: string) {
 		return this.spaceCheckInService.getCurrentGroup({ spaceId });
@@ -386,7 +386,7 @@ export class SpaceController {
 		status: 404,
 		description: '매장을 찾을 수 없음',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Delete(':spaceId/check-out-all')
 	checkOutAllUsers(
 		@Req() request: Request,
@@ -415,7 +415,7 @@ export class SpaceController {
 		status: 401,
 		description: '인증 실패',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post('checkin/heartbeat')
 	heartbeat(
 		@Req() request: Request,
@@ -440,7 +440,7 @@ export class SpaceController {
 		status: 401,
 		description: '인증 실패',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('checkin/status')
 	getCurrentCheckInStatus(@Req() request: Request) {
 		return this.spaceCheckInService.getCurrentCheckInStatus({ request });
@@ -461,7 +461,7 @@ export class SpaceController {
 		status: 401,
 		description: '인증 실패',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Post('checkin/live-activity-token')
 	async registerLiveActivityToken(
 		@Req() request: Request,
@@ -487,7 +487,7 @@ export class SpaceController {
 		status: 401,
 		description: '인증 실패',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Delete('checkin/live-activity-token')
 	async removeLiveActivityToken(@Req() request: Request) {
 		const authContext = Reflect.get(request, 'authContext') as { userId: string };

@@ -18,7 +18,7 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 
-import { AuthGuard } from '@/api/auth/auth.guard';
+import { AuthOrApiKeyGuard } from '@/api/auth/auth-or-api-key.guard';
 import { OwnerGuard } from '@/api/owner/owner.guard';
 import {
 	CreateOwnerSpaceDTO,
@@ -31,7 +31,7 @@ import { OwnerService } from '@/api/owner/owner.service';
 
 @ApiTags('Owner')
 @ApiBearerAuth()
-@UseGuards(AuthGuard, OwnerGuard)
+@UseGuards(AuthOrApiKeyGuard, OwnerGuard)
 @Controller('owner')
 export class OwnerController {
 	constructor(private ownerService: OwnerService) {}

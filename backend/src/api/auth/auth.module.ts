@@ -8,6 +8,7 @@ import { ApiKeyGuard } from '@/api/auth/api-key.guard';
 import { ApiKeyService } from '@/api/auth/api-key.service';
 import { AuthController } from '@/api/auth/auth.controller';
 import { AuthGuard } from '@/api/auth/auth.guard';
+import { AuthOrApiKeyGuard } from '@/api/auth/auth-or-api-key.guard';
 import { AuthService } from '@/api/auth/auth.service';
 import { EnsureUserService } from '@/api/auth/ensure-user.service';
 import { CACHE_TTL } from '@/constants';
@@ -30,11 +31,12 @@ import { SendbirdModule } from '@/modules/sendbird/sendbird.module';
 	providers: [
 		AuthGuard,
 		ApiKeyGuard,
+		AuthOrApiKeyGuard,
 		AuthService,
 		ApiKeyService,
 		EnsureUserService,
 		AccessControlService,
 	],
-	exports: [AuthGuard, ApiKeyGuard, ApiKeyService, EnsureUserService, AccessControlService],
+	exports: [AuthGuard, ApiKeyGuard, AuthOrApiKeyGuard, ApiKeyService, EnsureUserService, AccessControlService],
 })
 export class AuthModule {}

@@ -13,7 +13,7 @@ import { UserNftService } from '@/api/users/user-nft.service';
 import { UsersService } from '@/api/users/users.service';
 import { SortOrder } from '@/types';
 
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthOrApiKeyGuard } from '../auth/auth-or-api-key.guard';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -29,7 +29,7 @@ export class UsersController {
 		summary: 'Gets user profile by userId',
 		description: '6.9 Member Details_NFT',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/profile')
 	async getUserProfileById(@Param('userId') userId: string) {
 		const request = userIdToRequest(userId);
@@ -41,7 +41,7 @@ export class UsersController {
 		summary: 'Gets selected NFT collections by userId',
 		description: '6.9 Member Details_NFT',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collections/selected')
 	getSelectedNftCollections(@Param('userId') userId: string) {
 		const request = userIdToRequest(userId);
@@ -54,7 +54,7 @@ export class UsersController {
 	@ApiOperation({
 		summary: 'Gets selected NFT collections with points by userId',
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collections/selected/points')
 	getSelectedNftCollectionsWithPoints(@Param('userId') userId: string) {
 		const request = userIdToRequest(userId);
@@ -82,7 +82,7 @@ export class UsersController {
 		enum: SortOrder,
 		required: false,
 	})
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthOrApiKeyGuard)
 	@Get('/collection/:tokenAddress/usage-history')
 	getNftCollectionUsageHistory(
 		@Param('userId') userId: string,

@@ -16,7 +16,7 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 
-import { AuthGuard } from '@/api/auth/auth.guard';
+import { AuthOrApiKeyGuard } from '@/api/auth/auth-or-api-key.guard';
 import {
 	CreateReservationDTO,
 	GetReservationsQueryDTO,
@@ -26,7 +26,7 @@ import { ReservationService } from '@/api/reservation/reservation.service';
 
 @ApiTags('Reservation')
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
+@UseGuards(AuthOrApiKeyGuard)
 @Controller('reservation')
 export class ReservationController {
 	constructor(private reservationService: ReservationService) {}
