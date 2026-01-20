@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AdminApiKeyController } from '@/api/admin/admin-api-key.controller';
 import { AdminNftController } from '@/api/admin/admin-nft.controller';
 import { AdminNftService } from '@/api/admin/admin-nft.service';
 import { AdminAnnouncementController } from '@/api/admin/admin-announcement.controller';
@@ -13,7 +14,7 @@ import { PushNotificationModule } from '@/api/push-notification/push-notificatio
 
 @Module({
 	imports: [AuthModule, PublicModule, MediaModule, PushNotificationModule],
-	controllers: [AdminNftController, AdminAnnouncementController, AdminOwnerController],
+	controllers: [AdminApiKeyController, AdminNftController, AdminAnnouncementController, AdminOwnerController],
 	providers: [AdminNftService, AdminAnnouncementService, AdminOwnerService],
 	exports: [AdminNftService, AdminAnnouncementService, AdminOwnerService],
 })

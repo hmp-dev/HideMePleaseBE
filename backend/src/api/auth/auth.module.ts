@@ -4,6 +4,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
 import { AccessControlService } from '@/api/auth/access-control.service';
+import { ApiKeyGuard } from '@/api/auth/api-key.guard';
+import { ApiKeyService } from '@/api/auth/api-key.service';
 import { AuthController } from '@/api/auth/auth.controller';
 import { AuthGuard } from '@/api/auth/auth.guard';
 import { AuthService } from '@/api/auth/auth.service';
@@ -27,10 +29,12 @@ import { SendbirdModule } from '@/modules/sendbird/sendbird.module';
 	controllers: [AuthController],
 	providers: [
 		AuthGuard,
+		ApiKeyGuard,
 		AuthService,
+		ApiKeyService,
 		EnsureUserService,
 		AccessControlService,
 	],
-	exports: [AuthGuard, EnsureUserService, AccessControlService],
+	exports: [AuthGuard, ApiKeyGuard, ApiKeyService, EnsureUserService, AccessControlService],
 })
 export class AuthModule {}

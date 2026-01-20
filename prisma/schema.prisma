@@ -1227,3 +1227,18 @@ model Reservation {
   @@index([spaceId, reservationTime])
   @@index([userId, status])
 }
+
+model ApiKey {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  name       String
+  key        String    @unique
+  keyPrefix  String
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+
+  @@index([key])
+  @@index([isActive])
+}
