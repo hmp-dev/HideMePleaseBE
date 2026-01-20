@@ -31,6 +31,10 @@ export const PUSH_NOTIFICATION_TYPES = {
 
 	// 공지사항 관련
 	ANNOUNCEMENT: 'ANNOUNCEMENT',
+
+	// 점주용 알림 타입
+	OWNER_NEW_RESERVATION: 'OWNER_NEW_RESERVATION',
+	OWNER_RESERVATION_CANCELLED: 'OWNER_RESERVATION_CANCELLED',
 } as const;
 
 export type PushNotificationType =

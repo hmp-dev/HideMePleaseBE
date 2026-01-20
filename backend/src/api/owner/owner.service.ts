@@ -514,4 +514,32 @@ export class OwnerService {
 			approvedSpaces,
 		};
 	}
+
+	async registerOwnerFcmToken({
+		request,
+		fcmToken,
+	}: {
+		request: Request;
+		fcmToken: string;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		await this.prisma.user.update({
+			where: { id: authContext.userId },
+			data: { ownerFcmToken: fcmToken },
+		});
+
+		return { success: true };
+	}
+
+	async removeOwnerFcmToken({ request }: { request: Request }) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		await this.prisma.user.update({
+			where: { id: authContext.userId },
+			data: { ownerFcmToken: null },
+		});
+
+		return { success: true };
+	}
 }

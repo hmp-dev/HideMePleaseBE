@@ -249,3 +249,9 @@ export class OwnerDashboardResponse {
 	@ApiProperty({ description: '승인된 매장 수' })
 	approvedSpaces!: number;
 }
+
+export class RegisterOwnerFcmTokenDTO {
+	@ApiProperty({ description: '점주 앱 FCM 토큰' })
+	@IsString()
+	fcmToken!: string;
+}

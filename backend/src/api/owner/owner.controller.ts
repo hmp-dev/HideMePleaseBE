@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Param,
 	Patch,
@@ -13,6 +14,7 @@ import {
 	ApiBearerAuth,
 	ApiOperation,
 	ApiParam,
+	ApiResponse,
 	ApiTags,
 } from '@nestjs/swagger';
 
@@ -23,6 +25,7 @@ import {
 	UpdateOwnerSpaceDTO,
 	GetOwnerReservationsQueryDTO,
 	UpdateReservationStatusDTO,
+	RegisterOwnerFcmTokenDTO,
 } from '@/api/owner/owner.dto';
 import { OwnerService } from '@/api/owner/owner.service';
 
@@ -188,5 +191,37 @@ export class OwnerController {
 			updateDTO,
 			request,
 		});
+	}
+
+	@ApiOperation({
+		summary: '점주 앱 FCM 토큰 등록',
+		description: '점주 앱의 FCM 푸시 토큰을 등록합니다.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '토큰 등록 성공',
+	})
+	@Post('fcm-token')
+	async registerOwnerFcmToken(
+		@Req() request: Request,
+		@Body() dto: RegisterOwnerFcmTokenDTO,
+	) {
+		return this.ownerService.registerOwnerFcmToken({
+			request,
+			fcmToken: dto.fcmToken,
+		});
+	}
+
+	@ApiOperation({
+		summary: '점주 앱 FCM 토큰 삭제',
+		description: '점주 앱의 FCM 푸시 토큰을 삭제합니다.',
+	})
+	@ApiResponse({
+		status: 200,
+		description: '토큰 삭제 성공',
+	})
+	@Delete('fcm-token')
+	async removeOwnerFcmToken(@Req() request: Request) {
+		return this.ownerService.removeOwnerFcmToken({ request });
 	}
 }

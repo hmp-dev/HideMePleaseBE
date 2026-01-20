@@ -1,6 +1,7 @@
 import {
 	BadRequestException,
 	Injectable,
+	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { ReservationStatus } from '@prisma/client';
@@ -10,15 +11,20 @@ import {
 	GetReservationsQueryDTO,
 	CancelReservationDTO,
 } from '@/api/reservation/reservation.dto';
+import { PUSH_NOTIFICATION_TYPES } from '@/api/push-notification/push-notification.types';
+import { FirebaseService } from '@/modules/firebase/firebase.service';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 
 @Injectable()
 export class ReservationService {
+	private readonly logger = new Logger(ReservationService.name);
+
 	constructor(
 		private prisma: PrismaService,
 		private mediaService: MediaService,
+		private firebaseService: FirebaseService,
 	) {}
 
 	async createReservation({
@@ -71,10 +77,49 @@ export class ReservationService {
 								filename_disk: true,
 							},
 						},
+						owner: {
+							select: {
+								id: true,
+								ownerFcmToken: true,
+								nickName: true,
+							},
+						},
+					},
+				},
+				user: {
+					select: {
+						nickName: true,
 					},
 				},
 			},
 		});
+
+		// 점주에게 푸시 알림 전송
+		if (reservation.space.owner?.ownerFcmToken) {
+			const formattedDate = this.formatReservationTime(reservationTime);
+			try {
+				await this.firebaseService.sendNotifications({
+					notification: {
+						title: '새 예약이 접수되었습니다',
+						body: `${reservation.user.nickName || '고객'}님이 ${reservation.guestCount}명 예약 (${formattedDate})`,
+					},
+					data: {
+						type: PUSH_NOTIFICATION_TYPES.OWNER_NEW_RESERVATION,
+						reservationId: reservation.id,
+						spaceId: reservation.spaceId,
+					},
+					token: reservation.space.owner.ownerFcmToken,
+				});
+				this.logger.log(
+					`Owner push notification sent for reservation ${reservation.id}`,
+				);
+			} catch (error) {
+				this.logger.error(
+					`Failed to send owner push notification for reservation ${reservation.id}`,
+					error,
+				);
+			}
+		}
 
 		return {
 			...reservation,
@@ -85,6 +130,14 @@ export class ReservationService {
 					: null,
 			},
 		};
+	}
+
+	private formatReservationTime(date: Date): string {
+		const month = date.getMonth() + 1;
+		const day = date.getDate();
+		const hours = date.getHours();
+		const minutes = date.getMinutes().toString().padStart(2, '0');
+		return `${month}/${day} ${hours}:${minutes}`;
 	}
 
 	async getMyReservations({
@@ -230,6 +283,25 @@ export class ReservationService {
 				userId: authContext.userId,
 				deleted: false,
 			},
+			include: {
+				space: {
+					select: {
+						id: true,
+						name: true,
+						owner: {
+							select: {
+								id: true,
+								ownerFcmToken: true,
+							},
+						},
+					},
+				},
+				user: {
+					select: {
+						nickName: true,
+					},
+				},
+			},
 		});
 
 		if (!reservation) {
@@ -251,6 +323,35 @@ export class ReservationService {
 				cancelReason: cancelDTO.cancelReason,
 			},
 		});
+
+		// 점주에게 예약 취소 푸시 알림 전송
+		if (reservation.space.owner?.ownerFcmToken) {
+			const formattedDate = this.formatReservationTime(
+				reservation.reservationTime,
+			);
+			try {
+				await this.firebaseService.sendNotifications({
+					notification: {
+						title: '예약이 취소되었습니다',
+						body: `${reservation.user.nickName || '고객'}님의 ${formattedDate} 예약이 취소되었습니다`,
+					},
+					data: {
+						type: PUSH_NOTIFICATION_TYPES.OWNER_RESERVATION_CANCELLED,
+						reservationId: reservation.id,
+						spaceId: reservation.spaceId,
+					},
+					token: reservation.space.owner.ownerFcmToken,
+				});
+				this.logger.log(
+					`Owner push notification sent for reservation cancellation ${reservation.id}`,
+				);
+			} catch (error) {
+				this.logger.error(
+					`Failed to send owner push notification for reservation cancellation ${reservation.id}`,
+					error,
+				);
+			}
+		}
 
 		return { success: true, reservation: updated };
 	}

@@ -31,6 +31,7 @@ model User {
   appVersion                String?
   liveActivityToken         String?
   liveActivityTokenUpdatedAt DateTime?
+  ownerFcmToken             String?
   NftCollectionMemberPoints NftCollectionMemberPoints[]
   Notification              Notification[]
   PointTransaction          PointTransaction[]
