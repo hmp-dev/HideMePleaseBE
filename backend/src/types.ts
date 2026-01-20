@@ -10,6 +10,15 @@ export interface AuthContext {
 	userId: string;
 	firebaseId?: string;
 	nullifierHash?: string;
+	isApiKey?: boolean;
+	isAdmin?: boolean;
+}
+
+// API 키 인증 시 사용되는 컨텍스트 (userId가 없을 수 있음)
+export interface ApiKeyAuthContext {
+	isApiKey: true;
+	isAdmin?: boolean;
+	userId?: string;
 }
 
 export enum JwtType {

@@ -1240,6 +1240,7 @@ model ApiKey {
   lastUsedAt DateTime?
   expiresAt  DateTime?
   userId     String?   @db.Uuid
+  isAdmin    Boolean   @default(false)
   user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([key])

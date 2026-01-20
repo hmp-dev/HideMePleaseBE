@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { AuthContext } from '@/types';
+import { AuthContext, ApiKeyAuthContext } from '@/types';
 
 @Injectable()
 export class OwnerGuard implements CanActivate {
@@ -14,7 +14,14 @@ export class OwnerGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const authContext = Reflect.get(request, 'authContext') as
+			| AuthContext
+			| ApiKeyAuthContext;
+
+		// 관리자 API 키는 통과
+		if (authContext?.isApiKey && authContext?.isAdmin) {
+			return true;
+		}
 
 		if (!authContext?.userId) {
 			throw new ForbiddenException('인증이 필요합니다');
@@ -39,7 +46,15 @@ export class OwnerSpaceGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const authContext = Reflect.get(request, 'authContext') as
+			| AuthContext
+			| ApiKeyAuthContext;
+
+		// 관리자 API 키는 통과
+		if (authContext?.isApiKey && authContext?.isAdmin) {
+			return true;
+		}
+
 		const spaceId = request.params.spaceId;
 
 		if (!spaceId) {

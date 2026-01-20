@@ -12,15 +12,25 @@ export class ApiKeyService {
 	/**
 	 * API 키 생성
 	 * @param name API 키 이름 (예: "Partner Integration")
-	 * @param userId 연결할 사용자 ID
-	 * @param expiresAt 만료일 (null이면 무제한)
+	 * @param options.userId 연결할 사용자 ID (isAdmin이 false면 필수)
+	 * @param options.isAdmin 관리자 권한 여부 (true면 userId 불필요)
+	 * @param options.expiresAt 만료일 (null이면 무제한)
 	 * @returns 원본 키와 ID (원본 키는 이 시점에만 반환됨)
 	 */
 	async createApiKey(
 		name: string,
-		userId: string,
-		expiresAt?: Date,
+		options: {
+			userId?: string;
+			isAdmin?: boolean;
+			expiresAt?: Date;
+		},
 	): Promise<{ key: string; id: string; keyPrefix: string }> {
+		const { userId, isAdmin = false, expiresAt } = options;
+
+		if (!isAdmin && !userId) {
+			throw new Error('userId is required when isAdmin is false');
+		}
+
 		const rawKey = this.generateApiKey();
 		const hashedKey = this.hashKey(rawKey);
 		const keyPrefix = rawKey.substring(0, 8);
@@ -30,12 +40,15 @@ export class ApiKeyService {
 				name,
 				key: hashedKey,
 				keyPrefix,
-				userId,
+				userId: userId || null,
+				isAdmin,
 				expiresAt,
 			},
 		});
 
-		this.logger.log(`API key created: ${name} (prefix: ${keyPrefix}) for user: ${userId}`);
+		this.logger.log(
+			`API key created: ${name} (prefix: ${keyPrefix})${isAdmin ? ' [ADMIN]' : ` for user: ${userId}`}`,
+		);
 
 		return {
 			key: rawKey,
@@ -47,11 +60,11 @@ export class ApiKeyService {
 	/**
 	 * API 키 검증 및 정보 반환
 	 * @param rawKey 원본 API 키
-	 * @returns API 키 정보 (userId 포함) 또는 null
+	 * @returns API 키 정보 (userId, isAdmin 포함) 또는 null
 	 */
 	async validateApiKey(
 		rawKey: string,
-	): Promise<{ id: string; userId: string | null } | null> {
+	): Promise<{ id: string; userId: string | null; isAdmin: boolean } | null> {
 		const hashedKey = this.hashKey(rawKey);
 
 		const apiKey = await this.prisma.apiKey.findFirst({
@@ -63,6 +76,7 @@ export class ApiKeyService {
 			select: {
 				id: true,
 				userId: true,
+				isAdmin: true,
 			},
 		});
 
@@ -77,7 +91,7 @@ export class ApiKeyService {
 					this.logger.error('Failed to update lastUsedAt', err);
 				});
 
-			return { id: apiKey.id, userId: apiKey.userId };
+			return { id: apiKey.id, userId: apiKey.userId, isAdmin: apiKey.isAdmin };
 		}
 
 		return null;
@@ -93,6 +107,7 @@ export class ApiKeyService {
 				name: true,
 				keyPrefix: true,
 				isActive: true,
+				isAdmin: true,
 				createdAt: true,
 				lastUsedAt: true,
 				expiresAt: true,
@@ -122,6 +137,7 @@ export class ApiKeyService {
 				name: true,
 				keyPrefix: true,
 				isActive: true,
+				isAdmin: true,
 				createdAt: true,
 				lastUsedAt: true,
 				expiresAt: true,

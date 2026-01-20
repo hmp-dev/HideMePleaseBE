@@ -25,15 +25,21 @@ export class ApiKeyGuard implements CanActivate {
 			throw new UnauthorizedException('Invalid or expired API key');
 		}
 
-		if (!apiKeyInfo.userId) {
-			throw new UnauthorizedException('API key is not linked to a user');
+		if (apiKeyInfo.isAdmin) {
+			// 관리자 API 키: 전체 권한
+			Reflect.set(request, 'authContext', {
+				isApiKey: true,
+				isAdmin: true,
+			});
+		} else if (apiKeyInfo.userId) {
+			// 사용자 연결 API 키: 해당 사용자 권한
+			Reflect.set(request, 'authContext', {
+				userId: apiKeyInfo.userId,
+				isApiKey: true,
+			});
+		} else {
+			throw new UnauthorizedException('API key requires userId or isAdmin');
 		}
-
-		// API 키에 연결된 사용자의 권한으로 인증
-		Reflect.set(request, 'authContext', {
-			userId: apiKeyInfo.userId,
-			isApiKey: true,
-		});
 
 		return true;
 	}
