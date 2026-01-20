@@ -14,21 +14,25 @@ export class ApiKeyGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest<Request>();
-		const apiKey = request.headers['x-api-key'] as string | undefined;
+		const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
 
-		if (!apiKey) {
+		if (!apiKeyHeader) {
 			throw new UnauthorizedException('API key required');
 		}
 
-		const isValid = await this.apiKeyService.validateApiKey(apiKey);
-		if (!isValid) {
+		const apiKeyInfo = await this.apiKeyService.validateApiKey(apiKeyHeader);
+		if (!apiKeyInfo) {
 			throw new UnauthorizedException('Invalid or expired API key');
 		}
 
-		// API 키 인증은 관리자 수준의 전체 접근 권한 부여
+		if (!apiKeyInfo.userId) {
+			throw new UnauthorizedException('API key is not linked to a user');
+		}
+
+		// API 키에 연결된 사용자의 권한으로 인증
 		Reflect.set(request, 'authContext', {
+			userId: apiKeyInfo.userId,
 			isApiKey: true,
-			isAdmin: true,
 		});
 
 		return true;

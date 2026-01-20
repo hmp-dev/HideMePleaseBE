@@ -32,12 +32,12 @@ export class AdminApiKeyController {
 	@ApiOperation({
 		summary: 'API 키 생성',
 		description:
-			'새 API 키를 생성합니다. 원본 키는 생성 시 한 번만 반환됩니다.',
+			'새 API 키를 생성합니다. 원본 키는 생성 시 한 번만 반환됩니다. userId에 연결된 사용자의 권한으로 동작합니다.',
 	})
 	@Post()
 	createApiKey(@Body() dto: CreateApiKeyDTO) {
 		const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : undefined;
-		return this.apiKeyService.createApiKey(dto.name, expiresAt);
+		return this.apiKeyService.createApiKey(dto.name, dto.userId, expiresAt);
 	}
 
 	@ApiOperation({

@@ -25,13 +25,16 @@ export class AuthOrApiKeyGuard implements CanActivate {
 		const request = context.switchToHttp().getRequest<Request>();
 
 		// 1. X-API-Key 헤더 확인
-		const apiKey = request.headers['x-api-key'] as string | undefined;
-		if (apiKey) {
-			const isValid = await this.apiKeyService.validateApiKey(apiKey);
-			if (isValid) {
+		const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
+		if (apiKeyHeader) {
+			const apiKeyInfo = await this.apiKeyService.validateApiKey(apiKeyHeader);
+			if (apiKeyInfo) {
+				if (!apiKeyInfo.userId) {
+					throw new UnauthorizedException('API key is not linked to a user');
+				}
 				Reflect.set(request, 'authContext', {
+					userId: apiKeyInfo.userId,
 					isApiKey: true,
-					isAdmin: true,
 				});
 				return true;
 			}

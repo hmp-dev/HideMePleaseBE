@@ -12,11 +12,13 @@ export class ApiKeyService {
 	/**
 	 * API 키 생성
 	 * @param name API 키 이름 (예: "Partner Integration")
+	 * @param userId 연결할 사용자 ID
 	 * @param expiresAt 만료일 (null이면 무제한)
 	 * @returns 원본 키와 ID (원본 키는 이 시점에만 반환됨)
 	 */
 	async createApiKey(
 		name: string,
+		userId: string,
 		expiresAt?: Date,
 	): Promise<{ key: string; id: string; keyPrefix: string }> {
 		const rawKey = this.generateApiKey();
@@ -28,11 +30,12 @@ export class ApiKeyService {
 				name,
 				key: hashedKey,
 				keyPrefix,
+				userId,
 				expiresAt,
 			},
 		});
 
-		this.logger.log(`API key created: ${name} (prefix: ${keyPrefix})`);
+		this.logger.log(`API key created: ${name} (prefix: ${keyPrefix}) for user: ${userId}`);
 
 		return {
 			key: rawKey,
@@ -42,11 +45,13 @@ export class ApiKeyService {
 	}
 
 	/**
-	 * API 키 검증
+	 * API 키 검증 및 정보 반환
 	 * @param rawKey 원본 API 키
-	 * @returns 유효 여부
+	 * @returns API 키 정보 (userId 포함) 또는 null
 	 */
-	async validateApiKey(rawKey: string): Promise<boolean> {
+	async validateApiKey(
+		rawKey: string,
+	): Promise<{ id: string; userId: string | null } | null> {
 		const hashedKey = this.hashKey(rawKey);
 
 		const apiKey = await this.prisma.apiKey.findFirst({
@@ -54,6 +59,10 @@ export class ApiKeyService {
 				key: hashedKey,
 				isActive: true,
 				OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+			},
+			select: {
+				id: true,
+				userId: true,
 			},
 		});
 
@@ -68,10 +77,10 @@ export class ApiKeyService {
 					this.logger.error('Failed to update lastUsedAt', err);
 				});
 
-			return true;
+			return { id: apiKey.id, userId: apiKey.userId };
 		}
 
-		return false;
+		return null;
 	}
 
 	/**
@@ -87,6 +96,14 @@ export class ApiKeyService {
 				createdAt: true,
 				lastUsedAt: true,
 				expiresAt: true,
+				userId: true,
+				user: {
+					select: {
+						id: true,
+						nickName: true,
+						email: true,
+					},
+				},
 			},
 			orderBy: { createdAt: 'desc' },
 		});
@@ -108,6 +125,14 @@ export class ApiKeyService {
 				createdAt: true,
 				lastUsedAt: true,
 				expiresAt: true,
+				userId: true,
+				user: {
+					select: {
+						id: true,
+						nickName: true,
+						email: true,
+					},
+				},
 			},
 		});
 	}

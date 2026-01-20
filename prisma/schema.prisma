@@ -50,6 +50,7 @@ model User {
   isOwner                   Boolean                     @default(false)
   OwnedSpaces               Space[]                     @relation("SpaceOwner")
   Reservation               Reservation[]
+  ApiKey                    ApiKey[]
 }
 
 model Announcements {
@@ -1238,7 +1239,10 @@ model ApiKey {
   isActive   Boolean   @default(true)
   lastUsedAt DateTime?
   expiresAt  DateTime?
+  userId     String?   @db.Uuid
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([key])
   @@index([isActive])
+  @@index([userId])
 }
