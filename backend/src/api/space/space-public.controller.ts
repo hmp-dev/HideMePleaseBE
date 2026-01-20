@@ -19,6 +19,9 @@ export class SpacePublicController {
 	@Get('public')
 	async getAllSpaces() {
 		const spaces = await this.prisma.space.findMany({
+			where: {
+				storeStatus: 'APPROVED',
+			},
 			select: {
 				id: true,
 				name: true,

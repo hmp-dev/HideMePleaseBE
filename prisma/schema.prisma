@@ -46,6 +46,9 @@ model User {
   FriendshipRequester       Friendship[]                @relation("FriendshipRequester")
   FriendshipAddressee       Friendship[]                @relation("FriendshipAddressee")
   checkInUnlimited          CheckInUnlimitedUser?
+  isOwner                   Boolean                     @default(false)
+  OwnedSpaces               Space[]                     @relation("SpaceOwner")
+  Reservation               Reservation[]
 }
 
 model Announcements {
@@ -211,8 +214,11 @@ model Space {
   checkInRequirements       Json?
   dailyCheckInLimit         Int?
   maxCheckInCapacity        Int?
+  ownerId                   String?                     @db.Uuid
+  storeStatus               StoreStatus                 @default(APPROVED)
   NftCollectionAllowedSpace NftCollectionAllowedSpace[]
   image                     directus_files              @relation(fields: [imageId], references: [id])
+  owner                     User?                       @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   SpaceBenefit              SpaceBenefit[]
   SpaceBusinessHours        SpaceBusinessHours[]
   SpaceCheckIn              SpaceCheckIn[]
@@ -224,6 +230,7 @@ model Space {
   SystemNftCollection       SystemNftCollection[]
   SystemNftCollectionSpace  SystemNftCollectionSpace[]
   UserLastKnownSpace        UserLastKnownSpace[]
+  Reservation               Reservation[]
 }
 
 model SpaceUser {
@@ -1180,4 +1187,42 @@ enum FriendshipStatus {
   ACCEPTED
   REJECTED
   BLOCKED
+}
+
+enum StoreStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model Reservation {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  deleted         Boolean           @default(false)
+  reservationTime DateTime
+  guestCount      Int
+  spaceId         String            @db.Uuid
+  userId          String            @db.Uuid
+  contactNumber   String?
+  memo            String?
+  ownerMemo       String?
+  status          ReservationStatus @default(PENDING)
+  confirmedAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  space           Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, reservationTime])
+  @@index([userId, status])
 }

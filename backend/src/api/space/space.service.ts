@@ -228,6 +228,7 @@ export class SpaceService {
 		const spaces = await this.prisma.space.findMany({
 			where: {
 				category,
+				storeStatus: 'APPROVED',
 				id: {
 					in: sortedSpaceIds,
 				},
@@ -794,5 +795,87 @@ export class SpaceService {
 				: SpaceBenefit.length,
 			hidingCount: hidingUsers[space.id],
 		}));
+	}
+
+	async createSpace({
+		createSpaceDTO,
+	}: {
+		createSpaceDTO: {
+			name: string;
+			nameEn?: string;
+			latitude: number;
+			longitude: number;
+			address: string;
+			addressEn?: string;
+			webLink: string;
+			businessHoursStart: string;
+			businessHoursEnd: string;
+			category: string;
+			introduction?: string;
+			introductionEn?: string;
+			locationDescription?: string;
+			imageId: string;
+			isTemporarilyClosed?: boolean;
+			temporaryClosureReason?: string;
+			temporaryClosureEndDate?: Date;
+			businessHours?: {
+				dayOfWeek: string;
+				openTime?: string;
+				closeTime?: string;
+				breakStartTime?: string;
+				breakEndTime?: string;
+				isClosed: boolean;
+			}[];
+		};
+	}) {
+		const space = await this.prisma.space.create({
+			data: {
+				name: createSpaceDTO.name,
+				nameEn: createSpaceDTO.nameEn,
+				latitude: createSpaceDTO.latitude,
+				longitude: createSpaceDTO.longitude,
+				address: createSpaceDTO.address,
+				addressEn: createSpaceDTO.addressEn,
+				webLink: createSpaceDTO.webLink || '',
+				businessHoursStart: createSpaceDTO.businessHoursStart,
+				businessHoursEnd: createSpaceDTO.businessHoursEnd,
+				category: createSpaceDTO.category as SpaceCategory,
+				introduction: createSpaceDTO.introduction || '',
+				introductionEn: createSpaceDTO.introductionEn,
+				locationDescription: createSpaceDTO.locationDescription || '',
+				imageId: createSpaceDTO.imageId,
+				isTemporarilyClosed: createSpaceDTO.isTemporarilyClosed || false,
+				temporaryClosureReason: createSpaceDTO.temporaryClosureReason,
+				temporaryClosureEndDate: createSpaceDTO.temporaryClosureEndDate,
+				storeStatus: 'APPROVED',
+				SpaceBusinessHours: createSpaceDTO.businessHours
+					? {
+							create: createSpaceDTO.businessHours.map((bh) => ({
+								dayOfWeek: bh.dayOfWeek,
+								openTime: bh.openTime,
+								closeTime: bh.closeTime,
+								breakStartTime: bh.breakStartTime,
+								breakEndTime: bh.breakEndTime,
+								isClosed: bh.isClosed,
+							})),
+						}
+					: undefined,
+			},
+			include: {
+				image: {
+					select: {
+						id: true,
+						filename_download: true,
+						filename_disk: true,
+					},
+				},
+				SpaceBusinessHours: true,
+			},
+		});
+
+		return {
+			...space,
+			image: space.image ? this.mediaService.getUrl(space.image as any) : null,
+		};
 	}
 }

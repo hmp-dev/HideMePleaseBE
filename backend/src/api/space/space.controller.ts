@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { SpaceCategory } from '@prisma/client';
 
-import { RedeemBenefitsDTO } from '@/api/space/space.dto';
+import { CreateSpaceDTO, RedeemBenefitsDTO } from '@/api/space/space.dto';
 import { SpaceService } from '@/api/space/space.service';
 import { SpaceCheckInService } from '@/api/space/space-checkin.service';
 import {
@@ -51,6 +51,21 @@ export class SpaceController {
 		private spaceCheckInService: SpaceCheckInService,
 		private liveActivityService: LiveActivityService,
 	) {}
+
+	@ApiOperation({
+		summary: 'Create a new space',
+		description: '새로운 매장을 등록합니다.',
+	})
+	@ApiBody({ type: CreateSpaceDTO })
+	@ApiResponse({
+		status: 201,
+		description: '매장 생성 성공',
+	})
+	@UseGuards(AuthGuard)
+	@Post()
+	createSpace(@Body() createSpaceDTO: CreateSpaceDTO) {
+		return this.spaceService.createSpace({ createSpaceDTO });
+	}
 
 	@ApiOperation({
 		summary: 'Get spaces list',
