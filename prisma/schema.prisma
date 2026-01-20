@@ -1214,7 +1214,8 @@ model Reservation {
   reservationTime DateTime
   guestCount      Int
   spaceId         String            @db.Uuid
-  userId          String            @db.Uuid
+  userId          String?           @db.Uuid
+  guestName       String?
   contactNumber   String?
   memo            String?
   ownerMemo       String?
@@ -1223,7 +1224,7 @@ model Reservation {
   cancelledAt     DateTime?
   cancelReason    String?
   space           Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([spaceId, reservationTime])
   @@index([userId, status])

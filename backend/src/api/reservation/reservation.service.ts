@@ -35,6 +35,7 @@ export class ReservationService {
 		request: Request;
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+		const userId = authContext?.userId || null;
 
 		const space = await this.prisma.space.findUnique({
 			where: { id: createReservationDTO.spaceId },
@@ -56,7 +57,8 @@ export class ReservationService {
 		const reservation = await this.prisma.reservation.create({
 			data: {
 				spaceId: createReservationDTO.spaceId,
-				userId: authContext.userId,
+				userId,
+				guestName: createReservationDTO.guestName,
 				reservationTime,
 				guestCount: createReservationDTO.guestCount,
 				contactNumber: createReservationDTO.contactNumber,
@@ -97,11 +99,15 @@ export class ReservationService {
 		// 점주에게 푸시 알림 전송
 		if (reservation.space.owner?.ownerFcmToken) {
 			const formattedDate = this.formatReservationTime(reservationTime);
+			const guestDisplayName =
+				reservation.user?.nickName ||
+				reservation.guestName ||
+				'고객';
 			try {
 				await this.firebaseService.sendNotifications({
 					notification: {
 						title: '새 예약이 접수되었습니다',
-						body: `${reservation.user.nickName || '고객'}님이 ${reservation.guestCount}명 예약 (${formattedDate})`,
+						body: `${guestDisplayName}님이 ${reservation.guestCount}명 예약 (${formattedDate})`,
 					},
 					data: {
 						type: PUSH_NOTIFICATION_TYPES.OWNER_NEW_RESERVATION,
@@ -283,7 +289,13 @@ export class ReservationService {
 				userId: authContext.userId,
 				deleted: false,
 			},
-			include: {
+			select: {
+				id: true,
+				reservationTime: true,
+				guestCount: true,
+				guestName: true,
+				spaceId: true,
+				status: true,
 				space: {
 					select: {
 						id: true,
@@ -329,11 +341,13 @@ export class ReservationService {
 			const formattedDate = this.formatReservationTime(
 				reservation.reservationTime,
 			);
+			const guestDisplayName =
+				reservation.user?.nickName || reservation.guestName || '고객';
 			try {
 				await this.firebaseService.sendNotifications({
 					notification: {
 						title: '예약이 취소되었습니다',
-						body: `${reservation.user.nickName || '고객'}님의 ${formattedDate} 예약이 취소되었습니다`,
+						body: `${guestDisplayName}님의 ${formattedDate} 예약이 취소되었습니다`,
 					},
 					data: {
 						type: PUSH_NOTIFICATION_TYPES.OWNER_RESERVATION_CANCELLED,

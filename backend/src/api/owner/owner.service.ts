@@ -263,11 +263,13 @@ export class OwnerService {
 		return {
 			reservations: reservations.map((r) => ({
 				...r,
-				user: {
-					id: r.user.id,
-					nickName: r.user.nickName,
-					profileImageUrl: r.user.finalProfileImageUrl,
-				},
+				user: r.user
+					? {
+							id: r.user.id,
+							nickName: r.user.nickName,
+							profileImageUrl: r.user.finalProfileImageUrl,
+						}
+					: null,
 			})),
 			pagination: {
 				page,

@@ -25,6 +25,11 @@ export class CreateReservationDTO {
 	@Max(100)
 	guestCount!: number;
 
+	@ApiProperty({ description: '예약자 이름 (비회원 예약 시)', required: false })
+	@IsOptional()
+	@IsString()
+	guestName?: string;
+
 	@ApiProperty({ description: '연락처', required: false })
 	@IsOptional()
 	@IsString()
