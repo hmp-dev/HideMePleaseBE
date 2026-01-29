@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
 	IsString,
 	IsOptional,
@@ -8,7 +8,13 @@ import {
 	Max,
 	IsBoolean,
 } from 'class-validator';
-import { ReservationStatus, SpaceCategory, StoreStatus } from '@prisma/client';
+import {
+	BenefitLevel,
+	DayOfWeek,
+	ReservationStatus,
+	SpaceCategory,
+	StoreStatus,
+} from '@prisma/client';
 
 export class CreateOwnerSpaceDTO {
 	@ApiProperty({ description: '매장 이름' })
@@ -67,6 +73,26 @@ export class CreateOwnerSpaceDTO {
 	@ApiProperty({ description: '이미지 ID' })
 	@IsString()
 	imageId!: string;
+
+	@ApiPropertyOptional({ description: '사진 1 ID' })
+	@IsOptional()
+	@IsString()
+	photo1Id?: string;
+
+	@ApiPropertyOptional({ description: '사진 2 ID' })
+	@IsOptional()
+	@IsString()
+	photo2Id?: string;
+
+	@ApiPropertyOptional({ description: '사진 3 ID' })
+	@IsOptional()
+	@IsString()
+	photo3Id?: string;
+
+	@ApiPropertyOptional({ description: '사업자등록증 이미지 ID' })
+	@IsOptional()
+	@IsString()
+	businessRegistrationImageId?: string;
 }
 
 export class UpdateOwnerSpaceDTO {
@@ -124,6 +150,26 @@ export class UpdateOwnerSpaceDTO {
 	@IsOptional()
 	@IsString()
 	temporaryClosureReason?: string;
+
+	@ApiPropertyOptional({ description: '사진 1 ID' })
+	@IsOptional()
+	@IsString()
+	photo1Id?: string;
+
+	@ApiPropertyOptional({ description: '사진 2 ID' })
+	@IsOptional()
+	@IsString()
+	photo2Id?: string;
+
+	@ApiPropertyOptional({ description: '사진 3 ID' })
+	@IsOptional()
+	@IsString()
+	photo3Id?: string;
+
+	@ApiPropertyOptional({ description: '사업자등록증 이미지 ID' })
+	@IsOptional()
+	@IsString()
+	businessRegistrationImageId?: string;
 }
 
 export class SubmitSpaceForApprovalDTO {
@@ -196,6 +242,18 @@ export class OwnerSpaceResponse {
 	@ApiProperty({ required: false })
 	imageUrl?: string;
 
+	@ApiPropertyOptional()
+	photo1Url?: string;
+
+	@ApiPropertyOptional()
+	photo2Url?: string;
+
+	@ApiPropertyOptional()
+	photo3Url?: string;
+
+	@ApiPropertyOptional()
+	businessRegistrationImageUrl?: string;
+
 	@ApiProperty()
 	createdAt!: Date;
 }
@@ -254,4 +312,79 @@ export class RegisterOwnerFcmTokenDTO {
 	@ApiProperty({ description: '점주 앱 FCM 토큰' })
 	@IsString()
 	fcmToken!: string;
+}
+
+export class CreateOwnerBenefitDTO {
+	@ApiProperty({ description: '혜택 설명' })
+	@IsString()
+	description!: string;
+
+	@ApiPropertyOptional({ description: '혜택 설명 (영문)' })
+	@IsOptional()
+	@IsString()
+	descriptionEn?: string;
+
+	@ApiPropertyOptional({ description: '요일', enum: DayOfWeek })
+	@IsOptional()
+	@IsEnum(DayOfWeek)
+	dayOfWeek?: DayOfWeek;
+
+	@ApiPropertyOptional({ description: '혜택 레벨', enum: BenefitLevel })
+	@IsOptional()
+	@IsEnum(BenefitLevel)
+	level?: BenefitLevel;
+
+	@ApiPropertyOptional({ description: '1회성 혜택 여부' })
+	@IsOptional()
+	@IsBoolean()
+	singleUse?: boolean;
+
+	@ApiPropertyOptional({ description: '대표 혜택 여부' })
+	@IsOptional()
+	@IsBoolean()
+	isRepresentative?: boolean;
+}
+
+export class UpdateOwnerBenefitDTO {
+	@ApiPropertyOptional({ description: '혜택 설명' })
+	@IsOptional()
+	@IsString()
+	description?: string;
+
+	@ApiPropertyOptional({ description: '혜택 설명 (영문)' })
+	@IsOptional()
+	@IsString()
+	descriptionEn?: string;
+
+	@ApiPropertyOptional({ description: '요일', enum: DayOfWeek })
+	@IsOptional()
+	@IsEnum(DayOfWeek)
+	dayOfWeek?: DayOfWeek;
+
+	@ApiPropertyOptional({ description: '혜택 레벨', enum: BenefitLevel })
+	@IsOptional()
+	@IsEnum(BenefitLevel)
+	level?: BenefitLevel;
+
+	@ApiPropertyOptional({ description: '1회성 혜택 여부' })
+	@IsOptional()
+	@IsBoolean()
+	singleUse?: boolean;
+
+	@ApiPropertyOptional({ description: '대표 혜택 여부' })
+	@IsOptional()
+	@IsBoolean()
+	isRepresentative?: boolean;
+
+	@ApiPropertyOptional({ description: '활성 여부' })
+	@IsOptional()
+	@IsBoolean()
+	active?: boolean;
+}
+
+export class GetOwnerBenefitsQueryDTO {
+	@ApiPropertyOptional({ description: '요일 필터', enum: DayOfWeek })
+	@IsOptional()
+	@IsEnum(DayOfWeek)
+	dayOfWeek?: DayOfWeek;
 }

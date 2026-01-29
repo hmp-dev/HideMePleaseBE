@@ -8,10 +8,15 @@ import {
 	Post,
 	Query,
 	Req,
+	UploadedFile,
 	UseGuards,
+	UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
 	ApiBearerAuth,
+	ApiBody,
+	ApiConsumes,
 	ApiOperation,
 	ApiParam,
 	ApiResponse,
@@ -27,6 +32,9 @@ import {
 	GetOwnerReservationsQueryDTO,
 	UpdateReservationStatusDTO,
 	RegisterOwnerFcmTokenDTO,
+	CreateOwnerBenefitDTO,
+	UpdateOwnerBenefitDTO,
+	GetOwnerBenefitsQueryDTO,
 } from '@/api/owner/owner.dto';
 import { OwnerService } from '@/api/owner/owner.service';
 
@@ -191,6 +199,108 @@ export class OwnerController {
 		return this.ownerService.noShowReservation({
 			reservationId,
 			updateDTO,
+			request,
+		});
+	}
+
+	// ── Image Upload ──
+
+	@ApiOperation({
+		summary: '이미지 업로드',
+		description:
+			'매장 사진 또는 사업자등록증 이미지를 업로드합니다. 반환된 id를 매장 등록/수정 시 photo1Id 등에 사용합니다.',
+	})
+	@ApiConsumes('multipart/form-data')
+	@ApiBody({
+		schema: {
+			type: 'object',
+			properties: {
+				file: {
+					type: 'string',
+					format: 'binary',
+				},
+			},
+		},
+	})
+	@ApiResponse({
+		status: 201,
+		description: '업로드 성공. { id: string, url: string }',
+	})
+	@UseInterceptors(FileInterceptor('file'))
+	@Post('upload-image')
+	async uploadImage(
+		@Req() request: Request,
+		@UploadedFile() file: Express.Multer.File,
+	) {
+		return this.ownerService.uploadImage({ file, request });
+	}
+
+	// ── Benefit CRUD ──
+
+	@ApiOperation({
+		summary: '혜택 생성',
+		description: '매장에 새로운 혜택을 생성합니다.',
+	})
+	@ApiParam({ name: 'spaceId', description: '매장 ID' })
+	@Post('spaces/:spaceId/benefits')
+	async createBenefit(
+		@Param('spaceId') spaceId: string,
+		@Body() dto: CreateOwnerBenefitDTO,
+		@Req() request: Request,
+	) {
+		return this.ownerService.createBenefit({ spaceId, dto, request });
+	}
+
+	@ApiOperation({
+		summary: '혜택 목록 조회',
+		description: '매장의 혜택 목록을 조회합니다. dayOfWeek 필터를 지원합니다.',
+	})
+	@ApiParam({ name: 'spaceId', description: '매장 ID' })
+	@Get('spaces/:spaceId/benefits')
+	async getBenefits(
+		@Param('spaceId') spaceId: string,
+		@Query() query: GetOwnerBenefitsQueryDTO,
+		@Req() request: Request,
+	) {
+		return this.ownerService.getBenefits({ spaceId, query, request });
+	}
+
+	@ApiOperation({
+		summary: '혜택 수정',
+		description: '매장의 혜택을 수정합니다.',
+	})
+	@ApiParam({ name: 'spaceId', description: '매장 ID' })
+	@ApiParam({ name: 'benefitId', description: '혜택 ID' })
+	@Patch('spaces/:spaceId/benefits/:benefitId')
+	async updateBenefit(
+		@Param('spaceId') spaceId: string,
+		@Param('benefitId') benefitId: string,
+		@Body() dto: UpdateOwnerBenefitDTO,
+		@Req() request: Request,
+	) {
+		return this.ownerService.updateBenefit({
+			spaceId,
+			benefitId,
+			dto,
+			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: '혜택 삭제',
+		description: '매장의 혜택을 삭제합니다.',
+	})
+	@ApiParam({ name: 'spaceId', description: '매장 ID' })
+	@ApiParam({ name: 'benefitId', description: '혜택 ID' })
+	@Delete('spaces/:spaceId/benefits/:benefitId')
+	async deleteBenefit(
+		@Param('spaceId') spaceId: string,
+		@Param('benefitId') benefitId: string,
+		@Req() request: Request,
+	) {
+		return this.ownerService.deleteBenefit({
+			spaceId,
+			benefitId,
 			request,
 		});
 	}

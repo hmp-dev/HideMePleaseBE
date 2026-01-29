@@ -218,8 +218,16 @@ model Space {
   maxCheckInCapacity        Int?
   ownerId                   String?                     @db.Uuid
   storeStatus               StoreStatus                 @default(APPROVED)
+  photo1Id                    String?                     @db.Uuid
+  photo2Id                    String?                     @db.Uuid
+  photo3Id                    String?                     @db.Uuid
+  businessRegistrationImageId String?                     @db.Uuid
   NftCollectionAllowedSpace NftCollectionAllowedSpace[]
   image                     directus_files              @relation(fields: [imageId], references: [id])
+  photo1                    directus_files?             @relation("SpacePhoto1", fields: [photo1Id], references: [id])
+  photo2                    directus_files?             @relation("SpacePhoto2", fields: [photo2Id], references: [id])
+  photo3                    directus_files?             @relation("SpacePhoto3", fields: [photo3Id], references: [id])
+  businessRegistrationImage directus_files?             @relation("SpaceBusinessReg", fields: [businessRegistrationImageId], references: [id])
   owner                     User?                       @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   SpaceBenefit              SpaceBenefit[]
   SpaceBusinessHours        SpaceBusinessHours[]
@@ -271,6 +279,7 @@ model SpaceBenefit {
   level                     BenefitLevel                @default(LEVEL1)
   singleUse                 Boolean                     @default(false)
   isRepresentative          Boolean                     @default(false)
+  dayOfWeek                 DayOfWeek?
   space                     Space                       @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   SpaceBenefitNftCollection SpaceBenefitNftCollection[]
   SpaceBenefitUsage         SpaceBenefitUsage[]
@@ -486,6 +495,10 @@ model directus_files {
   focal_point_x                                                         Int?
   focal_point_y                                                         Int?
   Space                                                                 Space[]
+  SpacePhoto1                                                           Space[]               @relation("SpacePhoto1")
+  SpacePhoto2                                                           Space[]               @relation("SpacePhoto2")
+  SpacePhoto3                                                           Space[]               @relation("SpacePhoto3")
+  SpaceBusinessReg                                                      Space[]               @relation("SpaceBusinessReg")
   SystemConfig                                                          SystemConfig?
   SystemNftCollection                                                   SystemNftCollection[]
   directus_folders                                                      directus_folders?     @relation(fields: [folder], references: [id], onUpdate: NoAction, map: "directus_files_folder_foreign")

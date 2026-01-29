@@ -63,6 +63,24 @@ export class MediaService {
 		}`;
 	}
 
+	async uploadDirectusFile(
+		file: Express.Multer.File,
+	): Promise<directus_files> {
+		const bucket = this.configService.get<string>('S3_BUCKET');
+		const { Key: key } = await this.s3Service.uploadFile({ file, bucket });
+
+		return await this.prisma.directus_files.create({
+			data: {
+				id: require('crypto').randomUUID(),
+				storage: 's3',
+				filename_disk: key,
+				filename_download: file.originalname,
+				type: file.mimetype,
+				filesize: file.size,
+			},
+		});
+	}
+
 	getUrl(mediaFile?: MediaFile | directus_files | null) {
 		if (!mediaFile) {
 			return undefined;

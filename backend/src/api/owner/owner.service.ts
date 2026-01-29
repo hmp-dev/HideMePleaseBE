@@ -11,6 +11,9 @@ import {
 	UpdateOwnerSpaceDTO,
 	GetOwnerReservationsQueryDTO,
 	UpdateReservationStatusDTO,
+	CreateOwnerBenefitDTO,
+	UpdateOwnerBenefitDTO,
+	GetOwnerBenefitsQueryDTO,
 } from '@/api/owner/owner.dto';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -26,6 +29,14 @@ export class OwnerService {
 	async getMySpaces({ request }: { request: Request }) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
+		const fileSelect = {
+			select: {
+				id: true,
+				filename_download: true,
+				filename_disk: true,
+			},
+		} as const;
+
 		const spaces = await this.prisma.space.findMany({
 			where: {
 				ownerId: authContext.userId,
@@ -39,13 +50,11 @@ export class OwnerService {
 				category: true,
 				storeStatus: true,
 				createdAt: true,
-				image: {
-					select: {
-						id: true,
-						filename_download: true,
-						filename_disk: true,
-					},
-				},
+				image: fileSelect,
+				photo1: fileSelect,
+				photo2: fileSelect,
+				photo3: fileSelect,
+				businessRegistrationImage: fileSelect,
 			},
 			orderBy: { createdAt: 'desc' },
 		});
@@ -54,6 +63,18 @@ export class OwnerService {
 			...space,
 			imageUrl: space.image
 				? this.mediaService.getUrl(space.image as any)
+				: null,
+			photo1Url: space.photo1
+				? this.mediaService.getUrl(space.photo1 as any)
+				: null,
+			photo2Url: space.photo2
+				? this.mediaService.getUrl(space.photo2 as any)
+				: null,
+			photo3Url: space.photo3
+				? this.mediaService.getUrl(space.photo3 as any)
+				: null,
+			businessRegistrationImageUrl: space.businessRegistrationImage
+				? this.mediaService.getUrl(space.businessRegistrationImage as any)
 				: null,
 		}));
 	}
@@ -76,6 +97,14 @@ export class OwnerService {
 			throw new BadRequestException('점주 권한이 필요합니다');
 		}
 
+		const fileSelect = {
+			select: {
+				id: true,
+				filename_download: true,
+				filename_disk: true,
+			},
+		} as const;
+
 		const space = await this.prisma.space.create({
 			data: {
 				name: createSpaceDTO.name,
@@ -91,17 +120,20 @@ export class OwnerService {
 				introduction: createSpaceDTO.introduction || '',
 				introductionEn: createSpaceDTO.introductionEn,
 				imageId: createSpaceDTO.imageId,
+				photo1Id: createSpaceDTO.photo1Id,
+				photo2Id: createSpaceDTO.photo2Id,
+				photo3Id: createSpaceDTO.photo3Id,
+				businessRegistrationImageId:
+					createSpaceDTO.businessRegistrationImageId,
 				ownerId: authContext.userId,
 				storeStatus: StoreStatus.DRAFT,
 			},
 			include: {
-				image: {
-					select: {
-						id: true,
-						filename_download: true,
-						filename_disk: true,
-					},
-				},
+				image: fileSelect,
+				photo1: fileSelect,
+				photo2: fileSelect,
+				photo3: fileSelect,
+				businessRegistrationImage: fileSelect,
 			},
 		});
 
@@ -109,6 +141,18 @@ export class OwnerService {
 			...space,
 			imageUrl: space.image
 				? this.mediaService.getUrl(space.image as any)
+				: null,
+			photo1Url: space.photo1
+				? this.mediaService.getUrl(space.photo1 as any)
+				: null,
+			photo2Url: space.photo2
+				? this.mediaService.getUrl(space.photo2 as any)
+				: null,
+			photo3Url: space.photo3
+				? this.mediaService.getUrl(space.photo3 as any)
+				: null,
+			businessRegistrationImageUrl: space.businessRegistrationImage
+				? this.mediaService.getUrl(space.businessRegistrationImage as any)
 				: null,
 		};
 	}
@@ -136,19 +180,30 @@ export class OwnerService {
 			throw new NotFoundException('매장을 찾을 수 없습니다');
 		}
 
+		const fileSelect = {
+			select: {
+				id: true,
+				filename_download: true,
+				filename_disk: true,
+			},
+		} as const;
+
+		const data: any = { ...updateSpaceDTO };
+
+		// APPROVED 상태의 매장을 수정하면 재심사 필요 (DRAFT로 변경)
+		if (space.storeStatus === StoreStatus.APPROVED) {
+			data.storeStatus = StoreStatus.DRAFT;
+		}
+
 		const updated = await this.prisma.space.update({
 			where: { id: spaceId },
-			data: {
-				...updateSpaceDTO,
-			},
+			data,
 			include: {
-				image: {
-					select: {
-						id: true,
-						filename_download: true,
-						filename_disk: true,
-					},
-				},
+				image: fileSelect,
+				photo1: fileSelect,
+				photo2: fileSelect,
+				photo3: fileSelect,
+				businessRegistrationImage: fileSelect,
 			},
 		});
 
@@ -156,6 +211,18 @@ export class OwnerService {
 			...updated,
 			imageUrl: updated.image
 				? this.mediaService.getUrl(updated.image as any)
+				: null,
+			photo1Url: updated.photo1
+				? this.mediaService.getUrl(updated.photo1 as any)
+				: null,
+			photo2Url: updated.photo2
+				? this.mediaService.getUrl(updated.photo2 as any)
+				: null,
+			photo3Url: updated.photo3
+				? this.mediaService.getUrl(updated.photo3 as any)
+				: null,
+			businessRegistrationImageUrl: updated.businessRegistrationImage
+				? this.mediaService.getUrl(updated.businessRegistrationImage as any)
 				: null,
 		};
 	}
@@ -540,6 +607,174 @@ export class OwnerService {
 		await this.prisma.user.update({
 			where: { id: authContext.userId },
 			data: { ownerFcmToken: null },
+		});
+
+		return { success: true };
+	}
+
+	// ── Image Upload ──
+
+	async uploadImage({
+		file,
+		request,
+	}: {
+		file: Express.Multer.File;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const user = await this.prisma.user.findUnique({
+			where: { id: authContext.userId },
+			select: { isOwner: true },
+		});
+
+		if (!user?.isOwner) {
+			throw new BadRequestException('점주 권한이 필요합니다');
+		}
+
+		const directusFile = await this.mediaService.uploadDirectusFile(file);
+
+		return {
+			id: directusFile.id,
+			url: this.mediaService.getUrl(directusFile),
+		};
+	}
+
+	// ── Benefit CRUD ──
+
+	async createBenefit({
+		spaceId,
+		dto,
+		request,
+	}: {
+		spaceId: string;
+		dto: CreateOwnerBenefitDTO;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const space = await this.prisma.space.findFirst({
+			where: { id: spaceId, ownerId: authContext.userId, deleted: false },
+		});
+
+		if (!space) {
+			throw new NotFoundException('매장을 찾을 수 없습니다');
+		}
+
+		const benefit = await this.prisma.spaceBenefit.create({
+			data: {
+				spaceId,
+				description: dto.description,
+				descriptionEn: dto.descriptionEn,
+				dayOfWeek: dto.dayOfWeek,
+				level: dto.level,
+				singleUse: dto.singleUse,
+				isRepresentative: dto.isRepresentative,
+			},
+		});
+
+		return benefit;
+	}
+
+	async getBenefits({
+		spaceId,
+		query,
+		request,
+	}: {
+		spaceId: string;
+		query: GetOwnerBenefitsQueryDTO;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const space = await this.prisma.space.findFirst({
+			where: { id: spaceId, ownerId: authContext.userId, deleted: false },
+		});
+
+		if (!space) {
+			throw new NotFoundException('매장을 찾을 수 없습니다');
+		}
+
+		const where: any = {
+			spaceId,
+			deleted: false,
+		};
+
+		if (query.dayOfWeek) {
+			where.dayOfWeek = query.dayOfWeek;
+		}
+
+		const benefits = await this.prisma.spaceBenefit.findMany({
+			where,
+			orderBy: { createdAt: 'desc' },
+		});
+
+		return benefits;
+	}
+
+	async updateBenefit({
+		spaceId,
+		benefitId,
+		dto,
+		request,
+	}: {
+		spaceId: string;
+		benefitId: string;
+		dto: UpdateOwnerBenefitDTO;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const benefit = await this.prisma.spaceBenefit.findFirst({
+			where: {
+				id: benefitId,
+				spaceId,
+				deleted: false,
+				space: { ownerId: authContext.userId },
+			},
+		});
+
+		if (!benefit) {
+			throw new NotFoundException('혜택을 찾을 수 없습니다');
+		}
+
+		const updated = await this.prisma.spaceBenefit.update({
+			where: { id: benefitId },
+			data: {
+				...dto,
+			},
+		});
+
+		return updated;
+	}
+
+	async deleteBenefit({
+		spaceId,
+		benefitId,
+		request,
+	}: {
+		spaceId: string;
+		benefitId: string;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const benefit = await this.prisma.spaceBenefit.findFirst({
+			where: {
+				id: benefitId,
+				spaceId,
+				deleted: false,
+				space: { ownerId: authContext.userId },
+			},
+		});
+
+		if (!benefit) {
+			throw new NotFoundException('혜택을 찾을 수 없습니다');
+		}
+
+		await this.prisma.spaceBenefit.update({
+			where: { id: benefitId },
+			data: { deleted: true },
 		});
 
 		return { success: true };

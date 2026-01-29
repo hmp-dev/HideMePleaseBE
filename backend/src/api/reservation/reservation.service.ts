@@ -96,6 +96,11 @@ export class ReservationService {
 			},
 		});
 
+		// 디버그 로그
+		this.logger.log(
+			`[DEBUG] 예약 생성 완료: ${reservation.id}, owner: ${JSON.stringify(reservation.space.owner)}`,
+		);
+
 		// 점주에게 푸시 알림 전송
 		if (reservation.space.owner?.ownerFcmToken) {
 			const formattedDate = this.formatReservationTime(reservationTime);
@@ -103,6 +108,9 @@ export class ReservationService {
 				reservation.user?.nickName ||
 				reservation.guestName ||
 				'고객';
+			this.logger.log(
+				`[DEBUG] 푸시 전송 시작: reservationId=${reservation.id}, token=${reservation.space.owner.ownerFcmToken.substring(0, 20)}...`,
+			);
 			try {
 				await this.firebaseService.sendNotifications({
 					notification: {
@@ -125,6 +133,10 @@ export class ReservationService {
 					error,
 				);
 			}
+		} else {
+			this.logger.log(
+				`[DEBUG] 푸시 스킵 - owner: ${!!reservation.space.owner}, token: ${!!reservation.space.owner?.ownerFcmToken}`,
+			);
 		}
 
 		return {
