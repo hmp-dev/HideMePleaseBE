@@ -8,6 +8,7 @@ import {
 	Post,
 	Query,
 	Req,
+	SetMetadata,
 	UploadedFile,
 	UseGuards,
 	UseInterceptors,
@@ -68,6 +69,7 @@ export class OwnerController {
 		summary: '매장 등록',
 		description: '새로운 매장을 등록합니다. (임시저장 상태)',
 	})
+	@SetMetadata('AUTO_PROMOTE_OWNER', true)
 	@Post('spaces')
 	async createSpace(
 		@Body() createSpaceDTO: CreateOwnerSpaceDTO,

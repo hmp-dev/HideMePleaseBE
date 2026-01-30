@@ -106,15 +106,6 @@ export class OwnerService {
 	}) {
 		const authContext = Reflect.get(request, 'authContext') as AuthContext;
 
-		const user = await this.prisma.user.findUnique({
-			where: { id: authContext.userId },
-			select: { isOwner: true },
-		});
-
-		if (!user?.isOwner) {
-			throw new BadRequestException('점주 권한이 필요합니다');
-		}
-
 		const fileSelect = {
 			select: {
 				id: true,

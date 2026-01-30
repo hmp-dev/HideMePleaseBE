@@ -4,13 +4,17 @@ import {
 	ExecutionContext,
 	ForbiddenException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext, ApiKeyAuthContext } from '@/types';
 
 @Injectable()
 export class OwnerGuard implements CanActivate {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private reflector: Reflector,
+	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
@@ -33,6 +37,17 @@ export class OwnerGuard implements CanActivate {
 		});
 
 		if (!user?.isOwner) {
+			const autoPromote = this.reflector.get<boolean>(
+				'AUTO_PROMOTE_OWNER',
+				context.getHandler(),
+			);
+			if (autoPromote) {
+				await this.prisma.user.update({
+					where: { id: authContext.userId },
+					data: { isOwner: true },
+				});
+				return true;
+			}
 			throw new ForbiddenException('점주 권한이 필요합니다');
 		}
 
