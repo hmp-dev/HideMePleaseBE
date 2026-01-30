@@ -228,6 +228,7 @@ export class OwnerController {
 		status: 201,
 		description: '업로드 성공. { id: string, url: string }',
 	})
+	@SetMetadata('AUTO_PROMOTE_OWNER', true)
 	@UseInterceptors(FileInterceptor('file'))
 	@Post('upload-image')
 	async uploadImage(

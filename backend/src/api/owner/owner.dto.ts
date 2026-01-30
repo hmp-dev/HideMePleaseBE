@@ -7,6 +7,8 @@ import {
 	Min,
 	Max,
 	IsBoolean,
+	IsObject,
+	IsArray,
 } from 'class-validator';
 import {
 	BenefitLevel,
@@ -15,6 +17,46 @@ import {
 	SpaceCategory,
 	StoreStatus,
 } from '@prisma/client';
+
+export class BusinessHourEntryDTO {
+	@ApiProperty({ description: '휴무 여부' })
+	@IsBoolean()
+	isClosed!: boolean;
+
+	@ApiProperty({ description: '오픈 시간' })
+	@IsString()
+	openTime!: string;
+
+	@ApiProperty({ description: '마감 시간' })
+	@IsString()
+	closeTime!: string;
+
+	@ApiPropertyOptional({ description: '브레이크 시작 시간' })
+	@IsOptional()
+	@IsString()
+	breakStartTime?: string;
+
+	@ApiPropertyOptional({ description: '브레이크 종료 시간' })
+	@IsOptional()
+	@IsString()
+	breakEndTime?: string;
+}
+
+export class DayBenefitEntryDTO {
+	@ApiProperty({ description: '혜택 이름/설명' })
+	@IsString()
+	name!: string;
+
+	@ApiPropertyOptional({ description: '시작 시간' })
+	@IsOptional()
+	@IsString()
+	startTime?: string;
+
+	@ApiPropertyOptional({ description: '종료 시간' })
+	@IsOptional()
+	@IsString()
+	endTime?: string;
+}
 
 export class CreateOwnerSpaceDTO {
 	@ApiProperty({ description: '매장 이름' })
@@ -26,13 +68,15 @@ export class CreateOwnerSpaceDTO {
 	@IsString()
 	nameEn?: string;
 
-	@ApiProperty({ description: '위도' })
+	@ApiPropertyOptional({ description: '위도' })
+	@IsOptional()
 	@IsNumber()
-	latitude!: number;
+	latitude?: number;
 
-	@ApiProperty({ description: '경도' })
+	@ApiPropertyOptional({ description: '경도' })
+	@IsOptional()
 	@IsNumber()
-	longitude!: number;
+	longitude?: number;
 
 	@ApiProperty({ description: '주소' })
 	@IsString()
@@ -48,13 +92,43 @@ export class CreateOwnerSpaceDTO {
 	@IsString()
 	webLink?: string;
 
-	@ApiProperty({ description: '영업 시작 시간' })
+	@ApiPropertyOptional({ description: '영업 시작 시간' })
+	@IsOptional()
 	@IsString()
-	businessHoursStart!: string;
+	businessHoursStart?: string;
 
-	@ApiProperty({ description: '영업 종료 시간' })
+	@ApiPropertyOptional({ description: '영업 종료 시간' })
+	@IsOptional()
 	@IsString()
-	businessHoursEnd!: string;
+	businessHoursEnd?: string;
+
+	@ApiPropertyOptional({
+		description: '요일별 영업시간',
+		example: {
+			MONDAY: {
+				isClosed: false,
+				openTime: '09:00',
+				closeTime: '20:00',
+				breakStartTime: '',
+				breakEndTime: '',
+			},
+		},
+	})
+	@IsOptional()
+	@IsObject()
+	businessHours?: Record<string, BusinessHourEntryDTO>;
+
+	@ApiPropertyOptional({
+		description: '요일별 혜택',
+		example: {
+			MONDAY: [
+				{ name: '아메리카노 무제한 제공', startTime: '09:00', endTime: '20:00' },
+			],
+		},
+	})
+	@IsOptional()
+	@IsObject()
+	dayBenefits?: Record<string, DayBenefitEntryDTO[]>;
 
 	@ApiProperty({ description: '카테고리', enum: SpaceCategory })
 	@IsEnum(SpaceCategory)
@@ -70,9 +144,10 @@ export class CreateOwnerSpaceDTO {
 	@IsString()
 	introductionEn?: string;
 
-	@ApiProperty({ description: '이미지 ID' })
+	@ApiPropertyOptional({ description: '이미지 ID' })
+	@IsOptional()
 	@IsString()
-	imageId!: string;
+	imageId?: string;
 
 	@ApiPropertyOptional({ description: '사진 1 ID' })
 	@IsOptional()
@@ -98,6 +173,25 @@ export class CreateOwnerSpaceDTO {
 	@IsOptional()
 	@IsString()
 	phoneNumber?: string;
+
+	@ApiPropertyOptional({ description: '최대 체크인 수용량' })
+	@IsOptional()
+	@IsNumber()
+	maxCheckInCapacity?: number;
+
+	@ApiPropertyOptional({ description: '사진 배열 (업로드된 이미지 ID 목록)' })
+	@IsOptional()
+	@IsArray()
+	photos?: any[];
+
+	@ApiPropertyOptional({ description: '대표 사진 인덱스' })
+	@IsOptional()
+	@IsNumber()
+	mainPhotoIndex?: number;
+
+	@ApiPropertyOptional({ description: '사업자등록증 정보' })
+	@IsOptional()
+	businessLicense?: any;
 }
 
 export class UpdateOwnerSpaceDTO {

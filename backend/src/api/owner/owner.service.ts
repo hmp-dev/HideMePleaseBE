@@ -3,7 +3,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { ReservationStatus, StoreStatus } from '@prisma/client';
+import { DayOfWeek, ReservationStatus, StoreStatus } from '@prisma/client';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
 import {
@@ -114,27 +114,81 @@ export class OwnerService {
 			},
 		} as const;
 
+		// businessHours에서 businessHoursStart/End 도출
+		let businessHoursStart =
+			createSpaceDTO.businessHoursStart || '';
+		let businessHoursEnd =
+			createSpaceDTO.businessHoursEnd || '';
+
+		if (
+			createSpaceDTO.businessHours &&
+			(!businessHoursStart || !businessHoursEnd)
+		) {
+			const firstOpenDay = Object.values(
+				createSpaceDTO.businessHours,
+			).find((h) => !h.isClosed);
+			if (firstOpenDay) {
+				businessHoursStart =
+					businessHoursStart || firstOpenDay.openTime || '';
+				businessHoursEnd =
+					businessHoursEnd || firstOpenDay.closeTime || '';
+			}
+		}
+
+		// photos 배열에서 imageId, photo1Id~photo3Id 매핑
+		let imageId = createSpaceDTO.imageId;
+		let photo1Id = createSpaceDTO.photo1Id;
+		let photo2Id = createSpaceDTO.photo2Id;
+		let photo3Id = createSpaceDTO.photo3Id;
+
+		if (createSpaceDTO.photos && createSpaceDTO.photos.length > 0) {
+			const photoIds = createSpaceDTO.photos
+				.map((p: any) => p?.id)
+				.filter(Boolean);
+			const mainIdx = createSpaceDTO.mainPhotoIndex ?? 0;
+			if (photoIds.length > 0) {
+				imageId = imageId || photoIds[mainIdx] || photoIds[0];
+				const remaining = photoIds.filter(
+					(_: any, i: number) => i !== mainIdx,
+				);
+				photo1Id = photo1Id || remaining[0];
+				photo2Id = photo2Id || remaining[1];
+				photo3Id = photo3Id || remaining[2];
+			}
+		}
+
+		// businessLicense에서 businessRegistrationImageId 매핑
+		let businessRegistrationImageId =
+			createSpaceDTO.businessRegistrationImageId;
+		if (
+			!businessRegistrationImageId &&
+			createSpaceDTO.businessLicense?.id
+		) {
+			businessRegistrationImageId =
+				createSpaceDTO.businessLicense.id;
+		}
+
 		const space = await this.prisma.space.create({
 			data: {
 				name: createSpaceDTO.name,
 				nameEn: createSpaceDTO.nameEn,
-				latitude: createSpaceDTO.latitude,
-				longitude: createSpaceDTO.longitude,
+				latitude: createSpaceDTO.latitude ?? 0,
+				longitude: createSpaceDTO.longitude ?? 0,
 				address: createSpaceDTO.address,
 				addressEn: createSpaceDTO.addressEn,
 				webLink: createSpaceDTO.webLink || '',
-				businessHoursStart: createSpaceDTO.businessHoursStart,
-				businessHoursEnd: createSpaceDTO.businessHoursEnd,
+				businessHoursStart,
+				businessHoursEnd,
 				category: createSpaceDTO.category,
 				introduction: createSpaceDTO.introduction || '',
 				introductionEn: createSpaceDTO.introductionEn,
-				imageId: createSpaceDTO.imageId,
-				photo1Id: createSpaceDTO.photo1Id,
-				photo2Id: createSpaceDTO.photo2Id,
-				photo3Id: createSpaceDTO.photo3Id,
-				businessRegistrationImageId:
-					createSpaceDTO.businessRegistrationImageId,
+				imageId: imageId!,
+				photo1Id,
+				photo2Id,
+				photo3Id,
+				businessRegistrationImageId,
 				phoneNumber: createSpaceDTO.phoneNumber,
+				maxCheckInCapacity: createSpaceDTO.maxCheckInCapacity,
 				ownerId: authContext.userId,
 				storeStatus: StoreStatus.DRAFT,
 			},
@@ -146,6 +200,52 @@ export class OwnerService {
 				businessRegistrationImage: fileSelect,
 			},
 		});
+
+		// SpaceBusinessHours 생성
+		if (createSpaceDTO.businessHours) {
+			const businessHoursData = Object.entries(
+				createSpaceDTO.businessHours,
+			).map(([dayOfWeek, hours]) => ({
+				spaceId: space.id,
+				dayOfWeek,
+				isClosed: hours.isClosed ?? false,
+				openTime: hours.openTime || null,
+				closeTime: hours.closeTime || null,
+				breakStartTime: hours.breakStartTime || null,
+				breakEndTime: hours.breakEndTime || null,
+			}));
+
+			await this.prisma.spaceBusinessHours.createMany({
+				data: businessHoursData,
+			});
+		}
+
+		// SpaceBenefit 생성
+		if (createSpaceDTO.dayBenefits) {
+			const validDays = Object.values(DayOfWeek) as string[];
+			const benefitData: {
+				spaceId: string;
+				description: string;
+				dayOfWeek: DayOfWeek;
+			}[] = [];
+			for (const [dayOfWeek, benefits] of Object.entries(
+				createSpaceDTO.dayBenefits,
+			)) {
+				if (!validDays.includes(dayOfWeek)) continue;
+				for (const benefit of benefits) {
+					benefitData.push({
+						spaceId: space.id,
+						description: benefit.name,
+						dayOfWeek: dayOfWeek as DayOfWeek,
+					});
+				}
+			}
+			if (benefitData.length > 0) {
+				await this.prisma.spaceBenefit.createMany({
+					data: benefitData,
+				});
+			}
+		}
 
 		return {
 			...space,
@@ -630,22 +730,10 @@ export class OwnerService {
 
 	async uploadImage({
 		file,
-		request,
 	}: {
 		file: Express.Multer.File;
-		request: Request;
+		request?: Request;
 	}) {
-		const authContext = Reflect.get(request, 'authContext') as AuthContext;
-
-		const user = await this.prisma.user.findUnique({
-			where: { id: authContext.userId },
-			select: { isOwner: true },
-		});
-
-		if (!user?.isOwner) {
-			throw new BadRequestException('점주 권한이 필요합니다');
-		}
-
 		const directusFile = await this.mediaService.uploadDirectusFile(file);
 
 		return {
