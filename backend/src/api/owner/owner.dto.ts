@@ -7,6 +7,9 @@ import {
 	Min,
 	Max,
 	IsBoolean,
+	IsDateString,
+	IsInt,
+	IsObject,
 } from 'class-validator';
 import {
 	BenefitLevel,
@@ -93,6 +96,11 @@ export class CreateOwnerSpaceDTO {
 	@IsOptional()
 	@IsString()
 	businessRegistrationImageId?: string;
+
+	@ApiPropertyOptional({ description: '연락처 (휴대폰번호)' })
+	@IsOptional()
+	@IsString()
+	phoneNumber?: string;
 }
 
 export class UpdateOwnerSpaceDTO {
@@ -170,6 +178,65 @@ export class UpdateOwnerSpaceDTO {
 	@IsOptional()
 	@IsString()
 	businessRegistrationImageId?: string;
+
+	@ApiPropertyOptional({ description: '위도' })
+	@IsOptional()
+	@IsNumber()
+	latitude?: number;
+
+	@ApiPropertyOptional({ description: '경도' })
+	@IsOptional()
+	@IsNumber()
+	longitude?: number;
+
+	@ApiPropertyOptional({ description: '카테고리', enum: SpaceCategory })
+	@IsOptional()
+	@IsEnum(SpaceCategory)
+	category?: SpaceCategory;
+
+	@ApiPropertyOptional({ description: '대표 이미지 ID' })
+	@IsOptional()
+	@IsString()
+	imageId?: string;
+
+	@ApiPropertyOptional({ description: '임시 휴무 종료일' })
+	@IsOptional()
+	@IsString()
+	temporaryClosureEndDate?: string;
+
+	@ApiPropertyOptional({ description: '위치 설명' })
+	@IsOptional()
+	@IsString()
+	locationDescription?: string;
+
+	@ApiPropertyOptional({ description: '체크인 활성화' })
+	@IsOptional()
+	@IsBoolean()
+	checkInEnabled?: boolean;
+
+	@ApiPropertyOptional({ description: '체크인 포인트 오버라이드' })
+	@IsOptional()
+	@IsNumber()
+	checkInPointsOverride?: number;
+
+	@ApiPropertyOptional({ description: '체크인 요구사항' })
+	@IsOptional()
+	checkInRequirements?: any;
+
+	@ApiPropertyOptional({ description: '일일 체크인 한도' })
+	@IsOptional()
+	@IsNumber()
+	dailyCheckInLimit?: number;
+
+	@ApiPropertyOptional({ description: '최대 체크인 수용량' })
+	@IsOptional()
+	@IsNumber()
+	maxCheckInCapacity?: number;
+
+	@ApiPropertyOptional({ description: '연락처 (휴대폰번호)' })
+	@IsOptional()
+	@IsString()
+	phoneNumber?: string;
 }
 
 export class SubmitSpaceForApprovalDTO {
@@ -253,6 +320,60 @@ export class OwnerSpaceResponse {
 
 	@ApiPropertyOptional()
 	businessRegistrationImageUrl?: string;
+
+	@ApiProperty()
+	latitude!: number;
+
+	@ApiProperty()
+	longitude!: number;
+
+	@ApiProperty({ required: false })
+	addressEn?: string;
+
+	@ApiProperty({ required: false })
+	webLink?: string;
+
+	@ApiProperty()
+	businessHoursStart!: string;
+
+	@ApiProperty()
+	businessHoursEnd!: string;
+
+	@ApiProperty({ required: false })
+	introduction?: string;
+
+	@ApiProperty({ required: false })
+	introductionEn?: string;
+
+	@ApiProperty({ required: false })
+	locationDescription?: string;
+
+	@ApiProperty()
+	isTemporarilyClosed!: boolean;
+
+	@ApiProperty({ required: false })
+	temporaryClosureReason?: string;
+
+	@ApiProperty({ required: false })
+	temporaryClosureEndDate?: string;
+
+	@ApiProperty()
+	checkInEnabled!: boolean;
+
+	@ApiProperty({ required: false })
+	checkInPointsOverride?: number;
+
+	@ApiProperty({ required: false })
+	checkInRequirements?: any;
+
+	@ApiProperty({ required: false })
+	dailyCheckInLimit?: number;
+
+	@ApiProperty({ required: false })
+	maxCheckInCapacity?: number;
+
+	@ApiProperty({ required: false })
+	phoneNumber?: string;
 
 	@ApiProperty()
 	createdAt!: Date;

@@ -208,6 +208,7 @@ model Space {
   nameEn                    String?
   introductionEn            String?
   addressEn                 String?
+  phoneNumber               String?
   isTemporarilyClosed       Boolean                     @default(false)
   temporaryClosureReason    String?
   temporaryClosureEndDate   DateTime?

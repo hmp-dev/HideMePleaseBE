@@ -55,6 +55,24 @@ export class OwnerService {
 				photo2: fileSelect,
 				photo3: fileSelect,
 				businessRegistrationImage: fileSelect,
+				latitude: true,
+				longitude: true,
+				addressEn: true,
+				webLink: true,
+				businessHoursStart: true,
+				businessHoursEnd: true,
+				introduction: true,
+				introductionEn: true,
+				locationDescription: true,
+				isTemporarilyClosed: true,
+				temporaryClosureReason: true,
+				temporaryClosureEndDate: true,
+				checkInEnabled: true,
+				checkInPointsOverride: true,
+				checkInRequirements: true,
+				dailyCheckInLimit: true,
+				maxCheckInCapacity: true,
+				phoneNumber: true,
 			},
 			orderBy: { createdAt: 'desc' },
 		});
@@ -125,6 +143,7 @@ export class OwnerService {
 				photo3Id: createSpaceDTO.photo3Id,
 				businessRegistrationImageId:
 					createSpaceDTO.businessRegistrationImageId,
+				phoneNumber: createSpaceDTO.phoneNumber,
 				ownerId: authContext.userId,
 				storeStatus: StoreStatus.DRAFT,
 			},
@@ -189,6 +208,10 @@ export class OwnerService {
 		} as const;
 
 		const data: any = { ...updateSpaceDTO };
+
+		if (data.temporaryClosureEndDate) {
+			data.temporaryClosureEndDate = new Date(data.temporaryClosureEndDate);
+		}
 
 		// APPROVED 상태의 매장을 수정하면 재심사 필요 (DRAFT로 변경)
 		if (space.storeStatus === StoreStatus.APPROVED) {
