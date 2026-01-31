@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
 	IsArray,
 	IsBoolean,
+	IsDateString,
 	IsNumber,
 	IsOptional,
 	IsString,
@@ -62,6 +63,36 @@ export class UpdateUserProfileDTO {
 	@IsOptional()
 	@IsString()
 	appVersion?: string;
+
+	@ApiProperty({ description: '휴대폰 번호' })
+	@IsOptional()
+	@IsString()
+	phoneNumber?: string;
+
+	@ApiProperty({ description: '점주 실명' })
+	@IsOptional()
+	@IsString()
+	ownerName?: string;
+
+	@ApiProperty({ description: '약관 동의 여부' })
+	@IsOptional()
+	@IsBoolean()
+	termsAccepted?: boolean;
+
+	@ApiProperty({ description: '약관 동의 시각 (ISO 8601)' })
+	@IsOptional()
+	@IsDateString()
+	termsAcceptedAt?: string;
+
+	@ApiProperty({ description: '마케팅 수신 동의 여부' })
+	@IsOptional()
+	@IsBoolean()
+	marketingOptIn?: boolean;
+
+	@ApiProperty({ description: '알림 설정 완료 여부' })
+	@IsOptional()
+	@IsBoolean()
+	notificationSetupCompleted?: boolean;
 }
 
 export class UpdateLastKnownLocationDTO {

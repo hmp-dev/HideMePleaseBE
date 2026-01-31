@@ -14,6 +14,7 @@ import {
 	CreateOwnerBenefitDTO,
 	UpdateOwnerBenefitDTO,
 	GetOwnerBenefitsQueryDTO,
+	OwnerSpaceStatusDTO,
 } from '@/api/owner/owner.dto';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -73,6 +74,32 @@ export class OwnerService {
 				dailyCheckInLimit: true,
 				maxCheckInCapacity: true,
 				phoneNumber: true,
+				eventEnabled: true,
+				reservationEnabled: true,
+				parkingAvailable: true,
+				valetAvailable: true,
+				groupSeatingAvailable: true,
+				highChairAvailable: true,
+				outletAvailable: true,
+				wheelchairAccessible: true,
+				noKidsZone: true,
+				petFriendly: true,
+				veganType: true,
+				veganFriendly: true,
+				wifiAvailable: true,
+				wifiSsid: true,
+				restroomLocation: true,
+				restroomGender: true,
+				smokingArea: true,
+				paymentMethods: true,
+				reservationDepositRequired: true,
+				waitlistAvailable: true,
+				maxReservationPartySize: true,
+				soldOutMenuIds: true,
+				terraceSeating: true,
+				lastOrderTime: true,
+				takeoutAvailable: true,
+				strollerStorage: true,
 			},
 			orderBy: { createdAt: 'desc' },
 		});
@@ -189,6 +216,32 @@ export class OwnerService {
 				businessRegistrationImageId,
 				phoneNumber: createSpaceDTO.phoneNumber,
 				maxCheckInCapacity: createSpaceDTO.maxCheckInCapacity,
+				eventEnabled: createSpaceDTO.eventEnabled,
+				reservationEnabled: createSpaceDTO.reservationEnabled,
+				parkingAvailable: createSpaceDTO.parkingAvailable,
+				valetAvailable: createSpaceDTO.valetAvailable,
+				groupSeatingAvailable: createSpaceDTO.groupSeatingAvailable,
+				highChairAvailable: createSpaceDTO.highChairAvailable,
+				outletAvailable: createSpaceDTO.outletAvailable,
+				wheelchairAccessible: createSpaceDTO.wheelchairAccessible,
+				noKidsZone: createSpaceDTO.noKidsZone,
+				petFriendly: createSpaceDTO.petFriendly,
+				veganType: createSpaceDTO.veganType,
+				veganFriendly: createSpaceDTO.veganFriendly,
+				wifiAvailable: createSpaceDTO.wifiAvailable,
+				wifiSsid: createSpaceDTO.wifiSsid,
+				restroomLocation: createSpaceDTO.restroomLocation,
+				restroomGender: createSpaceDTO.restroomGender,
+				smokingArea: createSpaceDTO.smokingArea,
+				paymentMethods: createSpaceDTO.paymentMethods,
+				reservationDepositRequired: createSpaceDTO.reservationDepositRequired,
+				waitlistAvailable: createSpaceDTO.waitlistAvailable,
+				maxReservationPartySize: createSpaceDTO.maxReservationPartySize,
+				soldOutMenuIds: createSpaceDTO.soldOutMenuIds,
+				terraceSeating: createSpaceDTO.terraceSeating,
+				lastOrderTime: createSpaceDTO.lastOrderTime,
+				takeoutAvailable: createSpaceDTO.takeoutAvailable,
+				strollerStorage: createSpaceDTO.strollerStorage,
 				ownerId: authContext.userId,
 				storeStatus: StoreStatus.DRAFT,
 			},
@@ -339,6 +392,42 @@ export class OwnerService {
 				? this.mediaService.getUrl(updated.businessRegistrationImage as any)
 				: null,
 		};
+	}
+
+	async updateSpaceStatus({
+		spaceId,
+		statusDTO,
+		request,
+	}: {
+		spaceId: string;
+		statusDTO: OwnerSpaceStatusDTO;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const space = await this.prisma.space.findFirst({
+			where: {
+				id: spaceId,
+				ownerId: authContext.userId,
+				deleted: false,
+			},
+		});
+
+		if (!space) {
+			throw new NotFoundException('매장을 찾을 수 없습니다');
+		}
+
+		const data: any = { ...statusDTO };
+		if (data.temporaryClosureEndDate) {
+			data.temporaryClosureEndDate = new Date(data.temporaryClosureEndDate);
+		}
+
+		const updated = await this.prisma.space.update({
+			where: { id: spaceId },
+			data,
+		});
+
+		return { success: true, space: updated };
 	}
 
 	async submitForApproval({
