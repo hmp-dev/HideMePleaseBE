@@ -190,6 +190,12 @@ export class UsersService {
 			onboardingCompleted,
 			appOS,
 			appVersion,
+			phoneNumber,
+			ownerName,
+			termsAccepted,
+			termsAcceptedAt,
+			marketingOptIn,
+			notificationSetupCompleted,
 		},
 		request,
 	}: {
@@ -211,6 +217,16 @@ export class UsersService {
 		if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
 		if (appOS !== undefined) updateData.appOS = appOS;
 		if (appVersion !== undefined) updateData.appVersion = appVersion;
+		if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+		if (ownerName !== undefined) updateData.ownerName = ownerName;
+		if (termsAccepted !== undefined) updateData.termsAccepted = termsAccepted;
+		if (termsAcceptedAt !== undefined) {
+			updateData.termsAcceptedAt = new Date(termsAcceptedAt);
+		}
+		if (marketingOptIn !== undefined) updateData.marketingOptIn = marketingOptIn;
+		if (notificationSetupCompleted !== undefined) {
+			updateData.notificationSetupCompleted = notificationSetupCompleted;
+		}
 
 		await this.prisma.user.update({
 			where: {

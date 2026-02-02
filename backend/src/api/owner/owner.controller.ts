@@ -36,6 +36,7 @@ import {
 	CreateOwnerBenefitDTO,
 	UpdateOwnerBenefitDTO,
 	GetOwnerBenefitsQueryDTO,
+	OwnerSpaceStatusDTO,
 } from '@/api/owner/owner.dto';
 import { OwnerService } from '@/api/owner/owner.service';
 
@@ -95,6 +96,24 @@ export class OwnerController {
 		return this.ownerService.updateSpace({
 			spaceId,
 			updateSpaceDTO,
+			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: '매장 상태 업데이트',
+		description: '운영 상태(휴무/이벤트/예약)를 업데이트합니다.',
+	})
+	@ApiParam({ name: 'spaceId', description: '매장 ID' })
+	@Patch('spaces/:spaceId/status')
+	async updateSpaceStatus(
+		@Param('spaceId') spaceId: string,
+		@Body() statusDTO: OwnerSpaceStatusDTO,
+		@Req() request: Request,
+	) {
+		return this.ownerService.updateSpaceStatus({
+			spaceId,
+			statusDTO,
 			request,
 		});
 	}

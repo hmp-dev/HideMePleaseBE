@@ -22,6 +22,12 @@ model User {
   fcmToken                  String?
   loginType                 LoginType
   email                     String?
+  phoneNumber               String?
+  ownerName                 String?
+  termsAccepted             Boolean                     @default(false)
+  termsAcceptedAt           DateTime?
+  marketingOptIn            Boolean                     @default(false)
+  notificationSetupCompleted Boolean                    @default(false)
   chatAccessToken           String?
   profilePartsString        String?
   finalProfileImageUrl      String?
@@ -209,6 +215,32 @@ model Space {
   introductionEn            String?
   addressEn                 String?
   phoneNumber               String?
+  eventEnabled              Boolean?
+  reservationEnabled        Boolean?
+  parkingAvailable          Boolean?
+  valetAvailable            Boolean?
+  groupSeatingAvailable     Boolean?
+  highChairAvailable        Boolean?
+  outletAvailable           Boolean?
+  wheelchairAccessible      Boolean?
+  noKidsZone                Boolean?
+  petFriendly               Boolean?
+  veganType                 VeganType?
+  veganFriendly             Boolean?
+  wifiAvailable             Boolean?
+  wifiSsid                  String?
+  restroomLocation          RestroomLocation?
+  restroomGender            RestroomGender?
+  smokingArea               Boolean?
+  paymentMethods            Json?
+  reservationDepositRequired Boolean?
+  waitlistAvailable         Boolean?
+  maxReservationPartySize   Int?
+  soldOutMenuIds            Json?
+  terraceSeating            Boolean?
+  lastOrderTime             String?
+  takeoutAvailable          Boolean?
+  strollerStorage           Boolean?
   isTemporarilyClosed       Boolean                     @default(false)
   temporaryClosureReason    String?
   temporaryClosureEndDate   DateTime?
@@ -1218,6 +1250,24 @@ enum ReservationStatus {
   CANCELLED
   COMPLETED
   NO_SHOW
+}
+
+enum VeganType {
+  NONE
+  OPTIONS
+  ALL
+}
+
+enum RestroomLocation {
+  IN_STORE
+  OUTSIDE
+  NONE
+}
+
+enum RestroomGender {
+  UNISEX
+  SEPARATED
+  UNKNOWN
 }
 
 model Reservation {

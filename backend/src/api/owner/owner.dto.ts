@@ -14,8 +14,11 @@ import {
 	BenefitLevel,
 	DayOfWeek,
 	ReservationStatus,
+	RestroomGender,
+	RestroomLocation,
 	SpaceCategory,
 	StoreStatus,
+	VeganType,
 } from '@prisma/client';
 
 export class BusinessHourEntryDTO {
@@ -179,6 +182,138 @@ export class CreateOwnerSpaceDTO {
 	@IsNumber()
 	maxCheckInCapacity?: number;
 
+	@ApiPropertyOptional({ description: '이벤트 활성화 여부' })
+	@IsOptional()
+	@IsBoolean()
+	eventEnabled?: boolean;
+
+	@ApiPropertyOptional({ description: '예약 활성화 여부' })
+	@IsOptional()
+	@IsBoolean()
+	reservationEnabled?: boolean;
+
+	@ApiPropertyOptional({ description: '주차 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	parkingAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '발렛 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	valetAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '단체석 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	groupSeatingAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '유아 의자 여부' })
+	@IsOptional()
+	@IsBoolean()
+	highChairAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '콘센트 사용 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	outletAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '휠체어 접근 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	wheelchairAccessible?: boolean;
+
+	@ApiPropertyOptional({ description: '노키즈존 여부' })
+	@IsOptional()
+	@IsBoolean()
+	noKidsZone?: boolean;
+
+	@ApiPropertyOptional({ description: '반려동물 동반 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	petFriendly?: boolean;
+
+	@ApiPropertyOptional({ description: '비건 옵션 타입', enum: VeganType })
+	@IsOptional()
+	@IsEnum(VeganType)
+	veganType?: VeganType;
+
+	@ApiPropertyOptional({ description: '비건 친화(레거시) 여부' })
+	@IsOptional()
+	@IsBoolean()
+	veganFriendly?: boolean;
+
+	@ApiPropertyOptional({ description: '와이파이 제공 여부' })
+	@IsOptional()
+	@IsBoolean()
+	wifiAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '와이파이 SSID' })
+	@IsOptional()
+	@IsString()
+	wifiSsid?: string;
+
+	@ApiPropertyOptional({ description: '화장실 위치', enum: RestroomLocation })
+	@IsOptional()
+	@IsEnum(RestroomLocation)
+	restroomLocation?: RestroomLocation;
+
+	@ApiPropertyOptional({ description: '화장실 구분', enum: RestroomGender })
+	@IsOptional()
+	@IsEnum(RestroomGender)
+	restroomGender?: RestroomGender;
+
+	@ApiPropertyOptional({ description: '흡연 공간 여부' })
+	@IsOptional()
+	@IsBoolean()
+	smokingArea?: boolean;
+
+	@ApiPropertyOptional({ description: '결제 수단 목록' })
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	paymentMethods?: string[];
+
+	@ApiPropertyOptional({ description: '예약 보증금 필요 여부' })
+	@IsOptional()
+	@IsBoolean()
+	reservationDepositRequired?: boolean;
+
+	@ApiPropertyOptional({ description: '대기열 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	waitlistAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '최대 예약 인원' })
+	@IsOptional()
+	@IsNumber()
+	maxReservationPartySize?: number;
+
+	@ApiPropertyOptional({ description: '품절 메뉴 ID 목록' })
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	soldOutMenuIds?: string[];
+
+	@ApiPropertyOptional({ description: '테라스 좌석 여부' })
+	@IsOptional()
+	@IsBoolean()
+	terraceSeating?: boolean;
+
+	@ApiPropertyOptional({ description: '라스트 오더 시간' })
+	@IsOptional()
+	@IsString()
+	lastOrderTime?: string;
+
+	@ApiPropertyOptional({ description: '테이크아웃 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	takeoutAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '유모차 보관 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	strollerStorage?: boolean;
+
 	@ApiPropertyOptional({ description: '사진 배열 (업로드된 이미지 ID 목록)' })
 	@IsOptional()
 	@IsArray()
@@ -328,6 +463,165 @@ export class UpdateOwnerSpaceDTO {
 	@IsOptional()
 	@IsString()
 	phoneNumber?: string;
+
+	@ApiPropertyOptional({ description: '이벤트 활성화 여부' })
+	@IsOptional()
+	@IsBoolean()
+	eventEnabled?: boolean;
+
+	@ApiPropertyOptional({ description: '예약 활성화 여부' })
+	@IsOptional()
+	@IsBoolean()
+	reservationEnabled?: boolean;
+
+	@ApiPropertyOptional({ description: '주차 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	parkingAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '발렛 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	valetAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '단체석 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	groupSeatingAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '유아 의자 여부' })
+	@IsOptional()
+	@IsBoolean()
+	highChairAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '콘센트 사용 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	outletAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '휠체어 접근 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	wheelchairAccessible?: boolean;
+
+	@ApiPropertyOptional({ description: '노키즈존 여부' })
+	@IsOptional()
+	@IsBoolean()
+	noKidsZone?: boolean;
+
+	@ApiPropertyOptional({ description: '반려동물 동반 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	petFriendly?: boolean;
+
+	@ApiPropertyOptional({ description: '비건 옵션 타입', enum: VeganType })
+	@IsOptional()
+	@IsEnum(VeganType)
+	veganType?: VeganType;
+
+	@ApiPropertyOptional({ description: '비건 친화(레거시) 여부' })
+	@IsOptional()
+	@IsBoolean()
+	veganFriendly?: boolean;
+
+	@ApiPropertyOptional({ description: '와이파이 제공 여부' })
+	@IsOptional()
+	@IsBoolean()
+	wifiAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '와이파이 SSID' })
+	@IsOptional()
+	@IsString()
+	wifiSsid?: string;
+
+	@ApiPropertyOptional({ description: '화장실 위치', enum: RestroomLocation })
+	@IsOptional()
+	@IsEnum(RestroomLocation)
+	restroomLocation?: RestroomLocation;
+
+	@ApiPropertyOptional({ description: '화장실 구분', enum: RestroomGender })
+	@IsOptional()
+	@IsEnum(RestroomGender)
+	restroomGender?: RestroomGender;
+
+	@ApiPropertyOptional({ description: '흡연 공간 여부' })
+	@IsOptional()
+	@IsBoolean()
+	smokingArea?: boolean;
+
+	@ApiPropertyOptional({ description: '결제 수단 목록' })
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	paymentMethods?: string[];
+
+	@ApiPropertyOptional({ description: '예약 보증금 필요 여부' })
+	@IsOptional()
+	@IsBoolean()
+	reservationDepositRequired?: boolean;
+
+	@ApiPropertyOptional({ description: '대기열 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	waitlistAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '최대 예약 인원' })
+	@IsOptional()
+	@IsNumber()
+	maxReservationPartySize?: number;
+
+	@ApiPropertyOptional({ description: '품절 메뉴 ID 목록' })
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	soldOutMenuIds?: string[];
+
+	@ApiPropertyOptional({ description: '테라스 좌석 여부' })
+	@IsOptional()
+	@IsBoolean()
+	terraceSeating?: boolean;
+
+	@ApiPropertyOptional({ description: '라스트 오더 시간' })
+	@IsOptional()
+	@IsString()
+	lastOrderTime?: string;
+
+	@ApiPropertyOptional({ description: '테이크아웃 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	takeoutAvailable?: boolean;
+
+	@ApiPropertyOptional({ description: '유모차 보관 가능 여부' })
+	@IsOptional()
+	@IsBoolean()
+	strollerStorage?: boolean;
+}
+
+export class OwnerSpaceStatusDTO {
+	@ApiPropertyOptional({ description: '임시 휴무 여부' })
+	@IsOptional()
+	@IsBoolean()
+	isTemporarilyClosed?: boolean;
+
+	@ApiPropertyOptional({ description: '임시 휴무 사유' })
+	@IsOptional()
+	@IsString()
+	temporaryClosureReason?: string;
+
+	@ApiPropertyOptional({ description: '임시 휴무 종료일' })
+	@IsOptional()
+	@IsString()
+	temporaryClosureEndDate?: string;
+
+	@ApiPropertyOptional({ description: '이벤트 활성화 여부' })
+	@IsOptional()
+	@IsBoolean()
+	eventEnabled?: boolean;
+
+	@ApiPropertyOptional({ description: '예약 활성화 여부' })
+	@IsOptional()
+	@IsBoolean()
+	reservationEnabled?: boolean;
 }
 
 export class SubmitSpaceForApprovalDTO {
