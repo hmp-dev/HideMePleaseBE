@@ -67,6 +67,29 @@ export class OwnerController {
 	}
 
 	@ApiOperation({
+		summary: '매장 단건 조회',
+		description: '점주가 소유한 매장의 상세 정보를 조회합니다.',
+	})
+	@ApiParam({ name: 'spaceId', description: '매장 ID' })
+	@Get('spaces/:spaceId')
+	async getSpace(@Param('spaceId') spaceId: string, @Req() request: Request) {
+		return this.ownerService.getSpace({ spaceId, request });
+	}
+
+	@ApiOperation({
+		summary: '매장 상태 조회',
+		description: '운영 상태(휴무/이벤트/예약)를 조회합니다.',
+	})
+	@ApiParam({ name: 'spaceId', description: '매장 ID' })
+	@Get('spaces/:spaceId/status')
+	async getSpaceStatus(
+		@Param('spaceId') spaceId: string,
+		@Req() request: Request,
+	) {
+		return this.ownerService.getSpaceStatus({ spaceId, request });
+	}
+
+	@ApiOperation({
 		summary: '매장 등록',
 		description: '새로운 매장을 등록합니다. (임시저장 상태)',
 	})
