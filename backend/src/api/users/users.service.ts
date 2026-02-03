@@ -39,6 +39,13 @@ export class UsersService {
 				appVersion: true,
 				profilePartsString: true,
 				finalProfileImageUrl: true,
+				email: true,
+				ownerName: true,
+				phoneNumber: true,
+				termsAccepted: true,
+				termsAcceptedAt: true,
+				marketingOptIn: true,
+				notificationSetupCompleted: true,
 			},
 		});
 

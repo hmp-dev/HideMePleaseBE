@@ -9,6 +9,7 @@ import {
 	IsBoolean,
 	IsObject,
 	IsArray,
+	IsDateString,
 } from 'class-validator';
 import {
 	BenefitLevel,
@@ -59,6 +60,43 @@ export class DayBenefitEntryDTO {
 	@IsOptional()
 	@IsString()
 	endTime?: string;
+}
+
+export class RegisterOwnerDTO {
+	@ApiPropertyOptional({ description: '점주 이름' })
+	@IsOptional()
+	@IsString()
+	ownerName?: string;
+
+	@ApiPropertyOptional({ description: '연락처 (휴대폰번호)' })
+	@IsOptional()
+	@IsString()
+	phoneNumber?: string;
+
+	@ApiPropertyOptional({ description: '이메일' })
+	@IsOptional()
+	@IsString()
+	email?: string;
+
+	@ApiPropertyOptional({ description: '약관 동의 여부' })
+	@IsOptional()
+	@IsBoolean()
+	termsAccepted?: boolean;
+
+	@ApiPropertyOptional({ description: '약관 동의 일시' })
+	@IsOptional()
+	@IsDateString()
+	termsAcceptedAt?: string;
+
+	@ApiPropertyOptional({ description: '마케팅 수신 동의 여부' })
+	@IsOptional()
+	@IsBoolean()
+	marketingOptIn?: boolean;
+
+	@ApiPropertyOptional({ description: '알림 설정 완료 여부' })
+	@IsOptional()
+	@IsBoolean()
+	notificationSetupCompleted?: boolean;
 }
 
 export class CreateOwnerSpaceDTO {
