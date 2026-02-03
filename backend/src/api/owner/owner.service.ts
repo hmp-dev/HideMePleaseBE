@@ -15,6 +15,7 @@ import {
 	UpdateOwnerBenefitDTO,
 	GetOwnerBenefitsQueryDTO,
 	OwnerSpaceStatusDTO,
+	RegisterOwnerDTO,
 } from '@/api/owner/owner.dto';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -122,6 +123,199 @@ export class OwnerService {
 				? this.mediaService.getUrl(space.businessRegistrationImage as any)
 				: null,
 		}));
+	}
+
+	async registerOwner({
+		registerOwnerDTO,
+		request,
+	}: {
+		registerOwnerDTO: RegisterOwnerDTO;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const data: any = {
+			isOwner: true,
+		};
+
+		if (registerOwnerDTO.ownerName !== undefined) {
+			data.ownerName = registerOwnerDTO.ownerName;
+		}
+		if (registerOwnerDTO.phoneNumber !== undefined) {
+			data.phoneNumber = registerOwnerDTO.phoneNumber;
+		}
+		if (registerOwnerDTO.email !== undefined) {
+			data.email = registerOwnerDTO.email;
+		}
+		if (registerOwnerDTO.termsAccepted !== undefined) {
+			data.termsAccepted = registerOwnerDTO.termsAccepted;
+		}
+		if (registerOwnerDTO.termsAcceptedAt) {
+			data.termsAcceptedAt = new Date(registerOwnerDTO.termsAcceptedAt);
+		}
+		if (registerOwnerDTO.marketingOptIn !== undefined) {
+			data.marketingOptIn = registerOwnerDTO.marketingOptIn;
+		}
+		if (registerOwnerDTO.notificationSetupCompleted !== undefined) {
+			data.notificationSetupCompleted =
+				registerOwnerDTO.notificationSetupCompleted;
+		}
+
+		const updated = await this.prisma.user.update({
+			where: { id: authContext.userId },
+			data,
+			select: {
+				id: true,
+				email: true,
+				ownerName: true,
+				phoneNumber: true,
+				isOwner: true,
+				termsAccepted: true,
+				termsAcceptedAt: true,
+				marketingOptIn: true,
+				notificationSetupCompleted: true,
+			},
+		});
+
+		return { success: true, user: updated };
+	}
+
+	async getSpaceStatus({
+		spaceId,
+		request,
+	}: {
+		spaceId: string;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const space = await this.prisma.space.findFirst({
+			where: {
+				id: spaceId,
+				ownerId: authContext.userId,
+				deleted: false,
+			},
+			select: {
+				isTemporarilyClosed: true,
+				eventEnabled: true,
+				reservationEnabled: true,
+				temporaryClosureReason: true,
+				temporaryClosureEndDate: true,
+			},
+		});
+
+		if (!space) {
+			throw new NotFoundException('매장을 찾을 수 없습니다');
+		}
+
+		return space;
+	}
+
+	async getSpace({
+		spaceId,
+		request,
+	}: {
+		spaceId: string;
+		request: Request;
+	}) {
+		const authContext = Reflect.get(request, 'authContext') as AuthContext;
+
+		const fileSelect = {
+			select: {
+				id: true,
+				filename_download: true,
+				filename_disk: true,
+			},
+		} as const;
+
+		const space = await this.prisma.space.findFirst({
+			where: {
+				id: spaceId,
+				ownerId: authContext.userId,
+				deleted: false,
+			},
+			select: {
+				id: true,
+				name: true,
+				nameEn: true,
+				address: true,
+				category: true,
+				storeStatus: true,
+				createdAt: true,
+				image: fileSelect,
+				photo1: fileSelect,
+				photo2: fileSelect,
+				photo3: fileSelect,
+				businessRegistrationImage: fileSelect,
+				latitude: true,
+				longitude: true,
+				addressEn: true,
+				webLink: true,
+				businessHoursStart: true,
+				businessHoursEnd: true,
+				introduction: true,
+				introductionEn: true,
+				locationDescription: true,
+				isTemporarilyClosed: true,
+				temporaryClosureReason: true,
+				temporaryClosureEndDate: true,
+				checkInEnabled: true,
+				checkInPointsOverride: true,
+				checkInRequirements: true,
+				dailyCheckInLimit: true,
+				maxCheckInCapacity: true,
+				phoneNumber: true,
+				eventEnabled: true,
+				reservationEnabled: true,
+				parkingAvailable: true,
+				valetAvailable: true,
+				groupSeatingAvailable: true,
+				highChairAvailable: true,
+				outletAvailable: true,
+				wheelchairAccessible: true,
+				noKidsZone: true,
+				petFriendly: true,
+				veganType: true,
+				veganFriendly: true,
+				wifiAvailable: true,
+				wifiSsid: true,
+				restroomLocation: true,
+				restroomGender: true,
+				smokingArea: true,
+				paymentMethods: true,
+				reservationDepositRequired: true,
+				waitlistAvailable: true,
+				maxReservationPartySize: true,
+				soldOutMenuIds: true,
+				terraceSeating: true,
+				lastOrderTime: true,
+				takeoutAvailable: true,
+				strollerStorage: true,
+			},
+		});
+
+		if (!space) {
+			throw new NotFoundException('매장을 찾을 수 없습니다');
+		}
+
+		return {
+			...space,
+			imageUrl: space.image
+				? this.mediaService.getUrl(space.image as any)
+				: null,
+			photo1Url: space.photo1
+				? this.mediaService.getUrl(space.photo1 as any)
+				: null,
+			photo2Url: space.photo2
+				? this.mediaService.getUrl(space.photo2 as any)
+				: null,
+			photo3Url: space.photo3
+				? this.mediaService.getUrl(space.photo3 as any)
+				: null,
+			businessRegistrationImageUrl: space.businessRegistrationImage
+				? this.mediaService.getUrl(space.businessRegistrationImage as any)
+				: null,
+		};
 	}
 
 	async createSpace({
