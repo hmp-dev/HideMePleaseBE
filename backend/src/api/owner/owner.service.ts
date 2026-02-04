@@ -1,6 +1,9 @@
 import {
 	BadRequestException,
+	forwardRef,
+	Inject,
 	Injectable,
+	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { DayOfWeek, ReservationStatus, StoreStatus } from '@prisma/client';
@@ -11,21 +14,27 @@ import {
 	UpdateOwnerSpaceDTO,
 	GetOwnerReservationsQueryDTO,
 	UpdateReservationStatusDTO,
+	UnifiedUpdateReservationDTO,
 	CreateOwnerBenefitDTO,
 	UpdateOwnerBenefitDTO,
 	GetOwnerBenefitsQueryDTO,
 	OwnerSpaceStatusDTO,
 	RegisterOwnerDTO,
 } from '@/api/owner/owner.dto';
+import { ReservationService } from '@/api/reservation/reservation.service';
 import { MediaService } from '@/modules/media/media.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { AuthContext } from '@/types';
 
 @Injectable()
 export class OwnerService {
+	private readonly logger = new Logger(OwnerService.name);
+
 	constructor(
 		private prisma: PrismaService,
 		private mediaService: MediaService,
+		@Inject(forwardRef(() => ReservationService))
+		private reservationService: ReservationService,
 	) {}
 
 	async getMySpaces({ request }: { request: Request }) {
@@ -763,24 +772,68 @@ export class OwnerService {
 					ownerId: authContext.userId,
 				},
 			},
+			include: {
+				space: {
+					select: {
+						name: true,
+					},
+				},
+			},
 		});
 
 		if (!reservation) {
 			throw new NotFoundException('예약을 찾을 수 없습니다');
 		}
 
+		// 이미 만료된 에이전트 예약인 경우
+		if (
+			reservation.status === ReservationStatus.EXPIRED ||
+			(reservation.expiresAt && reservation.expiresAt < new Date())
+		) {
+			throw new BadRequestException({
+				success: false,
+				error: 'RESERVATION_EXPIRED',
+				message: '응답 시간이 초과되어 이미 만료된 예약입니다.',
+			});
+		}
+
 		if (reservation.status !== ReservationStatus.PENDING) {
 			throw new BadRequestException('대기 중인 예약만 확정할 수 있습니다');
 		}
 
+		const confirmedAt = new Date();
 		const updated = await this.prisma.reservation.update({
 			where: { id: reservationId },
 			data: {
 				status: ReservationStatus.CONFIRMED,
-				confirmedAt: new Date(),
+				confirmedAt,
 				ownerMemo: updateDTO.ownerMemo,
 			},
 		});
+
+		// 에이전트 예약인 경우: 타이머 취소 + Webhook 콜백 발송
+		if (reservation.callbackUrl) {
+			this.reservationService.cancelExpirationTimer(reservationId);
+
+			await this.reservationService.sendWebhookCallback(
+				reservation.callbackUrl,
+				{
+					reservationId: reservation.id,
+					status: 'confirmed',
+					spaceId: reservation.spaceId,
+					spaceName: reservation.space.name,
+					reservationTime: reservation.reservationTime.toISOString(),
+					guestCount: reservation.guestCount,
+					guestName: reservation.guestName || undefined,
+					approvedAt: confirmedAt.toISOString(),
+					message: '예약이 승인되었습니다.',
+				},
+			);
+
+			this.logger.log(
+				`[Agent Reservation] 승인 처리 및 Webhook 발송 완료: ${reservationId}`,
+			);
+		}
 
 		return { success: true, reservation: updated };
 	}
@@ -810,6 +863,18 @@ export class OwnerService {
 			throw new NotFoundException('예약을 찾을 수 없습니다');
 		}
 
+		// 이미 만료된 에이전트 예약인 경우
+		if (
+			reservation.status === ReservationStatus.EXPIRED ||
+			(reservation.expiresAt && reservation.expiresAt < new Date())
+		) {
+			throw new BadRequestException({
+				success: false,
+				error: 'RESERVATION_EXPIRED',
+				message: '응답 시간이 초과되어 이미 만료된 예약입니다.',
+			});
+		}
+
 		if (
 			reservation.status === ReservationStatus.CANCELLED ||
 			reservation.status === ReservationStatus.COMPLETED
@@ -826,6 +891,24 @@ export class OwnerService {
 				ownerMemo: updateDTO.ownerMemo,
 			},
 		});
+
+		// 에이전트 예약인 경우: 타이머 취소 + Webhook 콜백 발송
+		if (reservation.callbackUrl) {
+			this.reservationService.cancelExpirationTimer(reservationId);
+
+			await this.reservationService.sendWebhookCallback(
+				reservation.callbackUrl,
+				{
+					reservationId: reservation.id,
+					status: 'cancelled',
+					message: '매장에서 예약을 거절했습니다.',
+				},
+			);
+
+			this.logger.log(
+				`[Agent Reservation] 거절 처리 및 Webhook 발송 완료: ${reservationId}`,
+			);
+		}
 
 		return { success: true, reservation: updated };
 	}
@@ -908,6 +991,56 @@ export class OwnerService {
 		});
 
 		return { success: true, reservation: updated };
+	}
+
+	/**
+	 * 통합 예약 상태 변경 메서드
+	 * status 값에 따라 적절한 메서드로 분기
+	 */
+	async updateReservationStatus({
+		reservationId,
+		updateDTO,
+		request,
+	}: {
+		reservationId: string;
+		updateDTO: UnifiedUpdateReservationDTO;
+		request: Request;
+	}) {
+		const statusDTO: UpdateReservationStatusDTO = {
+			ownerMemo: updateDTO.ownerMemo,
+			cancelReason: updateDTO.cancelReason,
+		};
+
+		switch (updateDTO.status) {
+			case 'confirmed':
+				return this.confirmReservation({
+					reservationId,
+					updateDTO: statusDTO,
+					request,
+				});
+			case 'cancelled':
+				return this.cancelReservationByOwner({
+					reservationId,
+					updateDTO: statusDTO,
+					request,
+				});
+			case 'completed':
+				return this.completeReservation({
+					reservationId,
+					updateDTO: statusDTO,
+					request,
+				});
+			case 'no_show':
+				return this.noShowReservation({
+					reservationId,
+					updateDTO: statusDTO,
+					request,
+				});
+			default:
+				throw new BadRequestException(
+					`잘못된 상태 값입니다: ${updateDTO.status}`,
+				);
+		}
 	}
 
 	async getDashboard({ request }: { request: Request }) {

@@ -1250,6 +1250,7 @@ enum ReservationStatus {
   CANCELLED
   COMPLETED
   NO_SHOW
+  EXPIRED
 }
 
 enum VeganType {
@@ -1287,6 +1288,10 @@ model Reservation {
   confirmedAt     DateTime?
   cancelledAt     DateTime?
   cancelReason    String?
+  // AI 에이전트 예약 관련 필드
+  agentName       String?           // AI 에이전트 이름 (Gemini, ChatGPT 등)
+  callbackUrl     String?           // 결과 전송용 Webhook URL
+  expiresAt       DateTime?         // 응답 만료 시간 (요청 시점 + 5분)
   space           Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
 

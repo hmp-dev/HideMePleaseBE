@@ -5,6 +5,7 @@ import {
 	IsOptional,
 	IsDateString,
 	IsEnum,
+	IsUrl,
 	Min,
 	Max,
 } from 'class-validator';
@@ -149,4 +150,75 @@ export class ReservationListResponse {
 		total: number;
 		totalPages: number;
 	};
+}
+
+// ==========================================
+// AI 에이전트용 예약 DTO
+// ==========================================
+
+export class CreateAgentReservationDTO {
+	@ApiProperty({ description: '매장 ID' })
+	@IsString()
+	spaceId!: string;
+
+	@ApiProperty({ description: '예약 일시 (ISO 8601)' })
+	@IsDateString()
+	reservationTime!: string;
+
+	@ApiProperty({ description: '예약 인원', minimum: 1, maximum: 100 })
+	@IsNumber()
+	@Min(1)
+	@Max(100)
+	guestCount!: number;
+
+	@ApiProperty({ description: '예약자 이름' })
+	@IsString()
+	guestName!: string;
+
+	@ApiProperty({ description: '예약자 연락처' })
+	@IsString()
+	guestPhone!: string;
+
+	@ApiProperty({ description: 'AI 에이전트 이름 (예: Gemini, ChatGPT)' })
+	@IsString()
+	agentName!: string;
+
+	@ApiProperty({ description: '결과를 받을 Webhook URL' })
+	@IsUrl()
+	callbackUrl!: string;
+
+	@ApiProperty({ description: '메모/요청사항', required: false })
+	@IsOptional()
+	@IsString()
+	memo?: string;
+}
+
+export class AgentReservationResponse {
+	@ApiProperty()
+	success!: boolean;
+
+	@ApiProperty()
+	reservationId!: string;
+
+	@ApiProperty({ enum: ['pending'] })
+	status!: string;
+
+	@ApiProperty({ description: '응답 만료 시간' })
+	expiresAt!: string;
+
+	@ApiProperty()
+	message!: string;
+}
+
+// Webhook 콜백 페이로드 타입 (내부 사용)
+export interface WebhookCallbackPayload {
+	reservationId: string;
+	status: 'confirmed' | 'cancelled' | 'expired';
+	spaceId?: string;
+	spaceName?: string;
+	reservationTime?: string;
+	guestCount?: number;
+	guestName?: string;
+	approvedAt?: string;
+	message: string;
 }
