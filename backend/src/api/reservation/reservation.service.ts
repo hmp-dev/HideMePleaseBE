@@ -517,8 +517,6 @@ export class ReservationService implements OnModuleDestroy {
 		ownerFcmToken: string;
 		expiresAt: Date;
 	}) {
-		const formattedDate = this.formatReservationTime(reservation.reservationTime);
-
 		try {
 			await this.firebaseService.sendNotifications({
 				notification: {
