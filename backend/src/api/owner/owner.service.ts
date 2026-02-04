@@ -560,9 +560,24 @@ export class OwnerService {
 			data.temporaryClosureEndDate = new Date(data.temporaryClosureEndDate);
 		}
 
-		// APPROVED 상태의 매장을 수정하면 재심사 필요 (DRAFT로 변경)
+		// 재심사가 필요한 크리티컬 필드 목록
+		const criticalFields = [
+			'name',
+			'businessRegistrationImageId',
+			'address',
+		];
+
+		// APPROVED 상태에서 크리티컬 필드가 변경된 경우에만 PENDING(심사중)으로 전환
 		if (space.storeStatus === StoreStatus.APPROVED) {
-			data.storeStatus = StoreStatus.DRAFT;
+			const hasCriticalChange = criticalFields.some(
+				(field) =>
+					updateSpaceDTO[field as keyof typeof updateSpaceDTO] !== undefined &&
+					updateSpaceDTO[field as keyof typeof updateSpaceDTO] !== space[field as keyof typeof space],
+			);
+
+			if (hasCriticalChange) {
+				data.storeStatus = StoreStatus.PENDING;
+			}
 		}
 
 		const updated = await this.prisma.space.update({

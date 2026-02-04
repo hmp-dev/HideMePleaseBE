@@ -68,6 +68,18 @@ export class ReservationService implements OnModuleDestroy {
 			throw new BadRequestException('현재 예약을 받지 않는 매장입니다');
 		}
 
+		// 매장 최대 예약 가능 인원 초과 여부 체크
+		if (
+			space.maxReservationPartySize &&
+			createReservationDTO.guestCount > space.maxReservationPartySize
+		) {
+			throw new BadRequestException({
+				statusCode: 400,
+				error: 'RESERVATION_PARTY_SIZE_EXCEEDED',
+				message: `최대 예약 가능 인원(${space.maxReservationPartySize}명)을 초과했습니다.`,
+			});
+		}
+
 		const reservationTime = new Date(createReservationDTO.reservationTime);
 		if (reservationTime < new Date()) {
 			throw new BadRequestException('과거 시간으로 예약할 수 없습니다');
@@ -423,6 +435,7 @@ export class ReservationService implements OnModuleDestroy {
 				nameEn: true,
 				storeStatus: true,
 				reservationEnabled: true,
+				maxReservationPartySize: true,
 				owner: {
 					select: {
 						id: true,
@@ -438,6 +451,18 @@ export class ReservationService implements OnModuleDestroy {
 
 		if (space.storeStatus !== 'APPROVED') {
 			throw new BadRequestException('현재 예약을 받지 않는 매장입니다');
+		}
+
+		// 매장 최대 예약 가능 인원 초과 여부 체크
+		if (
+			space.maxReservationPartySize &&
+			dto.guestCount > space.maxReservationPartySize
+		) {
+			throw new BadRequestException({
+				statusCode: 400,
+				error: 'RESERVATION_PARTY_SIZE_EXCEEDED',
+				message: `최대 예약 가능 인원(${space.maxReservationPartySize}명)을 초과했습니다.`,
+			});
 		}
 
 		// 예약 시간 검증
