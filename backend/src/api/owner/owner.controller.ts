@@ -32,6 +32,7 @@ import {
 	UpdateOwnerSpaceDTO,
 	GetOwnerReservationsQueryDTO,
 	UpdateReservationStatusDTO,
+	UnifiedUpdateReservationDTO,
 	RegisterOwnerFcmTokenDTO,
 	CreateOwnerBenefitDTO,
 	UpdateOwnerBenefitDTO,
@@ -171,6 +172,27 @@ export class OwnerController {
 		return this.ownerService.getSpaceReservations({
 			spaceId,
 			query,
+			request,
+		});
+	}
+
+	@ApiOperation({
+		summary: '예약 상태 변경 (통합)',
+		description:
+			'예약 상태를 변경합니다. status 값: confirmed(승인), cancelled(거절), completed(완료), no_show(노쇼)',
+	})
+	@ApiParam({ name: 'reservationId', description: '예약 ID' })
+	@ApiResponse({ status: 200, description: '상태 변경 성공' })
+	@ApiResponse({ status: 400, description: '잘못된 요청 (이미 만료됨 등)' })
+	@Patch('reservations/:reservationId')
+	async updateReservationStatus(
+		@Param('reservationId') reservationId: string,
+		@Body() updateDTO: UnifiedUpdateReservationDTO,
+		@Req() request: Request,
+	) {
+		return this.ownerService.updateReservationStatus({
+			reservationId,
+			updateDTO,
 			request,
 		});
 	}

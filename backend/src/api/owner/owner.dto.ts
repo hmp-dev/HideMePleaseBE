@@ -710,6 +710,26 @@ export class UpdateReservationStatusDTO {
 	cancelReason?: string;
 }
 
+// 통합 예약 상태 변경 DTO
+export class UnifiedUpdateReservationDTO {
+	@ApiProperty({
+		description: '변경할 예약 상태',
+		enum: ['confirmed', 'cancelled', 'completed', 'no_show'],
+	})
+	@IsString()
+	status!: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+
+	@ApiProperty({ description: '점주 메모', required: false })
+	@IsOptional()
+	@IsString()
+	ownerMemo?: string;
+
+	@ApiProperty({ description: '취소 사유 (취소 시)', required: false })
+	@IsOptional()
+	@IsString()
+	cancelReason?: string;
+}
+
 export class OwnerSpaceResponse {
 	@ApiProperty()
 	id!: string;
@@ -819,20 +839,38 @@ export class OwnerReservationResponse {
 	contactNumber?: string;
 
 	@ApiProperty({ required: false })
+	guestName?: string;
+
+	@ApiProperty({ required: false })
 	memo?: string;
 
 	@ApiProperty({ required: false })
 	ownerMemo?: string;
 
+	@ApiProperty({ required: false, description: 'AI 에이전트 이름 (에이전트 예약인 경우)' })
+	agentName?: string;
+
+	@ApiProperty({ required: false, description: '응답 만료 시간 (에이전트 예약인 경우)' })
+	expiresAt?: Date;
+
 	@ApiProperty()
 	createdAt!: Date;
+
+	@ApiProperty({ required: false })
+	confirmedAt?: Date;
+
+	@ApiProperty({ required: false })
+	cancelledAt?: Date;
+
+	@ApiProperty({ required: false })
+	cancelReason?: string;
 
 	@ApiProperty()
 	user!: {
 		id: string;
 		nickName?: string;
 		profileImageUrl?: string;
-	};
+	} | null;
 }
 
 export class OwnerDashboardResponse {
