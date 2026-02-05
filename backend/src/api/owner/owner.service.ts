@@ -110,28 +110,84 @@ export class OwnerService {
 				lastOrderTime: true,
 				takeoutAvailable: true,
 				strollerStorage: true,
+				// SpaceBenefit 포함
+				SpaceBenefit: {
+					where: { deleted: false, active: true },
+					select: {
+						id: true,
+						description: true,
+						descriptionEn: true,
+						isRepresentative: true,
+						dayOfWeek: true,
+						level: true,
+					},
+					orderBy: [
+						{ isRepresentative: 'desc' },
+						{ createdAt: 'asc' },
+					],
+				},
 			},
 			orderBy: { createdAt: 'desc' },
 		});
 
-		return spaces.map((space) => ({
-			...space,
-			imageUrl: space.image
-				? this.mediaService.getUrl(space.image as any)
-				: null,
-			photo1Url: space.photo1
-				? this.mediaService.getUrl(space.photo1 as any)
-				: null,
-			photo2Url: space.photo2
-				? this.mediaService.getUrl(space.photo2 as any)
-				: null,
-			photo3Url: space.photo3
-				? this.mediaService.getUrl(space.photo3 as any)
-				: null,
-			businessRegistrationImageUrl: space.businessRegistrationImage
-				? this.mediaService.getUrl(space.businessRegistrationImage as any)
-				: null,
-		}));
+		// 모든 요일 목록
+		const allDays: DayOfWeek[] = [
+			DayOfWeek.MONDAY,
+			DayOfWeek.TUESDAY,
+			DayOfWeek.WEDNESDAY,
+			DayOfWeek.THURSDAY,
+			DayOfWeek.FRIDAY,
+			DayOfWeek.SATURDAY,
+			DayOfWeek.SUNDAY,
+		];
+
+		return spaces.map((space) => {
+			// 대표 혜택 또는 첫 번째 혜택 찾기
+			const representativeBenefit =
+				space.SpaceBenefit.find((b) => b.isRepresentative) ||
+				space.SpaceBenefit[0] ||
+				null;
+
+			// dayBenefits 생성: 모든 요일에 동일한 혜택 적용
+			const dayBenefits: Record<
+				string,
+				{ description: string; descriptionEn: string | null }[]
+			> = {};
+
+			if (representativeBenefit) {
+				for (const day of allDays) {
+					dayBenefits[day] = [
+						{
+							description: representativeBenefit.description,
+							descriptionEn: representativeBenefit.descriptionEn,
+						},
+					];
+				}
+			}
+
+			// SpaceBenefit 필드 제거하고 dayBenefits로 대체
+			const { SpaceBenefit, ...spaceWithoutBenefits } = space;
+
+			return {
+				...spaceWithoutBenefits,
+				imageUrl: space.image
+					? this.mediaService.getUrl(space.image as any)
+					: null,
+				photo1Url: space.photo1
+					? this.mediaService.getUrl(space.photo1 as any)
+					: null,
+				photo2Url: space.photo2
+					? this.mediaService.getUrl(space.photo2 as any)
+					: null,
+				photo3Url: space.photo3
+					? this.mediaService.getUrl(space.photo3 as any)
+					: null,
+				businessRegistrationImageUrl: space.businessRegistrationImage
+					? this.mediaService.getUrl(space.businessRegistrationImage as any)
+					: null,
+				dayBenefits,
+			};
+		});
 	}
 
 	async registerOwner({
