@@ -126,6 +126,17 @@ export class OwnerService {
 						{ createdAt: 'asc' },
 					],
 				},
+				// SpaceBusinessHours 포함
+				SpaceBusinessHours: {
+					select: {
+						dayOfWeek: true,
+						openTime: true,
+						closeTime: true,
+						breakStartTime: true,
+						breakEndTime: true,
+						isClosed: true,
+					},
+				},
 			},
 			orderBy: { createdAt: 'desc' },
 		});
@@ -165,11 +176,35 @@ export class OwnerService {
 				}
 			}
 
-			// SpaceBenefit 필드 제거하고 dayBenefits로 대체
-			const { SpaceBenefit, ...spaceWithoutBenefits } = space;
+			// businessHours 생성: 요일별 영업시간
+			const businessHours: Record<
+				string,
+				{
+					openTime: string | null;
+					closeTime: string | null;
+					breakStartTime: string | null;
+					breakEndTime: string | null;
+					isClosed: boolean;
+				}
+			> = {};
+
+			for (const hours of space.SpaceBusinessHours) {
+				if (hours.dayOfWeek) {
+					businessHours[hours.dayOfWeek] = {
+						openTime: hours.openTime,
+						closeTime: hours.closeTime,
+						breakStartTime: hours.breakStartTime,
+						breakEndTime: hours.breakEndTime,
+						isClosed: hours.isClosed,
+					};
+				}
+			}
+
+			// SpaceBenefit, SpaceBusinessHours 필드 제거하고 변환된 데이터로 대체
+			const { SpaceBenefit, SpaceBusinessHours, ...spaceWithoutRelations } = space;
 
 			return {
-				...spaceWithoutBenefits,
+				...spaceWithoutRelations,
 				imageUrl: space.image
 					? this.mediaService.getUrl(space.image as any)
 					: null,
@@ -186,6 +221,7 @@ export class OwnerService {
 					? this.mediaService.getUrl(space.businessRegistrationImage as any)
 					: null,
 				dayBenefits,
+				businessHours,
 			};
 		});
 	}
