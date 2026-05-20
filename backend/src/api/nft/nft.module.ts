@@ -17,6 +17,7 @@ import { SendbirdModule } from '@/modules/sendbird/sendbird.module';
 import { SystemConfigModule } from '@/modules/system-config/system-config.module';
 import { UnifiedNftModule } from '@/modules/unified-nft/unified-nft.module';
 import { AvalancheNftService } from '@/modules/avalanche/avalanche-nft.service';
+import { AvalancheWalletMonitorService } from '@/modules/avalanche/avalanche-wallet-monitor.service';
 
 @Module({
 	imports: [
@@ -39,6 +40,7 @@ import { AvalancheNftService } from '@/modules/avalanche/avalanche-nft.service';
 		NftCommunityService,
 		NftLevelService,
 		AvalancheNftService,
+		AvalancheWalletMonitorService,
 	],
 	exports: [
 		WelcomeNftService,

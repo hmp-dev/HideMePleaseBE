@@ -89,6 +89,25 @@ export class AvalancheNftService {
         }
     }
 
+    /**
+     * Returns the current balance of the wallet that signs minting transactions.
+     * Used by AvalancheWalletMonitorService for periodic low-balance alerts so we
+     * never wake up to "minting silently broken because the company wallet ran
+     * out of AVAX again".
+     */
+    async getMintingWalletBalance(): Promise<{
+        address: string;
+        balanceWei: bigint;
+        balanceAvax: string;
+    }> {
+        const balanceWei = await this.provider.getBalance(this.wallet.address);
+        return {
+            address: this.wallet.address,
+            balanceWei,
+            balanceAvax: ethers.formatEther(balanceWei),
+        };
+    }
+
     async deployContract({
         name,
         symbol,
