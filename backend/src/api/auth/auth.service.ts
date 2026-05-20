@@ -20,15 +20,7 @@ export class AuthService {
 		private worldcoinService: WorldcoinService,
 		private ensureUserService: EnsureUserService,
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
-	) {
-		setTimeout(() => {
-			this.jwtService
-				.signAsync({ userId: '7eaa002d-3991-491b-bca0-d2133683d582' })
-				.then(token => {
-					console.log('Test Token:', token);
-				});
-		}, 3000);
-	}
+	) {}
 
 	async firebaseLogin({
 		firebaseLoginDTO: { token },
@@ -37,8 +29,6 @@ export class AuthService {
 	}) {
 		const decodedIdToken =
 			await this.firebaseService.decodeBearerToken(token);
-
-		console.log('decodedIdToken', decodedIdToken);
 
 		const partialContext = {
 			firebaseId: decodedIdToken.uid,
