@@ -1,24 +1,92 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ethers } from 'ethers';
+import {
+    ethers,
+    FallbackProvider,
+    FetchRequest,
+    JsonRpcProvider,
+    Network,
+} from 'ethers';
 import { EnvironmentVariables } from '@/utils/env';
 import { SBT_ABI, SBT_BYTECODE, PFP_ABI } from './abi';
 
+const AVAX_CHAIN_ID = 43114;
+// Per-call HTTP timeout. The public Avalanche RPCs occasionally hang; without
+// this, ethers waits ~2 minutes before failing over.
+const RPC_TIMEOUT_MS = 8_000;
+// How long FallbackProvider waits before considering a provider stalled and
+// trying the next one.
+const RPC_STALL_MS = 1_500;
+
 @Injectable()
 export class AvalancheNftService {
-    private provider: ethers.JsonRpcProvider;
+    private readonly logger = new Logger(AvalancheNftService.name);
+    private provider: ethers.AbstractProvider;
     private wallet: ethers.Wallet;
 
     constructor(
         private configService: ConfigService<EnvironmentVariables, true>,
     ) {
-        this.provider = new ethers.JsonRpcProvider(
-            this.configService.get('AVALANCHE_RPC_URL')
-        );
+        const urls = this.resolveRpcUrls();
+        this.provider = this.buildProvider(urls);
         this.wallet = new ethers.Wallet(
             this.configService.get('AVALANCHE_PRIVATE_KEY'),
-            this.provider
+            this.provider,
         );
+    }
+
+    private resolveRpcUrls(): string[] {
+        const multi = this.configService.get('AVALANCHE_RPC_URLS' as never) as
+            | string[]
+            | undefined;
+        if (Array.isArray(multi) && multi.length > 0) {
+            return multi;
+        }
+        return [this.configService.get('AVALANCHE_RPC_URL')];
+    }
+
+    private buildProvider(urls: string[]): ethers.AbstractProvider {
+        // Pinning the network prevents ethers from issuing an extra eth_chainId
+        // probe on every request, which is both slower and a common source of
+        // "failed to detect network" errors when an RPC is misbehaving.
+        const network = Network.from(AVAX_CHAIN_ID);
+        const make = (url: string): JsonRpcProvider => {
+            const req = new FetchRequest(url);
+            req.timeout = RPC_TIMEOUT_MS;
+            return new JsonRpcProvider(req, network, {
+                staticNetwork: network,
+            });
+        };
+
+        if (urls.length === 1) {
+            this.logger.log(
+                `Avalanche RPC: single endpoint ${this.redact(urls[0])}`,
+            );
+            return make(urls[0]);
+        }
+
+        this.logger.log(
+            `Avalanche RPC: FallbackProvider with ${urls.length} endpoints [${urls.map((u) => this.redact(u)).join(', ')}]`,
+        );
+        return new FallbackProvider(
+            urls.map((url, index) => ({
+                provider: make(url),
+                priority: index + 1, // lower index → higher priority
+                stallTimeout: RPC_STALL_MS,
+                weight: 1,
+            })),
+            network,
+            { quorum: 1 },
+        );
+    }
+
+    private redact(url: string): string {
+        try {
+            const u = new URL(url);
+            return `${u.protocol}//${u.host}`;
+        } catch {
+            return url;
+        }
     }
 
     async deployContract({

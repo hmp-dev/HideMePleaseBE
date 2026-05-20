@@ -114,6 +114,23 @@ export class EnvironmentVariables {
 	@IsString()
 	AVALANCHE_RPC_URL!: string;
 
+	/**
+	 * Optional comma-separated list of Avalanche C-Chain RPC URLs.
+	 * When set with 2+ entries, the service uses ethers FallbackProvider so a
+	 * single RPC outage no longer takes down minting. When unset (or single
+	 * entry), behavior is identical to the legacy single-URL setup driven by
+	 * AVALANCHE_RPC_URL.
+	 */
+	@IsOptional()
+	@Transform(({ value }) =>
+		typeof value === 'string' && value.length > 0
+			? splitStringIntoNonBlankArray(value)
+			: undefined,
+	)
+	@IsArray()
+	@IsString({ each: true })
+	AVALANCHE_RPC_URLS?: string[];
+
 	@IsNotEmpty()
 	@IsString()
 	AVALANCHE_PRIVATE_KEY!: string;
